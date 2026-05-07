@@ -1,0 +1,201 @@
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../config/app_config.dart';
+import 'dashboard_screen.dart';
+
+class PhoneLoginScreen extends StatefulWidget {
+  const PhoneLoginScreen({super.key});
+
+  @override
+  State<PhoneLoginScreen> createState() => _PhoneLoginScreenState();
+}
+
+class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  bool _codeSent = false;
+  bool _loading = false;
+  String _verificationId = '';
+  String? _error;
+
+  Future<void> _sendOtp() async {
+    // Strip everything except digits, then drop leading 91 if user included country code
+    final digits = _phoneController.text.trim().replaceAll(RegExp(r'\D'), '');
+    final local = digits.startsWith('91') && digits.length == 12 ? digits.substring(2) : digits;
+    final phone = '+91$local';
+    debugPrint('=== sending OTP to: $phone (${phone.length} chars)');
+    setState(() { _loading = true; _error = null; });
+
+    if (kDebugMode && Platform.isIOS) {
+      try {
+        final iosInfo = await DeviceInfoPlugin().iosInfo;
+        debugPrint('=== isPhysicalDevice: ${iosInfo.isPhysicalDevice}');
+        debugPrint('=== systemName: ${iosInfo.systemName} ${iosInfo.systemVersion}');
+        if (!iosInfo.isPhysicalDevice) {
+          await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
+          debugPrint('=== appVerificationDisabledForTesting: SET');
+        } else {
+          debugPrint('=== appVerificationDisabledForTesting: SKIPPED (physical device)');
+        }
+      } catch (e) {
+        debugPrint('=== DeviceInfo error: $e');
+      }
+    }
+
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phone,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        _goToDashboard();
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        debugPrint('=== Firebase Phone Auth FAILED ===');
+        debugPrint('code: ${e.code}');
+        debugPrint('message: ${e.message}');
+        debugPrint('plugin: ${e.plugin}');
+        debugPrint('stackTrace: ${e.stackTrace}');
+        setState(() { _error = '[${e.code}] ${e.message}'; _loading = false; });
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        setState(() {
+          _verificationId = verificationId;
+          _codeSent = true;
+          _loading = false;
+        });
+      },
+      codeAutoRetrievalTimeout: (_) {},
+    );
+  }
+
+  Future<void> _verifyOtp() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId,
+        smsCode: _otpController.text.trim(),
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      _goToDashboard();
+    } on FirebaseAuthException catch (e) {
+      setState(() { _error = e.message; _loading = false; });
+    }
+  }
+
+  void _goToDashboard() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(AppConfig.current.primaryColor);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(),
+              Text(
+                AppConfig.current.appName,
+                style: GoogleFonts.inter(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your voice matters.',
+                style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 48),
+              if (!_codeSent) ...[
+                Text('Enter your mobile number',
+                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700])),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  decoration: InputDecoration(
+                    prefixText: '+91  ',
+                    hintText: '9876543210',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: color, width: 2),
+                    ),
+                    counterText: '',
+                  ),
+                ),
+              ] else ...[
+                Text('Enter the OTP sent to your number',
+                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700])),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: InputDecoration(
+                    hintText: '6-digit OTP',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: color, width: 2),
+                    ),
+                    counterText: '',
+                  ),
+                ),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 8),
+                Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : (_codeSent ? _verifyOtp : _sendOtp),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          width: 22, height: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          _codeSent ? 'Verify OTP' : 'Send OTP',
+                          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                ),
+              ),
+              if (_codeSent) ...[
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton(
+                    onPressed: () => setState(() { _codeSent = false; _otpController.clear(); }),
+                    child: Text('Change number', style: TextStyle(color: color)),
+                  ),
+                ),
+              ],
+              const Spacer(flex: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

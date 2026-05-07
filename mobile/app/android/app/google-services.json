@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "151735878015",
+    "project_id": "political-platform-19d77",
+    "storage_bucket": "political-platform-19d77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151735878015:android:707c6b21dba5593fe89a4a",
+        "android_client_info": {
+          "package_name": "com.codedtx.politicalplatform"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdCnP_28fgrtjfj1wt4J895NsPtHHBpyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

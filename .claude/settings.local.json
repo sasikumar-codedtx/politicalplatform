@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter --version)",
+      "Bash(mkdir -p /Users/sasikumar/Documents/GitHub/political-agent/mobile)",
+      "Bash(flutter create *)",
+      "Bash(cp /Users/sasikumar/Downloads/google-services.json /Users/sasikumar/Documents/GitHub/political-agent/mobile/app/android/app/google-services.json)",
+      "Bash(cp /Users/sasikumar/Downloads/GoogleService-Info.plist /Users/sasikumar/Documents/GitHub/political-agent/mobile/app/ios/Runner/GoogleService-Info.plist)",
+      "Bash(flutter pub *)",
+      "Bash(flutter devices *)",
+      "Bash(mv /Users/sasikumar/Documents/GitHub/political-agent /Users/sasikumar/Documents/GitHub/political-platform && echo \"done\")",
+      "Bash(pod install *)",
+      "Bash(ipconfig getifaddr *)"
+    ]
+  }
+}

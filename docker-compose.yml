@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  agent:
+    build: ./services/agent
+    ports:
+      - "8001:8001"
+    environment:
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - LLM_MODEL=llama3.2
+      - APP_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
