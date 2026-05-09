@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../config/app_config.dart';
-import '../services/poll_service.dart';
-import '../models/poll.dart';
+import 'create_poll_screen.dart';
 
 class PollsScreen extends StatefulWidget {
   const PollsScreen({super.key});
@@ -11,275 +9,330 @@ class PollsScreen extends StatefulWidget {
   State<PollsScreen> createState() => _PollsScreenState();
 }
 
-class _PollsScreenState extends State<PollsScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  List<Poll> _polls = [];
-  bool _loading = true;
+class _PollsScreenState extends State<PollsScreen> {
+  int _selectedTab = 0;
+  static const _tabs = ['Active Polls', 'Inactive Polls', 'My Polls'];
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _load();
-  }
+  // Track selected option per poll (pollIndex → optionIndex or null)
+  final Map<int, int?> _selected = {0: null, 1: 1, 2: 0};
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    final poll = await PollService.getDailyPoll();
-    if (mounted) setState(() { _polls = [poll]; _loading = false; });
-  }
-
-  Future<void> _vote(String pollId, String optionId) async {
-    final updated = await PollService.vote(pollId, optionId);
-    if (mounted) setState(() {
-      final idx = _polls.indexWhere((p) => p.id == pollId);
-      if (idx != -1) _polls[idx] = updated;
-    });
-  }
+  static const _polls = [
+    _PollData(
+      question: "Which issue should be the top priority for Tamil Nadu's next government?",
+      options: ['Employment opportunities', 'Water management & agriculture', 'Education & skill development', 'Infrastructure & transport'],
+      responses: 12,
+      daysLeft: 2,
+    ),
+    _PollData(
+      question: 'Which area should be prioritized for immediate development in your locality?',
+      options: ['Roads & Infrastructure', 'Drinking Water Supply', 'Government School Renovation', 'Employment opportunities'],
+      responses: 12,
+      daysLeft: 2,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final f = AppConfig.current;
-    final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final border = Color(f.borderColor);
-    final surface = Color(f.surfaceColor);
+    final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: bg,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, _) => [
-          SliverAppBar(
-            backgroundColor: bg,
-            foregroundColor: Colors.white,
-            floating: true,
-            snap: true,
-            pinned: true,
-            elevation: 0,
-            expandedHeight: 200,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _TvkBanner(
-                title: "TVK'S POLLS",
-                subtitle: "VOICE YOUR OPINION EVERY DAY.\nOUR CHOICES HELP SHAPE TOMORROW.",
-                primary: primary,
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Header(topPad: topPad),
+            const SizedBox(height: 24),
+            // Tab row — gap:16, no indicator bar, text only
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: List.generate(_tabs.length, (i) {
+                  final isActive = i == _selectedTab;
+                  return Padding(
+                    padding: EdgeInsets.only(right: i < _tabs.length - 1 ? 16 : 0),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedTab = i),
+                      child: Text(
+                        _tabs[i],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                          color: isActive ? const Color(0xFF1A1A1A) : Colors.black38,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
-              collapseMode: CollapseMode.pin,
             ),
-            bottom: TabBar(
-              controller: _tabController,
-              indicatorColor: primary,
-              indicatorWeight: 3,
-              labelColor: primary,
-              unselectedLabelColor: const Color(0xFF666666),
-              labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: GoogleFonts.inter(fontSize: 13),
-              dividerColor: border,
-              tabs: const [Tab(text: 'Active Polls'), Tab(text: 'Inactive Polls'), Tab(text: 'My Polls')],
-            ),
-          ),
-        ],
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _tabController,
-                children: [
-                  _PollList(polls: _polls, primary: primary, surface: surface, border: border, onVote: _vote),
-                  _PollList(polls: const [], primary: primary, surface: surface, border: border, onVote: _vote),
-                  _PollList(polls: const [], primary: primary, surface: surface, border: border, onVote: _vote),
-                ],
+            const SizedBox(height: 24),
+            // "My Polls" create button
+            if (_selectedTab == 2)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePollScreen())),
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE40101),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Create New Poll', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-    );
-  }
-}
-
-class _TvkBanner extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color primary;
-  const _TvkBanner({required this.title, required this.subtitle, required this.primary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFC49A00), Color(0xFF7D1400)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+            if (_selectedTab == 2) const SizedBox(height: 16),
+            // Poll cards
+            if (_selectedTab != 2)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: List.generate(_polls.length, (i) => Padding(
+                  padding: EdgeInsets.only(bottom: i < _polls.length - 1 ? 16 : 0),
+                  child: _PollCard(
+                    poll: _polls[i],
+                    selectedOption: _selected[i],
+                    onSelect: (opt) => setState(() => _selected[i] = opt),
+                    submitted: _selected[i] != null && i == 1,
+                  ),
+                )),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 16, right: 16, bottom: 16,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Center(
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                ),
-                child: const Icon(Icons.how_to_vote_rounded, color: Colors.white, size: 34),
-              ),
-            ),
-          ),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              color: primary,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
 
-class _PollList extends StatelessWidget {
-  final List<Poll> polls;
-  final Color primary;
-  final Color surface;
-  final Color border;
-  final Function(String, String) onVote;
-
-  const _PollList({required this.polls, required this.primary, required this.surface, required this.border, required this.onVote});
+class _Header extends StatelessWidget {
+  final double topPad;
+  const _Header({required this.topPad});
 
   @override
   Widget build(BuildContext context) {
-    if (polls.isEmpty) {
-      return Center(child: Text('No polls available', style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 14)));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: polls.length,
-      itemBuilder: (context, i) => _PollCard(poll: polls[i], primary: primary, surface: surface, border: border, onVote: (optionId) => onVote(polls[i].id, optionId)),
+    return SizedBox(
+      height: 234 + topPad,
+      child: Stack(
+        children: [
+          // TVK flag image
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SizedBox(
+              height: 216 + topPad,
+              child: Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover),
+            ),
+          ),
+          // Gradient: transparent at top → black at bottom
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.4, 1.0],
+                  colors: [Colors.transparent, Colors.transparent, Colors.black],
+                ),
+              ),
+            ),
+          ),
+          // Back button
+          Positioned(
+            top: 78 + topPad,
+            left: 16,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+              ),
+              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            ),
+          ),
+          // Title block
+          Positioned(
+            bottom: 0,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+                  ).createShader(bounds),
+                  child: Text(
+                    'TVK POLLS',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 34,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "TVK's Daily Polls Updates. Voice your opinion every day\nour choices help shape tomorrow.",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    color: Colors.white,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _PollCard extends StatelessWidget {
-  final Poll poll;
-  final Color primary;
-  final Color surface;
-  final Color border;
-  final ValueChanged<String> onVote;
+  final _PollData poll;
+  final int? selectedOption;
+  final ValueChanged<int?> onSelect;
+  final bool submitted;
 
-  const _PollCard({required this.poll, required this.primary, required this.surface, required this.border, required this.onVote});
+  const _PollCard({
+    required this.poll,
+    required this.selectedOption,
+    required this.onSelect,
+    required this.submitted,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final voted = poll.selectedOptionId != null;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(poll.question, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14, height: 1.4)),
-          const SizedBox(height: 14),
-          ...poll.options.map((opt) {
-            final isSelected = poll.selectedOptionId == opt.id;
-            final pct = opt.percentage(poll.totalVotes);
-            return GestureDetector(
-              onTap: voted ? null : () => onVote(opt.id),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isSelected ? primary : border),
-                  color: isSelected ? primary.withValues(alpha: 0.12) : const Color(0xFF252525),
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: Stack(
-                  children: [
-                    if (voted)
-                      FractionallySizedBox(
-                        widthFactor: pct,
-                        child: Container(
-                          height: 46,
-                          color: isSelected ? primary.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.04),
+          // Question
+          Text(
+            poll.question,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF1A1A1A),
+              letterSpacing: 0.2,
+              height: 20 / 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Options
+          ...List.generate(poll.options.length, (i) {
+            final isSelected = selectedOption == i;
+            return Padding(
+              padding: EdgeInsets.only(bottom: i < poll.options.length - 1 ? 16 : 0),
+              child: GestureDetector(
+                onTap: () => onSelect(i),
+                child: Container(
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      // Checkbox — 18×18, border or filled #2665be
+                      Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF2665BE) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                          border: isSelected
+                              ? null
+                              : Border.all(color: const Color(0xFF2665BE), width: 1),
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check, size: 14, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        poll.options[i],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: const Color(0xFF1A1A1A),
+                          letterSpacing: 0.2,
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.rectangle,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: isSelected ? primary : const Color(0xFF555555), width: 1.5),
-                              color: isSelected ? primary : Colors.transparent,
-                            ),
-                            child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 12) : null,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(opt.text, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400)),
-                          ),
-                          if (voted)
-                            Text('${(pct * 100).toStringAsFixed(0)}%', style: GoogleFonts.inter(color: isSelected ? primary : const Color(0xFF666666), fontSize: 12, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
           }),
-          if (!voted) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
+          const SizedBox(height: 16),
+          // Submit button
+          GestureDetector(
+            onTap: () {},
+            child: Container(
+              height: 42,
+              decoration: BoxDecoration(
+                color: submitted ? Colors.transparent : const Color(0xFFE40101),
+                borderRadius: BorderRadius.circular(6),
+                border: submitted ? Border.all(color: const Color(0xFF1A1A1A), width: 1) : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Submit',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: submitted ? const Color(0xFF1A1A1A) : Colors.white,
                 ),
-                child: Text('Submit', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
               ),
             ),
-          ],
-          const SizedBox(height: 8),
-          Text('${poll.totalVotes} responses | 2 Days left', style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 12)),
+          ),
+          const SizedBox(height: 16),
+          // Footer
+          Text(
+            '${poll.responses} responses | ${poll.daysLeft} Days left',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.black38,
+              letterSpacing: 0.2,
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+class _PollData {
+  final String question;
+  final List<String> options;
+  final int responses;
+  final int daysLeft;
+
+  const _PollData({
+    required this.question,
+    required this.options,
+    required this.responses,
+    required this.daysLeft,
+  });
 }

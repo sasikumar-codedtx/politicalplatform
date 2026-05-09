@@ -1,318 +1,383 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../config/app_config.dart';
+import 'member_id_screen.dart';
 
-class JoinScreen extends StatefulWidget {
+class JoinScreen extends StatelessWidget {
   const JoinScreen({super.key});
 
   @override
-  State<JoinScreen> createState() => _JoinScreenState();
-}
-
-class _JoinScreenState extends State<JoinScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _dobCtrl = TextEditingController();
-  String _gender = 'Male';
-  String _district = '';
-  bool _submitted = false;
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _dobCtrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _submitted = true);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final f = AppConfig.current;
-    final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final surface = Color(f.surfaceColor);
-    final border = Color(f.borderColor);
+    final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        title: Text(
-          f.joinCtaLabel,
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: const Color(0xFF1A1A1A)),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(color: border, height: 1),
-        ),
-      ),
-      body: _submitted ? _SuccessView(primary: primary, bg: bg) : _FormView(
-        formKey: _formKey,
-        nameCtrl: _nameCtrl,
-        dobCtrl: _dobCtrl,
-        gender: _gender,
-        district: _district,
-        primary: primary,
-        surface: surface,
-        border: border,
-        onGenderChange: (v) => setState(() => _gender = v ?? 'Male'),
-        onDistrictChange: (v) => setState(() => _district = v ?? ''),
-        onSubmit: _submit,
-        flavor: f,
-      ),
-    );
-  }
-}
-
-class _FormView extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final TextEditingController nameCtrl;
-  final TextEditingController dobCtrl;
-  final String gender;
-  final String district;
-  final Color primary;
-  final Color surface;
-  final Color border;
-  final ValueChanged<String?> onGenderChange;
-  final ValueChanged<String?> onDistrictChange;
-  final VoidCallback onSubmit;
-  final FlavorConfig flavor;
-
-  const _FormView({
-    required this.formKey, required this.nameCtrl, required this.dobCtrl,
-    required this.gender, required this.district, required this.primary,
-    required this.surface, required this.border,
-    required this.onGenderChange, required this.onDistrictChange,
-    required this.onSubmit, required this.flavor,
-  });
-
-  static const _districts = [
-    'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli',
-    'Salem', 'Tirunelveli', 'Erode', 'Vellore', 'Thoothukudi', 'Dindigul',
-    'Thanjavur', 'Ranipet', 'Sivaganga', 'Virudhunagar', 'Nagapattinam',
-    'Kancheepuram', 'Ramanathapuram', 'Cuddalore', 'Villupuram', 'Namakkal',
-  ];
-
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 13),
-      prefixIcon: Icon(icon, color: const Color(0xFF999999), size: 18),
-      filled: true,
-      fillColor: surface,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: primary, width: 1.5)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Form(
-        key: formKey,
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header card
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: primary.withValues(alpha: 0.15)),
-              ),
-              child: Row(
+            _Header(topPad: topPad),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                  // Member Details
+                  Text(
+                    'Member Details',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      letterSpacing: 0.2,
+                      height: 1.4,
                     ),
-                    child: Icon(Icons.card_membership_rounded, color: primary, size: 24),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 16),
+                  _FormField(label: 'Name', placeholder: 'Enter Name'),
+                  const SizedBox(height: 16),
+                  _FormField(label: 'Email', placeholder: 'Enter Your Email'),
+                  const SizedBox(height: 16),
+                  _FormField(label: 'Mobile Number', placeholder: 'Enter Your Mobile Number'),
+                  const SizedBox(height: 16),
+                  // DOB + Gender row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Date of Birth', style: _labelStyle),
+                            const SizedBox(height: 10),
+                            _InputBox(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('DD MM YY', style: _placeholderStyle),
+                                  const Icon(Icons.calendar_today_outlined, color: Colors.black38, size: 20),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Gender', style: _labelStyle),
+                            const SizedBox(height: 10),
+                            _InputBox(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Select Gender', style: _placeholderStyle),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black38, size: 20),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  // Location Details
+                  Text(
+                    'Location Details',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      letterSpacing: 0.2,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('District', style: _labelStyle),
+                  const SizedBox(height: 10),
+                  _InputBox(child: Text('Select District', style: _placeholderStyle)),
+                  const SizedBox(height: 16),
+                  Text('Pin Code', style: _labelStyle),
+                  const SizedBox(height: 10),
+                  _InputBox(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Become a Member',
-                          style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 15),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Join the ${flavor.partyName} movement',
-                          style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 12),
-                        ),
+                        Text('Select Pin Code', style: _placeholderStyle),
+                        const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black38, size: 20),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Booth Number', style: _labelStyle),
+                  const SizedBox(height: 10),
+                  _InputBox(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Select Booth Number', style: _placeholderStyle),
+                        const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black38, size: 20),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      "Don't know booth number?",
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFE40101),
+                        letterSpacing: 0.2,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // KYC Verification
+                  Text(
+                    'KYC Verification',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      letterSpacing: 0.2,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Attach Your KYC', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Files only upload : PDF, JPEG, PNG, JPG',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black54,
+                      letterSpacing: 0.2,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Upload box
+                  Container(
+                    height: 106,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F0F0),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.attach_file_rounded, color: Colors.black54, size: 24),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Tap to Attach Document',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black38,
+                              letterSpacing: 0.2,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Submit button
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MemberIdScreen())),
+                    child: Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE40101),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Submit and Get ID Card',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  TextStyle get _labelStyle => GoogleFonts.plusJakartaSans(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: const Color(0xFF1A1A1A),
+    letterSpacing: 0.2,
+    height: 1.4,
+  );
+
+  TextStyle get _placeholderStyle => GoogleFonts.plusJakartaSans(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: Colors.black38,
+    letterSpacing: 0.2,
+    height: 1.4,
+  );
+}
+
+class _Header extends StatelessWidget {
+  final double topPad;
+  const _Header({required this.topPad});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 216 + topPad,
+      child: Stack(
+        children: [
+          // Header image
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SizedBox(
+              height: 216 + topPad,
+              child: Image.asset('assets/images/event_3.png', fit: BoxFit.cover),
+            ),
+          ),
+          // Gradient: black at bottom → transparent (inverted)
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.4, 1.0],
+                  colors: [Colors.transparent, Colors.transparent, Colors.black],
+                ),
+              ),
+            ),
+          ),
+          // Back button
+          Positioned(
+            top: 78 + topPad,
+            left: 16,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+              ),
+              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            ),
+          ),
+          // Title block
+          Positioned(
+            bottom: 0,
+            left: 16,
+            child: SizedBox(
+              width: 300,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+                    ).createShader(bounds),
+                    child: Text(
+                      'Be Part of the Change',
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 34,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Get updates, contribute, and shape the future with us',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 16,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Text('Personal Details', style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: nameCtrl,
-              style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
-              decoration: _inputDecoration('Full Name *', Icons.person_outline_rounded),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter your full name' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: dobCtrl,
-              style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
-              readOnly: true,
-              decoration: _inputDecoration('Date of Birth *', Icons.cake_outlined),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime(2000),
-                  firstDate: DateTime(1940),
-                  lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
-                );
-                if (picked != null) {
-                  dobCtrl.text = '${picked.day}/${picked.month}/${picked.year}';
-                }
-              },
-              validator: (v) => (v == null || v.isEmpty) ? 'Select date of birth' : null,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: district.isEmpty ? null : district,
-              dropdownColor: surface,
-              style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
-              decoration: _inputDecoration('District *', Icons.location_city_outlined),
-              hint: const Text('Select District', style: TextStyle(color: Color(0xFF999999), fontSize: 13)),
-              items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-              onChanged: onDistrictChange,
-              validator: (v) => (v == null || v.isEmpty) ? 'Select your district' : null,
-            ),
-            const SizedBox(height: 16),
-            Text('Gender', style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 13, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            Row(
-              children: ['Male', 'Female', 'Other'].map((g) {
-                final isSelected = gender == g;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => onGenderChange(g),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? primary.withValues(alpha: 0.1) : surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isSelected ? primary : border),
-                      ),
-                      child: Text(
-                        g,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          color: isSelected ? primary : const Color(0xFF666666),
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Submit Application',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Your information is protected and will only be used for party membership purposes.',
-              style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 11, height: 1.5),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SuccessView extends StatelessWidget {
-  final Color primary;
-  final Color bg;
+class _FormField extends StatelessWidget {
+  final String label;
+  final String placeholder;
 
-  const _SuccessView({required this.primary, required this.bg});
+  const _FormField({required this.label, required this.placeholder});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.check_rounded, color: primary, size: 44),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Application Submitted!',
-              style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 22),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Thank you for joining the movement. Your membership application is under review.',
-              style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 14, height: 1.6),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-              child: Text('Back to Home', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF1A1A1A),
+            letterSpacing: 0.2,
+            height: 1.4,
+          ),
         ),
+        const SizedBox(height: 10),
+        _InputBox(
+          child: Text(
+            placeholder,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black38,
+              letterSpacing: 0.2,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InputBox extends StatelessWidget {
+  final Widget child;
+  const _InputBox({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(6),
       ),
+      child: child,
     );
   }
 }

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../config/app_config.dart';
 import '../models/leader.dart';
-import '../models/short_video.dart';
 import '../viewmodels/leader_viewmodel.dart';
-import 'chat_list_screen.dart';
 
 class LeaderScreen extends StatelessWidget {
   const LeaderScreen({super.key});
@@ -19,330 +16,512 @@ class LeaderScreen extends StatelessWidget {
   }
 }
 
-class _LeaderView extends StatelessWidget {
+class _LeaderView extends StatefulWidget {
   const _LeaderView();
+
+  @override
+  State<_LeaderView> createState() => _LeaderViewState();
+}
+
+class _LeaderViewState extends State<_LeaderView> {
+  int _tab = 0;
+  static const _tabs = ['About', 'Achievements', 'Media'];
 
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<LeaderViewModel>();
-    final f = AppConfig.current;
-    final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final surface = Color(f.surfaceColor);
-    final border = Color(f.borderColor);
+    final topPad = MediaQuery.of(context).padding.top;
 
-    if (vm.loading) {
-      return Scaffold(backgroundColor: bg, body: const Center(child: CircularProgressIndicator()));
+    if (vm.loading || vm.leader == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      );
     }
 
-    final leader = vm.leader;
-    if (leader == null) {
-      return Scaffold(backgroundColor: bg, body: Center(child: Text('No data', style: GoogleFonts.inter(color: const Color(0xFF999999)))));
-    }
+    final leader = vm.leader!;
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: bg,
-        body: NestedScrollView(
-          headerSliverBuilder: (context, _) => [
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1A1A1A),
-              expandedHeight: 260,
-              pinned: true,
-              elevation: 0,
-              scrolledUnderElevation: 1,
-              flexibleSpace: FlexibleSpaceBar(
-                background: _LeaderHero(leader: leader, primary: primary, surface: surface, border: border, onChat: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen()));
-                }),
-                collapseMode: CollapseMode.pin,
-              ),
-              bottom: TabBar(
-                indicatorColor: primary,
-                indicatorWeight: 2,
-                labelColor: primary,
-                unselectedLabelColor: const Color(0xFF999999),
-                labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: GoogleFonts.inter(fontSize: 13),
-                dividerColor: border,
-                tabs: const [Tab(text: 'About'), Tab(text: 'Milestones'), Tab(text: 'Media')],
-              ),
-            ),
-          ],
-          body: TabBarView(
-            children: [
-              _AboutTab(leader: leader, primary: primary, surface: surface, border: border),
-              _MilestonesTab(achievements: leader.achievements, primary: primary, surface: surface, border: border),
-              _MediaTab(media: vm.media, primary: primary, surface: surface),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LeaderHero extends StatelessWidget {
-  final Leader leader;
-  final Color primary;
-  final Color surface;
-  final Color border;
-  final VoidCallback onChat;
-
-  const _LeaderHero({required this.leader, required this.primary, required this.surface, required this.border, required this.onChat});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [primary, primary.withValues(alpha: 0.75)],
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: primary.withValues(alpha: 0.15),
-                  border: Border.all(color: primary.withValues(alpha: 0.4), width: 2),
-                ),
-                child: Icon(Icons.person_rounded, color: primary, size: 54),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(leader.name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22)),
-                    const SizedBox(height: 4),
-                    Text(leader.role, style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined, color: Colors.white.withValues(alpha: 0.65), size: 12),
-                        const SizedBox(width: 3),
-                        Text(leader.location, style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: onChat,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Hero(leader: leader, topPad: topPad),
+            const SizedBox(height: 16),
+            // Tabs
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: List.generate(_tabs.length, (i) {
+                  final isActive = i == _tab;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _tab = i),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        height: 34,
+                        margin: EdgeInsets.only(right: i < _tabs.length - 1 ? 8 : 0),
                         decoration: BoxDecoration(
-                          color: primary,
-                          borderRadius: BorderRadius.circular(20),
+                          gradient: isActive
+                              ? const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Color(0xFFE40101), Color(0x00E40101)],
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 13),
-                            const SizedBox(width: 6),
-                            Text('Ask AI', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
-                          ],
+                        alignment: Alignment.center,
+                        child: Text(
+                          _tabs[i],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                            color: isActive ? Colors.white : const Color(0xFF1A1A1A),
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  );
+                }),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            if (_tab == 0) _AboutContent(leader: leader),
+            if (_tab == 1) _AchievementsContent(leader: leader),
+            if (_tab == 2) _MediaContent(videos: vm.media),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
   }
 }
 
-class _AboutTab extends StatelessWidget {
+class _Hero extends StatelessWidget {
   final Leader leader;
-  final Color primary;
-  final Color surface;
-  final Color border;
-
-  const _AboutTab({required this.leader, required this.primary, required this.surface, required this.border});
+  final double topPad;
+  const _Hero({required this.leader, required this.topPad});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _InfoCard(title: 'Biography', body: leader.bio, primary: primary, surface: surface, border: border),
-        const SizedBox(height: 12),
-        _InfoCard(title: 'Career', body: leader.careerSummary, primary: primary, surface: surface, border: border),
-      ],
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  final String title;
-  final String body;
-  final Color primary;
-  final Color surface;
-  final Color border;
-
-  const _InfoCard({required this.title, required this.body, required this.primary, required this.surface, required this.border});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 370 + topPad,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(width: 3, height: 14, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(2))),
-              const SizedBox(width: 8),
-              Text(title, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 13)),
-            ],
+          // Black background (hero stays dark with image)
+          Container(color: Colors.black),
+          // TVK flag image (low opacity background)
+          Positioned(
+            top: 119,
+            left: 0,
+            right: 0,
+            child: Opacity(
+              opacity: 0.1,
+              child: Image.asset('assets/images/tvk_flag_bg.png', fit: BoxFit.cover, height: 199),
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(body, style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 13, height: 1.6)),
+          // Leader photo (right side, overflows screen edge like Figma)
+          Positioned(
+            left: 64,
+            top: 23,
+            right: -40,
+            height: 330,
+            child: Image.asset('assets/images/leader_vijay.png', fit: BoxFit.contain, alignment: Alignment.centerRight),
+          ),
+          // Bottom gradient for readability
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 200,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black, Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+          // Back button
+          Positioned(
+            top: 78 + topPad,
+            left: 16,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+              ),
+              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            ),
+          ),
+          // Name + title + location
+          Positioned(
+            left: 16,
+            bottom: 56,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  leader.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  leader.role,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    color: const Color(0xFFE3E9ED),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Location row
+          Positioned(
+            left: 16,
+            bottom: 28,
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  leader.location,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _MilestonesTab extends StatelessWidget {
-  final List<LeaderAchievement> achievements;
-  final Color primary;
-  final Color surface;
-  final Color border;
-
-  const _MilestonesTab({required this.achievements, required this.primary, required this.surface, required this.border});
+class _AboutContent extends StatelessWidget {
+  final Leader leader;
+  const _AboutContent({required this.leader});
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: achievements.length,
-      itemBuilder: (context, i) {
-        final a = achievements[i];
-        final isLast = i == achievements.length - 1;
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: primary.withValues(alpha: 0.15),
-                      border: Border.all(color: primary.withValues(alpha: 0.3)),
-                    ),
-                    child: Center(
-                      child: Text(a.year.substring(a.year.length > 4 ? 2 : 0), style: GoogleFonts.inter(color: primary, fontSize: 10, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                  if (!isLast)
-                    Expanded(child: Container(width: 1, color: border)),
-                ],
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: border)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(a.title, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 14)),
-                      const SizedBox(height: 4),
-                      Text(a.description, style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 13, height: 1.5)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Info card: light table
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            child: Column(
+              children: [
+                _InfoRow('Name', 'Joseph Vijay Chandrasekhar'),
+                _InfoRow('Party Position', 'President'),
+                _InfoRow('Date of Birth', '22 June 1974'),
+                _InfoRow('Age', '54'),
+                _InfoRow('Place of origin', 'Chennai, Tamil Nadu'),
+                _InfoRow('Education', 'B.A. in Visual Communication', last: true),
+              ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          // Personal Background
+          _Section(
+            title: 'Personal Background',
+            body: leader.bio,
+          ),
+          const SizedBox(height: 16),
+          // Career Summary
+          _Section(
+            title: 'Career Summary',
+            body: leader.careerSummary,
+          ),
+          const SizedBox(height: 16),
+          // Political Journey
+          _Section(
+            title: 'Political Journey',
+            body: 'From actor and philanthropist (2009, Vijay Makkal Iyakkam) to full-scale political leader (2024, TVK launch).',
+          ),
+          const SizedBox(height: 16),
+          // Major Campaigns
+          Text(
+            'Major Campaigns',
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, color: const Color(0xFF1A1A1A)),
+          ),
+          const SizedBox(height: 16),
+          _CampaignItem(
+            imagePath: 'assets/images/event_2.png',
+            text: "Led rallies in Vikravandi and Villupuram, set the party's ideology drawing inspiration from Periyar and social justice.",
+          ),
+          const SizedBox(height: 8),
+          _CampaignItem(
+            imagePath: 'assets/images/campaign_2.png',
+            text: "Led rallies in Vikravandi and Villupuram, set the party's ideology drawing inspiration from Periyar and social justice.",
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _MediaTab extends StatelessWidget {
-  final List<ShortVideo> media;
-  final Color primary;
-  final Color surface;
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool last;
 
-  const _MediaTab({required this.media, required this.primary, required this.surface});
+  const _InfoRow(this.label, this.value, {this.last = false});
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: media.length,
-      itemBuilder: (context, i) {
-        final video = media[i];
-        return Container(
-          decoration: BoxDecoration(
-            color: primary.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: primary.withValues(alpha: 0.1)),
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
           ),
-          child: Stack(
-            children: [
-              Center(child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8)]),
-                child: Icon(Icons.play_arrow_rounded, color: primary, size: 26),
-              )),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: const Color(0xFF1A1A1A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  final String title;
+  final String body;
+  const _Section({required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, color: const Color(0xFF1A1A1A))),
+        const SizedBox(height: 8),
+        Text(
+          body,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            color: Colors.black54,
+            height: 22 / 14,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CampaignItem extends StatelessWidget {
+  final String imagePath;
+  final String text;
+  const _CampaignItem({required this.imagePath, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            height: 89,
+            width: double.infinity,
+            child: Image.asset(imagePath, fit: BoxFit.cover),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          text,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            color: Colors.black54,
+            height: 22 / 14,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AchievementsContent extends StatelessWidget {
+  final Leader leader;
+  const _AchievementsContent({required this.leader});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: leader.achievements.map((a) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [Colors.white.withValues(alpha: 0.95), Colors.transparent],
+                    color: const Color(0xFFE40101).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    a.year,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFE40101),
                     ),
                   ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(video.title, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontSize: 11, fontWeight: FontWeight.w600, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 3),
-                      Text(video.duration, style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 10)),
+                      Text(
+                        a.title,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1A1A1A),
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        a.description,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          height: 1.5,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+        )).toList(),
+      ),
+    );
+  }
+}
+
+class _MediaContent extends StatelessWidget {
+  final List<dynamic> videos;
+  const _MediaContent({required this.videos});
+
+  @override
+  Widget build(BuildContext context) {
+    const cardW = 171.0;
+    const cardH = 264.0;
+    const gap = 16.0;
+    final rows = (videos.length / 2).ceil();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: List.generate(rows, (row) {
+          final leftIdx = row * 2;
+          final rightIdx = leftIdx + 1;
+          return Padding(
+            padding: EdgeInsets.only(bottom: row < rows - 1 ? gap : 0),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: cardW,
+                    height: cardH,
+                    color: const Color(0xFFEEEEEE),
+                    child: const Center(
+                      child: _PlayButton(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: gap),
+                if (rightIdx < videos.length)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: cardW,
+                      height: cardH,
+                      color: const Color(0xFFEEEEEE),
+                      child: const Center(
+                        child: _PlayButton(),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(width: cardW, height: cardH),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _PlayButton extends StatelessWidget {
+  const _PlayButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: const BoxDecoration(
+        color: Color(0xFFE40101),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
     );
   }
 }

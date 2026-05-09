@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../config/app_config.dart';
 import '../models/manifesto_plan.dart';
 import '../viewmodels/manifesto_viewmodel.dart';
+import 'manifesto_detail_screen.dart';
 
 class ManifestoScreen extends StatelessWidget {
   const ManifestoScreen({super.key});
@@ -17,165 +17,214 @@ class ManifestoScreen extends StatelessWidget {
   }
 }
 
-class _ManifestoView extends StatelessWidget {
+class _ManifestoView extends StatefulWidget {
   const _ManifestoView();
+
+  @override
+  State<_ManifestoView> createState() => _ManifestoViewState();
+}
+
+class _ManifestoViewState extends State<_ManifestoView> {
+  int _tab = 0;
+  static const _tabs = ['5-Year Plans', 'Visions', 'Goals & Achievements'];
+  static const _years = ['2026', '2027', '2028', '2029', '2030'];
+  static const _planImages = ['assets/images/plan_1.png', 'assets/images/plan_2.png'];
 
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ManifestoViewModel>();
-    final f = AppConfig.current;
-    final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final surface = Color(f.surfaceColor);
-    final border = Color(f.borderColor);
+    final topPad = MediaQuery.of(context).padding.top;
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: bg,
-        body: NestedScrollView(
-          headerSliverBuilder: (context, _) => [
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1A1A1A),
-              floating: true,
-              snap: true,
-              pinned: true,
-              elevation: 0,
-              scrolledUnderElevation: 1,
-              titleSpacing: 20,
-              title: Text('Manifesto', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF1A1A1A))),
-              bottom: TabBar(
-                indicatorColor: primary,
-                indicatorWeight: 2,
-                labelColor: primary,
-                unselectedLabelColor: const Color(0xFF999999),
-                labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: GoogleFonts.inter(fontSize: 13),
-                dividerColor: border,
-                tabs: const [Tab(text: 'Plans'), Tab(text: 'Vision')],
+    if (vm.loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Header(topPad: topPad),
+            const SizedBox(height: 16),
+            // Tabs
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: List.generate(_tabs.length, (i) {
+                  final isActive = i == _tab;
+                  return GestureDetector(
+                    onTap: () => setState(() => _tab = i),
+                    child: Container(
+                      height: 34,
+                      margin: EdgeInsets.only(right: i < _tabs.length - 1 ? 8 : 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: isActive
+                            ? const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Color(0xFFE40101), Color(0x00E40101)],
+                              )
+                            : null,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _tabs[i],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                          color: isActive ? Colors.white : const Color(0xFF1A1A1A),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
             ),
+            const SizedBox(height: 16),
+            // Year timeline
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: List.generate(_years.length, (i) {
+                  return Expanded(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 13,
+                          height: 13,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFFFAF36), width: 2),
+                            color: i == 0 ? const Color(0xFFFFAF36) : Colors.transparent,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _years[i],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: const Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Content based on selected tab
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: _tab == 0
+                    ? List.generate(vm.plans.length, (i) => Padding(
+                        padding: EdgeInsets.only(bottom: i < vm.plans.length - 1 ? 16 : 0),
+                        child: _PlanCard(
+                          plan: vm.plans[i],
+                          imagePath: _planImages[i % _planImages.length],
+                        ),
+                      ))
+                    : _tab == 1
+                        ? List.generate(vm.visions.length, (i) => Padding(
+                            padding: EdgeInsets.only(bottom: i < vm.visions.length - 1 ? 16 : 0),
+                            child: _VisionCard(vision: vm.visions[i]),
+                          ))
+                        : const [_GoalsCard()],
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
-          body: vm.loading
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  children: [
-                    _PlansTab(vm: vm, primary: primary, surface: surface, border: border),
-                    _VisionTab(visions: vm.visions, primary: primary, surface: surface, border: border),
-                  ],
-                ),
         ),
       ),
     );
   }
 }
 
-class _PlansTab extends StatelessWidget {
-  final ManifestoViewModel vm;
-  final Color primary;
-  final Color surface;
-  final Color border;
-
-  const _PlansTab({required this.vm, required this.primary, required this.surface, required this.border});
+class _Header extends StatelessWidget {
+  final double topPad;
+  const _Header({required this.topPad});
 
   @override
   Widget build(BuildContext context) {
-    final years = vm.plans.map((p) => p.year).toSet().toList()..sort();
-
-    return Column(
-      children: [
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: years.length,
-            itemBuilder: (context, i) {
-              final year = years[i];
-              final isSelected = vm.selectedYear == year;
-              return GestureDetector(
-                onTap: () => context.read<ManifestoViewModel>().selectYear(year),
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? primary : surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isSelected ? primary : border),
-                  ),
+    return SizedBox(
+      height: 234 + topPad,
+      child: Stack(
+        children: [
+          // Manifesto header image
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SizedBox(
+              height: 216 + topPad,
+              child: Image.asset('assets/images/manifesto_header.png', fit: BoxFit.cover),
+            ),
+          ),
+          // Gradient: transparent → black
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.4, 1.0],
+                  colors: [Colors.transparent, Colors.transparent, Colors.black],
+                ),
+              ),
+            ),
+          ),
+          // Back button
+          Positioned(
+            top: 78 + topPad,
+            left: 16,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+              ),
+              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            ),
+          ),
+          // Title block at bottom
+          Positioned(
+            bottom: 0,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+                  ).createShader(bounds),
                   child: Text(
-                    year,
-                    style: GoogleFonts.inter(
-                      color: isSelected ? Colors.white : const Color(0xFF666666),
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    "TVK's Manifesto",
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 34,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            itemCount: vm.plansForYear.length,
-            itemBuilder: (context, i) => _PlanCard(plan: vm.plansForYear[i], primary: primary, surface: surface, border: border),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PlanCard extends StatelessWidget {
-  final ManifestoPlan plan;
-  final Color primary;
-  final Color surface;
-  final Color border;
-
-  const _PlanCard({required this.plan, required this.primary, required this.surface, required this.border});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
+                const SizedBox(height: 4),
+                Text(
+                  'Our plans, goals & achievements for Tamil Nadu',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    color: Colors.white,
+                    height: 1.4,
+                  ),
                 ),
-                child: Text(plan.category, style: GoogleFonts.inter(color: primary, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-              ),
-              const Spacer(),
-              Text(plan.year, style: GoogleFonts.inter(color: const Color(0xFF555555), fontSize: 11)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(plan.title, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 15, height: 1.3)),
-          const SizedBox(height: 6),
-          Text(plan.description, style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 13, height: 1.5)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _Meta(icon: Icons.calendar_today_outlined, label: plan.timeline),
-              const SizedBox(width: 16),
-              _Meta(icon: Icons.account_balance_wallet_outlined, label: plan.budget),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -183,76 +232,286 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-class _Meta extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _Meta({required this.icon, required this.label});
+class _PlanCard extends StatelessWidget {
+  final ManifestoPlan plan;
+  final String imagePath;
+  const _PlanCard({required this.plan, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: const Color(0xFF999999), size: 12),
-        const SizedBox(width: 4),
-        Text(label, style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 11)),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Thumbnail with title overlay
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              height: 89,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(imagePath, fit: BoxFit.cover),
+                  ),
+                  // Bottom gradient overlay
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Title + share icon at bottom
+                  Positioned(
+                    left: 10,
+                    right: 10,
+                    bottom: 10,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            plan.title,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                              height: 1.4,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.ios_share_rounded, color: Colors.white, size: 16),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Description
+          Text(
+            plan.description,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: Colors.black54,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Timeline + Budget chips
+          Row(
+            children: [
+              _InfoChip(label: 'Timeline', value: plan.timeline),
+              const SizedBox(width: 16),
+              Expanded(child: _InfoChip(label: 'Budget', value: plan.budget, expand: true)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // See Details button
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ManifestoDetailScreen(plan: plan, imagePath: imagePath))),
+            child: Container(
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE40101),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'See Details',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _VisionTab extends StatelessWidget {
-  final List<ManifestoVision> visions;
-  final Color primary;
-  final Color surface;
-  final Color border;
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool expand;
 
-  const _VisionTab({required this.visions, required this.primary, required this.surface, required this.border});
+  const _InfoChip({required this.label, required this.value, this.expand = false});
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: visions.length,
-      itemBuilder: (context, i) {
-        final vision = visions[i];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: border),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: Colors.black54,
+              height: 1.4,
+            ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: const Color(0xFF1A1A1A),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VisionCard extends StatelessWidget {
+  final ManifestoVision vision;
+  const _VisionCard({required this.vision});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.lightbulb_outline_rounded, color: primary, size: 20),
-              ),
-              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(vision.title, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 14, height: 1.3)),
-                    const SizedBox(height: 5),
-                    Text(vision.description, style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 13, height: 1.5)),
-                    const SizedBox(height: 8),
-                    Text(vision.targetYear, style: GoogleFonts.inter(color: primary, fontSize: 11, fontWeight: FontWeight.w600)),
-                  ],
+                child: Text(
+                  vision.title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1A1A1A),
+                    letterSpacing: 0.2,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE40101).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  vision.targetYear,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFFE40101),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          Text(
+            vision.description,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: Colors.black54,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalsCard extends StatelessWidget {
+  const _GoalsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Goals & Achievements',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1A1A),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...[
+            'Free laptops/tablets for students.',
+            'Modernization of government schools & smart classrooms.',
+            'Special scholarships for rural & first-generation learners.',
+            'AI & coding labs in district-level schools.',
+            'Skill training centers linked with industry jobs.',
+          ].map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  width: 5,
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1A1A),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      color: Colors.black54,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
     );
   }
 }

@@ -166,16 +166,16 @@ class _FabMenu extends StatelessWidget {
             margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 120),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF333333)),
+              border: Border.all(color: const Color(0xFFEEEEEE)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(item.$1, color: primary, size: 18),
                 const SizedBox(width: 10),
-                Text(item.$2, style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(item.$2, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontSize: 14, fontWeight: FontWeight.w600)),
               ],
             ),
           ),

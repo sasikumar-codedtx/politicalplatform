@@ -1,169 +1,155 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../config/app_config.dart';
 import '../models/event.dart';
-import '../viewmodels/events_viewmodel.dart';
+import '../services/content_service.dart';
+import 'event_detail_screen.dart';
 
-class EventsScreen extends StatelessWidget {
+class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => EventsViewModel()..load(),
-      child: const _EventsView(),
-    );
-  }
+  State<EventsScreen> createState() => _EventsScreenState();
 }
 
-class _EventsView extends StatelessWidget {
-  const _EventsView();
+class _EventsScreenState extends State<EventsScreen> {
+  List<PartyEvent> _events = [];
+  bool _loading = true;
+
+  static const _eventImages = [
+    'assets/images/event_1.png',
+    'assets/images/event_2.png',
+    'assets/images/event_3.png',
+    'assets/images/event_4.png',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final events = await ContentService.getEvents();
+    if (mounted) setState(() { _events = events; _loading = false; });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<EventsViewModel>();
-    final f = AppConfig.current;
-    final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final border = Color(f.borderColor);
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      );
+    }
+
+    final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: bg,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, _) => [
-          SliverAppBar(
-            backgroundColor: bg,
-            foregroundColor: Colors.white,
-            floating: true,
-            snap: true,
-            pinned: true,
-            elevation: 0,
-            expandedHeight: 200,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _TvkBanner(
-                title: "NEARBY EVENTS",
-                subtitle: 'RALLIES, MEETINGS & PROGRAMMES FROM TVK.\nBE THERE. BE HEARD.',
-                primary: primary,
-              ),
-              collapseMode: CollapseMode.pin,
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                color: bg,
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Color(f.surfaceColor),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: border),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 10),
-                            const Icon(Icons.location_on_outlined, color: Color(0xFF666666), size: 16),
-                            const SizedBox(width: 6),
-                            Text('Chennai, Tamil Nadu', style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 13)),
-                            const Spacer(),
-                            const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF666666), size: 20),
-                            const SizedBox(width: 8),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Color(f.surfaceColor),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: border),
-                      ),
-                      child: const Icon(Icons.tune_rounded, color: Color(0xFF888888), size: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-        body: vm.loading
-            ? const Center(child: CircularProgressIndicator())
-            : vm.events.isEmpty
-                ? Center(child: Text('No events scheduled', style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 14)))
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: vm.events.length,
-                    itemBuilder: (context, index) {
-                      final event = vm.events[index];
-                      return _EventCard(event: event, primary: primary, border: border);
-                    },
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Header(topPad: topPad),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: List.generate(_events.length, (i) => Padding(
+                  padding: EdgeInsets.only(bottom: i < _events.length - 1 ? 16 : 0),
+                  child: _EventCard(
+                    event: _events[i],
+                    imagePath: _eventImages[i % _eventImages.length],
                   ),
+                )),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _TvkBanner extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color primary;
-  const _TvkBanner({required this.title, required this.subtitle, required this.primary});
+class _Header extends StatelessWidget {
+  final double topPad;
+  const _Header({required this.topPad});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFC49A00), Color(0xFF7D1400)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 16, right: 16, bottom: 16,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 234 + topPad,
+      child: Stack(
         children: [
-          Expanded(
-            child: Center(
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+          // TVK flag image
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SizedBox(
+              height: 216 + topPad,
+              child: Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover),
+            ),
+          ),
+          // Gradient: transparent at top → black at bottom
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.4, 1.0],
+                  colors: [Colors.transparent, Colors.transparent, Colors.black],
                 ),
-                child: const Icon(Icons.event_rounded, color: Colors.white, size: 34),
               ),
             ),
           ),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              color: primary,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              height: 1.4,
+          // Title + location row at bottom
+          Positioned(
+            bottom: 0,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+                  ).createShader(bounds),
+                  child: Text(
+                    'Nearby Events',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 34,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tirupur',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: Colors.white,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -174,166 +160,177 @@ class _TvkBanner extends StatelessWidget {
 
 class _EventCard extends StatelessWidget {
   final PartyEvent event;
-  final Color primary;
-  final Color border;
+  final String imagePath;
+  const _EventCard({required this.event, required this.imagePath});
 
-  const _EventCard({required this.event, required this.primary, required this.border});
-
-  String _monthAbbr(String date) {
-    final parts = date.split(' ');
-    return parts.isNotEmpty ? parts[0].toUpperCase().substring(0, 3) : '';
-  }
+  String _month(String date) => date.split(' ').first;
 
   String _day(String date) {
     final parts = date.split(' ');
     return parts.length > 1 ? parts[1].replaceAll(',', '') : '';
   }
 
+  String _weekday(String date) {
+    const months = {
+      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+    };
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final parts = date.split(' ');
+    if (parts.length < 3) return '';
+    final m = months[parts[0]] ?? 1;
+    final d = int.tryParse(parts[1].replaceAll(',', '')) ?? 1;
+    final y = int.tryParse(parts[2]) ?? 2026;
+    return days[DateTime(y, m, d).weekday - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailScreen(event: event, imagePath: imagePath))),
+      child: ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        height: 168,
+        child: Stack(
+          children: [
+            // Background image
+            Positioned.fill(
+              child: Image.asset(imagePath, fit: BoxFit.cover),
+            ),
+            // Gradient overlay: transparent maroon → #a23435
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x00A23435), Color(0xFFA23435)],
+                  ),
+                ),
+              ),
+            ),
+            // Content: date box + info at left:16, top:104
+            Positioned(
+              left: 16,
+              top: 104,
+              right: 16,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DateBox(
+                    month: _month(event.date),
+                    day: _day(event.date),
+                    weekday: _weekday(event.date),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.title,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              event.location,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: Colors.white,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      ),
+    );
+  }
+}
+
+class _DateBox extends StatelessWidget {
+  final String month;
+  final String day;
+  final String weekday;
+
+  const _DateBox({required this.month, required this.day, required this.weekday});
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      width: 41,
+      height: 48,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 4))],
       ),
-      clipBehavior: Clip.hardEdge,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Full-bleed image area
-          SizedBox(
-            height: 160,
-            child: Stack(
-              children: [
-                // Background gradient (placeholder for actual image)
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        primary.withValues(alpha: 0.6),
-                        const Color(0xFF0A0A0A),
-                      ],
-                    ),
-                  ),
-                ),
-                // Event type badge top-right
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      event.type.toUpperCase(),
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.8),
-                    ),
-                  ),
-                ),
-                // Bottom overlay: date box + title + location
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [Colors.black.withValues(alpha: 0.75), Colors.transparent],
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // White date box
-                        Container(
-                          width: 44,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                _monthAbbr(event.date),
-                                style: GoogleFonts.inter(color: primary, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5),
-                              ),
-                              Text(
-                                _day(event.date),
-                                style: GoogleFonts.inter(color: const Color(0xFF111111), fontSize: 20, fontWeight: FontWeight.w900, height: 1.1),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                event.title,
-                                style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700, height: 1.25),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on_rounded, color: Colors.white70, size: 11),
-                                  const SizedBox(width: 3),
-                                  Expanded(
-                                    child: Text(
-                                      event.location,
-                                      style: GoogleFonts.inter(color: Colors.white70, fontSize: 11),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          // Red month header
+          Container(
+            width: 41,
+            height: 18,
+            decoration: const BoxDecoration(
+              color: Color(0xFFA23435),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              month,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 8,
+                color: Colors.white,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
-          // Bottom detail row
-          Container(
-            color: const Color(0xFF1E1E1E),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Row(
+          // Day number
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.access_time_rounded, color: Color(0xFF666666), size: 13),
-                const SizedBox(width: 4),
-                Text(event.time, style: GoogleFonts.inter(color: const Color(0xFF888888), fontSize: 12)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    event.description,
-                    style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 11, height: 1.3),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  day,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                    height: 1,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: primary,
-                    borderRadius: BorderRadius.circular(16),
+                Text(
+                  weekday,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black.withValues(alpha: 0.3),
+                    letterSpacing: 0.2,
                   ),
-                  child: Text('RSVP', style: GoogleFonts.inter(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
               ],
             ),

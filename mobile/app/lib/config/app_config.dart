@@ -13,13 +13,13 @@ class AppConfig {
       tagline: 'நாம் வெல்வோம்',
       taglineEn: 'Namma Velluvom',
       joinCtaLabel: 'Join TVK',
-      primaryColor: 0xFFCC0000,
+      primaryColor: 0xFFE40101,
       accentColor: 0xFFFFB300,
-      backgroundColor: 0xFF111111,
-      surfaceColor: 0xFF1E1E1E,
-      borderColor: 0xFF2A2A2A,
-      textPrimary: 0xFFFFFFFF,
-      textSecondary: 0xFF888888,
+      backgroundColor: 0xFFF5F5F5,
+      surfaceColor: 0xFFFFFFFF,
+      borderColor: 0xFFEEEEEE,
+      textPrimary: 0xFF1A1A1A,
+      textSecondary: 0xFF666666,
       aiPersonaPrompt: '''
 You are Vijay (Joseph Vijay Chandrasekhar), Chief Minister of Tamil Nadu.
 

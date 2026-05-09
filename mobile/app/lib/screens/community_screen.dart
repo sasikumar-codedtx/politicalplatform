@@ -1,89 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../config/app_config.dart';
+import 'post_detail_screen.dart';
+import 'create_post_screen.dart';
 
-class CommunityScreen extends StatelessWidget {
+class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
 
-  static const List<_Post> _posts = [
-    _Post(author: 'Murugan K.', handle: '@murugank', location: 'Coimbatore', text: 'Great work by CM Vijay on the new road development scheme in our district!', time: '2h ago', likes: 124, comments: 18),
-    _Post(author: 'Priya S.', handle: '@priyas', location: 'Chennai', text: 'The digital classroom initiative has completely transformed how kids learn in our village.', time: '4h ago', likes: 89, comments: 11),
-    _Post(author: 'Selvam R.', handle: '@selvamr', location: 'Madurai', text: 'Attended the TVK rally today. The energy was incredible. நாம் வெல்வோம்!', time: '6h ago', likes: 210, comments: 45),
-    _Post(author: 'Kavitha M.', handle: '@kavitham', location: 'Salem', text: 'Free bus passes for women scheme has been life-changing for my daily commute.', time: '8h ago', likes: 156, comments: 23),
+  @override
+  State<CommunityScreen> createState() => _CommunityScreenState();
+}
+
+class _CommunityScreenState extends State<CommunityScreen> {
+  int _selectedCat = 0;
+  static const _categories = ['All', 'Popular', 'My Posts', 'Followings'];
+
+  static const _posts = [
+    _PostData(
+      author: 'TVK Vijay_Madurai',
+      role: 'Volunteer',
+      isHashtag: true,
+      text: '#தமிழக வெற்றிக் கழகம்\n#TVK Vijay',
+      hasImage: true,
+      imageHeight: 220,
+      date: 'Jun 4, 2024',
+    ),
+    _PostData(
+      author: 'TVK Thozhar',
+      role: 'Volunteer',
+      isHashtag: false,
+      text: "Congratulations to Hon'ble @Thiru.RahulGandhi Avargal for being unanimously elected by @INC India and its allies as Leader of Opposition in the Lok Sabha.",
+      hasImage: true,
+      imageHeight: 220,
+      date: 'Jun 4, 2024',
+    ),
+    _PostData(
+      author: 'TVK Official',
+      role: 'Volunteer',
+      isHashtag: false,
+      text: 'Tamilaga Vettri Kazhagam: Flag Anthem | தமிழக வெற்றிக் கழகம்: கொடிப் பாடல்\n\nhttps://youtu.be/as86Klk5qUE\n\nநாடெங்கும் நமது கொடி பறக்கும்.\n\n#TVKFlagAnthem #ThalaivarVijay',
+      hasImage: true,
+      imageHeight: 200,
+      date: 'Jun 4, 2024',
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final f = AppConfig.current;
-    final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final surface = Color(f.surfaceColor);
-    final border = Color(f.borderColor);
+    final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: bg,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, _) => [
-          SliverAppBar(
-            backgroundColor: bg,
-            foregroundColor: Colors.white,
-            floating: true,
-            snap: true,
-            pinned: true,
-            elevation: 0,
-            expandedHeight: 200,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _TvkBanner(
-                title: "TVK FORUM",
-                subtitle: 'VOICES OF TAMIL NADU. SHARE YOUR THOUGHTS,\nSTORIES, AND SUPPORT.',
-                primary: primary,
-              ),
-              collapseMode: CollapseMode.pin,
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(height: 1, color: border),
-            ),
-          ),
-        ],
-        body: ListView(
-          padding: EdgeInsets.zero,
+      backgroundColor: const Color(0xFFF5F5F5),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePostScreen())),
+        backgroundColor: const Color(0xFFE40101),
+        child: const Icon(Icons.edit_rounded, color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Post compose strip
-            Container(
-              color: surface,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
+            _Header(topPad: topPad),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: primary.withValues(alpha: 0.15),
-                    ),
-                    child: Center(child: Icon(Icons.person_rounded, color: primary, size: 20)),
+                  _SearchBar(),
+                  const SizedBox(height: 24),
+                  _CategoryTabs(
+                    selected: _selectedCat,
+                    onSelect: (i) => setState(() => _selectedCat = i),
+                    labels: _categories,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A2A),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text("What's on your mind?", style: GoogleFonts.inter(color: const Color(0xFF555555), fontSize: 13)),
-                    ),
-                  ),
+                  const SizedBox(height: 24),
+                  ..._posts.map((p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: _PostCard(post: p),
+                  )),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-            Container(height: 1, color: border),
-            // Posts feed
-            ..._posts.map((p) => _PostCard(post: p, primary: primary, border: border)),
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -91,179 +89,300 @@ class CommunityScreen extends StatelessWidget {
   }
 }
 
-class _TvkBanner extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color primary;
-  const _TvkBanner({required this.title, required this.subtitle, required this.primary});
+class _Header extends StatelessWidget {
+  final double topPad;
+  const _Header({required this.topPad});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFC49A00), Color(0xFF7D1400)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 16, right: 16, bottom: 16,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 234 + topPad,
+      child: Stack(
         children: [
-          Expanded(
-            child: Center(
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+          // TVK flag image
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SizedBox(
+              height: 216 + topPad,
+              child: Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover),
+            ),
+          ),
+          // Gradient: transparent at top → black at bottom
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.4, 1.0],
+                  colors: [Colors.transparent, Colors.transparent, Colors.black],
                 ),
-                child: const Icon(Icons.people_rounded, color: Colors.white, size: 34),
               ),
             ),
           ),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              color: primary,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              height: 1.4,
+          // Title block at bottom
+          Positioned(
+            bottom: 0,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+                  ).createShader(bounds),
+                  child: Text(
+                    'Community Wall',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 34,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Share your opinions, posts & Follow our influencers',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    color: Colors.white,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search_rounded, color: Colors.black38, size: 20),
+          const SizedBox(width: 10),
+          Text(
+            'Search',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black38,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryTabs extends StatelessWidget {
+  final int selected;
+  final ValueChanged<int> onSelect;
+  final List<String> labels;
+
+  const _CategoryTabs({required this.selected, required this.onSelect, required this.labels});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(labels.length, (i) {
+        final isActive = i == selected;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onSelect(i),
+            child: Container(
+              height: 34,
+              margin: EdgeInsets.only(right: i < labels.length - 1 ? 8 : 0),
+              decoration: BoxDecoration(
+                gradient: isActive
+                    ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFE40101), Color(0x00E40101)],
+                      )
+                    : null,
+                borderRadius: BorderRadius.circular(isActive ? 8 : 6),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                labels[i],
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                  color: isActive ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }
 
 class _PostCard extends StatelessWidget {
-  final _Post post;
-  final Color primary;
-  final Color border;
-  const _PostCard({required this.post, required this.primary, required this.border});
+  final _PostData post;
+  const _PostCard({required this.post});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: border, width: 0.5)),
-      ),
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(
+        author: post.author,
+        role: post.role,
+        text: post.text,
+        hasImage: post.hasImage,
+        date: post.date,
+      ))),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(post.author[0], style: GoogleFonts.inter(color: primary, fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header row
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar — 38×38 white rounded-[10px]
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEEEEE),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(post.author, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-                        const SizedBox(width: 6),
-                        Text(post.handle, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
-                        const SizedBox(width: 6),
-                        Text('· ${post.time}', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666))),
-                      ],
+              child: const Icon(Icons.person_rounded, color: Color(0xFF333333), size: 22),
+            ),
+            const SizedBox(width: 12),
+            // Name + badge
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.author,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      letterSpacing: 0.2,
+                      height: 1.4,
                     ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 10, color: Color(0xFF555555)),
-                        const SizedBox(width: 2),
-                        Text(post.location, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF555555))),
-                      ],
-                    ),
-                  ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text(
+                        post.role,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          letterSpacing: 0.2,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Follow button — bg-[#e40101] px:18 py:6 rounded-[6px]
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE40101),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Follow',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  border: Border.all(color: primary.withValues(alpha: 0.6)),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text('Follow', style: GoogleFonts.inter(color: primary, fontSize: 12, fontWeight: FontWeight.w600)),
-              ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Post text
+        Text(
+          post.text,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: post.isHashtag ? const Color(0xFF256CD0) : const Color(0xFF1A1A1A),
+            height: 23 / 15,
           ),
-          const SizedBox(height: 10),
-          // Post text
-          Text(post.text, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFDDDDDD), height: 1.5)),
-          const SizedBox(height: 12),
-          // Action row
-          Row(
-            children: [
-              _ActionBtn(icon: Icons.chat_bubble_outline_rounded, label: '${post.comments}', color: const Color(0xFF666666)),
-              const SizedBox(width: 20),
-              _ActionBtn(icon: Icons.repeat_rounded, label: 'Share', color: const Color(0xFF666666)),
-              const SizedBox(width: 20),
-              _ActionBtn(icon: Icons.favorite_border_rounded, label: '${post.likes}', color: const Color(0xFF666666)),
-            ],
+        ),
+        const SizedBox(height: 16),
+        // Post image placeholder
+        if (post.hasImage)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              height: post.imageHeight,
+              color: const Color(0xFFEEEEEE),
+              child: const Icon(Icons.image_outlined, color: Colors.black38, size: 40),
+            ),
           ),
-        ],
+        if (post.hasImage) const SizedBox(height: 6),
+        // Date
+        Text(
+          post.date,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            color: Colors.black38,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Action row
+        Row(
+          children: [
+            const Icon(Icons.favorite_border_rounded, size: 20, color: Colors.black54),
+            const SizedBox(width: 16),
+            const Icon(Icons.chat_bubble_outline_rounded, size: 20, color: Colors.black54),
+            const SizedBox(width: 16),
+            const Icon(Icons.repeat_rounded, size: 20, color: Colors.black54),
+            const Spacer(),
+            const Icon(Icons.ios_share_rounded, size: 20, color: Colors.black54),
+          ],
+        ),
+      ],
       ),
     );
   }
 }
 
-class _ActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _ActionBtn({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 5),
-        Text(label, style: GoogleFonts.inter(fontSize: 12, color: color)),
-      ],
-    );
-  }
-}
-
-class _Post {
+class _PostData {
   final String author;
-  final String handle;
-  final String location;
+  final String role;
+  final bool isHashtag;
   final String text;
-  final String time;
-  final int likes;
-  final int comments;
-  const _Post({required this.author, required this.handle, required this.location, required this.text, required this.time, required this.likes, required this.comments});
+  final bool hasImage;
+  final double imageHeight;
+  final String date;
+
+  const _PostData({
+    required this.author,
+    required this.role,
+    required this.isHashtag,
+    required this.text,
+    required this.hasImage,
+    required this.imageHeight,
+    required this.date,
+  });
 }
