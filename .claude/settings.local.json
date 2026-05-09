@@ -10,7 +10,18 @@
       "Bash(flutter devices *)",
       "Bash(mv /Users/sasikumar/Documents/GitHub/political-agent /Users/sasikumar/Documents/GitHub/political-platform && echo \"done\")",
       "Bash(pod install *)",
-      "Bash(ipconfig getifaddr *)"
+      "Bash(ipconfig getifaddr *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "Bash(flutter analyze *)",
+      "mcp__Figma__get_metadata",
+      "mcp__Figma__get_screenshot",
+      "mcp__Figma__get_design_context"
     ]
   }
 }

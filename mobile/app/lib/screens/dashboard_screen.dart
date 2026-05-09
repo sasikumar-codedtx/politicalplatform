@@ -85,10 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(
             icon: const Icon(Icons.logout, size: 20),
             tooltip: 'Sign out',
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) Navigator.pushReplacementNamed(context, '/');
-            },
+            onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),

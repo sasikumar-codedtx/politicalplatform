@@ -21,6 +21,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+    persona: str | None = None  # flavor-specific system prompt, used only on session init
 
 
 class ChatResponse(BaseModel):
@@ -53,7 +54,7 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=400, detail="message cannot be empty")
 
     try:
-        reply = get_reply(req.session_id, req.message)
+        reply = get_reply(req.session_id, req.message, req.persona)
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Agent error: {str(e)}")
 

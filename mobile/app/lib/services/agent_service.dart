@@ -14,7 +14,11 @@ class AgentService {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'session_id': sessionId, 'message': message}),
+      body: jsonEncode({
+        'session_id': sessionId,
+        'message': message,
+        'persona': AppConfig.current.aiPersonaPrompt,
+      }),
     ).timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {

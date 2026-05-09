@@ -234,7 +234,8 @@ These rules are non-negotiable. Every session must follow them.
 
 | Flavour ID | Primary Colour | App Name |
 |---|---|---|
-| india-pm | #138808 (Indian flag green) | India PM |
+| tn-tvk | #E53935 (red) | TVK |
+| india-pm | #19AAED (INC sky blue) | India PM |
 
 Add new flavours in `app_config.dart` only. Never use real client names in code.
 
@@ -250,3 +251,7 @@ Add new flavours in `app_config.dart` only. Never use real client names in code.
 | 2026-05-07 | Firebase upgraded to firebase_core 4.7.0 + firebase_auth 6.4.0 (Firebase SDK 12.x, iOS 26 compat) | pubspec.yaml, Podfile |
 | 2026-05-07 | Dynamic LAN IP fix — updated API URL to 192.168.1.37 | app_config.dart |
 | 2026-05-07 | Added device_info_plus — correct simulator detection for appVerificationDisabledForTesting | pubspec.yaml, phone_login_screen.dart |
+| 2026-05-08 | Full app built — 13 screens across 5 tabs (Home, Chat, News, Services, Profile). Splash + Onboarding. inc.in design cloned. Theme system. Flavor extended with partyName/leaderName/tagline/aiPersona. Primary color corrected to #19AAED | app_config.dart, app_theme.dart, app_assets.dart, main.dart, splash_screen.dart, onboarding_screen.dart, main_shell.dart, home_screen.dart, chat_list_screen.dart, news_screen.dart, issues_screen.dart, leader_screen.dart, manifesto_screen.dart, services_screen.dart, community_screen.dart, profile_screen.dart, pubspec.yaml |
+| 2026-05-08 | AI persona moved to flavor config — each brand sends its own system prompt on session init. Backend accepts optional persona field, falls back to DEFAULT_PERSONA. persona.py made generic. | persona.py, agent.py, main.py, agent_service.dart, app_config.dart |
+| 2026-05-08 | Full dark-theme rebuild — MVVM pattern, two flavors (tn-tvk + india-pm), mock data via ContentService/PollService, provider added. All screens rebuilt: HomeScreen (hero+news+poll+events+shorts), NewsScreen (search+filter), ManifestoScreen (plans+vision tabs), LeaderScreen (about+milestones+media), EventsScreen, JoinScreen, ShortsScreen, ProfileScreen, ChatListScreen, ChatScreen. MainShell center-FAB dark nav. FlavorConfig extended with dark tokens. | pubspec.yaml, app_config.dart, models/*, services/content_service.dart, services/poll_service.dart, viewmodels/*, screens/* |
+| 2026-05-08 | Full light-theme migration — TVK formed govt, app is now Tamil Nadu Government app. All screens converted from dark to light: white AppBars, #F5F5F5 background, #1A1A1A text, no black anywhere. FlavorConfig updated with govtName + textPrimary/textSecondary. New screens: PollsScreen, CommunityScreen (forum posts). Onboarding slides updated to TVK red. Splash gradient updated. Chat bubbles white/red. Input bar white. | app_config.dart, app_theme.dart, main_shell.dart, home_screen.dart, news_screen.dart, events_screen.dart, polls_screen.dart, join_screen.dart, shorts_screen.dart, community_screen.dart, profile_screen.dart, chat_list_screen.dart, chat_screen.dart, manifesto_screen.dart, leader_screen.dart, services_screen.dart, onboarding_screen.dart, splash_screen.dart, issues_screen.dart |

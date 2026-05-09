@@ -47,7 +47,6 @@ class _ChatScreenState extends State<ChatScreen> {
       final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
       await ChatStorage.saveMessage(widget.session.id, aiMsg);
 
-      // Update session title from first message
       final isFirstMessage = _messages.length <= 2;
       final updatedSession = ChatSession(
         id: widget.session.id,
@@ -85,19 +84,43 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(AppConfig.current.primaryColor);
+    final f = AppConfig.current;
+    final color = Color(f.primaryColor);
+    final bg = Color(f.backgroundColor);
+    final border = Color(f.borderColor);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
-        title: Text(
-          widget.session.title,
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        scrolledUnderElevation: 1,
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.person_rounded, color: color, size: 18),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.session.title,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: const Color(0xFF1A1A1A)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(color: border, height: 1),
         ),
       ),
       body: Column(
@@ -108,11 +131,24 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome, size: 48, color: color.withOpacity(0.3)),
-                        const SizedBox(height: 12),
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.auto_awesome, size: 36, color: color.withValues(alpha: 0.6)),
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           'What\'s on your mind?',
-                          style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 15),
+                          style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 15, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Ask CM Vijay anything',
+                          style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 13),
                         ),
                       ],
                     ),
@@ -151,15 +187,14 @@ class _ChatScreenState extends State<ChatScreen> {
             bottomLeft: Radius.circular(isUser ? 16 : 4),
             bottomRight: Radius.circular(isUser ? 4 : 16),
           ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6, offset: const Offset(0, 2))
-          ],
+          border: isUser ? null : Border.all(color: const Color(0xFFE8E8E8)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
         ),
         child: Text(
           msg.content,
           style: GoogleFonts.inter(
             fontSize: 14,
-            color: isUser ? Colors.white : Colors.black87,
+            color: isUser ? Colors.white : const Color(0xFF1A1A1A),
             height: 1.5,
           ),
         ),
@@ -181,9 +216,8 @@ class _ChatScreenState extends State<ChatScreen> {
             bottomRight: Radius.circular(16),
             bottomLeft: Radius.circular(4),
           ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6, offset: const Offset(0, 2))
-          ],
+          border: Border.all(color: const Color(0xFFE8E8E8)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -213,11 +247,17 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputBar(Color color) {
+    final f = AppConfig.current;
+    final border = Color(f.borderColor);
+
     return Container(
       color: Colors.white,
       padding: EdgeInsets.only(
-        left: 16, right: 8, top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        left: 16, right: 8, top: 10,
+        bottom: MediaQuery.of(context).padding.bottom + 10,
+      ),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: border)),
       ),
       child: Row(
         children: [
@@ -226,17 +266,20 @@ class _ChatScreenState extends State<ChatScreen> {
               controller: _controller,
               maxLines: 4,
               minLines: 1,
+              style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: 'Type your message...',
-                hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+                hintStyle: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 14),
+                filled: true,
+                fillColor: const Color(0xFFF5F5F5),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: Colors.grey[200]!),
+                  borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: Colors.grey[200]!),
+                  borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -251,12 +294,12 @@ class _ChatScreenState extends State<ChatScreen> {
           GestureDetector(
             onTap: _sendMessage,
             child: Container(
-              width: 46, height: 46,
+              width: 44, height: 44,
               decoration: BoxDecoration(
-                color: _thinking ? Colors.grey[300] : color,
+                color: _thinking ? const Color(0xFFE0E0E0) : color,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              child: Icon(Icons.send_rounded, color: _thinking ? const Color(0xFF999999) : Colors.white, size: 20),
             ),
           ),
         ],

@@ -1,7 +1,7 @@
 import httpx
 import os
 from dotenv import load_dotenv
-from persona import LEADER_PERSONA
+from persona import DEFAULT_PERSONA
 
 load_dotenv("../../.env")
 
@@ -12,10 +12,11 @@ LLM_MODEL  = os.getenv("LLM_MODEL", "llama3.2")
 sessions: dict[str, list] = {}
 
 
-def get_reply(session_id: str, user_message: str) -> str:
+def get_reply(session_id: str, user_message: str, persona: str | None = None) -> str:
     if session_id not in sessions:
+        resolved_persona = persona.strip() if persona and persona.strip() else DEFAULT_PERSONA
         sessions[session_id] = [
-            {"role": "system", "content": LEADER_PERSONA}
+            {"role": "system", "content": resolved_persona}
         ]
 
     sessions[session_id].append({
