@@ -152,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
+                                      color: Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     )
@@ -162,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 8),
                                   leading: CircleAvatar(
-                                    backgroundColor: color.withOpacity(0.1),
+                                    backgroundColor: color.withValues(alpha: 0.1),
                                     child: Icon(Icons.chat, color: color, size: 20),
                                   ),
                                   title: Text(

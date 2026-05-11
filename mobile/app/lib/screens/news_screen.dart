@@ -14,7 +14,6 @@ class NewsScreen extends StatefulWidget {
 class _NewsScreenState extends State<NewsScreen> {
   List<NewsItem> _news = [];
   bool _loading = true;
-  int _selectedCat = 0;
 
   @override
   void initState() {
@@ -29,41 +28,281 @@ class _NewsScreenState extends State<NewsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+
     if (_loading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+        backgroundColor: Color(0xFFF6F6F6),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF9F1D1F))),
       );
     }
 
+    // Split news into sections based on category / order
+    final speeches = _news.where((n) => n.category == 'Party' || n.category == 'Statement').take(1).toList();
+    final highlights = _news.where((n) => n.category != 'Party' && n.category != 'Statement').take(2).toList();
+    final tweets = _news.skip(3).take(1).toList();
+
+    // Fallback: if filtering is sparse, use all
+    final speechList = speeches.isNotEmpty ? speeches : _news.take(1).toList();
+    final highlightList = highlights.isNotEmpty ? highlights : (_news.length > 1 ? _news.sublist(1, 3) : []);
+    final tweetList = tweets.isNotEmpty ? tweets : (_news.length > 3 ? _news.sublist(3, 4) : []);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TvkHeader(
-              title: "TVK's NEWS",
-              subtitle: 'Stay informed with real-time news, announcements, and progress from TVK.',
-            ),
-            const SizedBox(height: 30),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+      backgroundColor: const Color(0xFFF6F6F6),
+      body: Column(
+        children: [
+          // ── App Bar ──────────────────────────────────────────────
+          _AppBar(topPad: topPad),
+          // ── Content ──────────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SearchBar(),
-                  const SizedBox(height: 24),
-                  _CategoryTabs(
-                    selected: _selectedCat,
-                    onSelect: (i) => setState(() => _selectedCat = i),
-                  ),
-                  const SizedBox(height: 24),
-                  ..._news.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _NewsCard(item: item),
+                  // TVK Leader Speeches section
+                  _SectionTitle(title: "TVK Leader Mr. Vijay's Speeches"),
+                  const SizedBox(height: 12),
+                  ...speechList.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _NewsCard(
+                      item: item,
+                      categoryColor: const Color(0xFF0E8412),
+                      showPlayButton: true,
+                    ),
                   )),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+
+                  // Today's Highlights section
+                  _SectionTitle(title: "Today's Highlights"),
+                  const SizedBox(height: 12),
+                  ...highlightList.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _NewsCard(
+                      item: item,
+                      categoryColor: const Color(0xFF1455B3),
+                      showPlayButton: true,
+                    ),
+                  )),
+                  const SizedBox(height: 8),
+
+                  // TVK Tweets section
+                  _SectionTitle(title: 'TVK Tweets'),
+                  const SizedBox(height: 12),
+                  ...tweetList.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _TweetCard(item: item),
+                  )),
+                  if (tweetList.isEmpty)
+                    _TweetCard(item: NewsItem(
+                      id: 'tweet1',
+                      title: 'TVK President Vijay extends heartfelt gratitude',
+                      summary: "TVK President Vijay extends heartfelt gratitude to supporters and well-wishers as he begins his political journey. He acknowledges the love from 'En Nenjil Kudiyirukkum Thozhargal' and promises to work for Tamil Nadu's welfare.",
+                      category: 'Tweet',
+                      date: 'Jun 4, 2024',
+                      time: 'Just now',
+                    )),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── App Bar ──────────────────────────────────────────────────────────────────
+
+class _AppBar extends StatelessWidget {
+  final double topPad;
+  const _AppBar({required this.topPad});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 8),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: const Icon(Icons.arrow_back_rounded, size: 24, color: Colors.black),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Latest News',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const Icon(Icons.translate_rounded, size: 24, color: Colors.black),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Section Title ────────────────────────────────────────────────────────────
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: Colors.black,
+      ),
+    );
+  }
+}
+
+// ─── News Card (Speech / Highlight style) ────────────────────────────────────
+
+class _NewsCard extends StatelessWidget {
+  final NewsItem item;
+  final Color categoryColor;
+  final bool showPlayButton;
+
+  const _NewsCard({
+    required this.item,
+    required this.categoryColor,
+    this.showPlayButton = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NewsDetailScreen(item: item))),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(4, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Thumbnail
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              child: SizedBox(
+                height: 166,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Placeholder image — use tvk_flag as fallback
+                    Image.asset(
+                      'assets/images/tvk_flag.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) =>
+                          Container(color: const Color(0xFF1A1A1A)),
+                    ),
+                    // Dark overlay
+                    Container(color: Colors.black.withValues(alpha: 0.50)),
+                    // Play button
+                    if (showPlayButton)
+                      Center(
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Colors.white30,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Category pill
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: categoryColor,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          item.category,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Title
+                  Text(
+                    item.title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Summary + Readmore
+                  RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF4A4949), height: 1.4),
+                      children: [
+                        TextSpan(text: '${item.summary.length > 80 ? item.summary.substring(0, 80) : item.summary}... '),
+                        TextSpan(
+                          text: 'Read more',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF1455B3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Footer: time + likes + share
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time_rounded, size: 16, color: Color(0xFF9D9B9B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.time,
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF9D9B9B)),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.favorite_border_rounded, size: 18, color: Color(0xFF9F1D1F)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '1.2k',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF9F1D1F)),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.ios_share_rounded, size: 18, color: Color(0xFF4A4949)),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -74,258 +313,107 @@ class _NewsScreenState extends State<NewsScreen> {
   }
 }
 
-class _TvkHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _TvkHeader({required this.title, required this.subtitle});
+// ─── Tweet Card ───────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
-    return SizedBox(
-      height: 230 + topPad,
-      child: Stack(
-        children: [
-          // TVK flag image
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: SizedBox(
-              height: 216 + topPad,
-              child: Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover),
-            ),
-          ),
-          // Gradient: transparent at top → black at bottom
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.4, 1.0],
-                  colors: [Colors.transparent, Colors.transparent, Colors.black],
-                ),
-              ),
-            ),
-          ),
-          // Title block at bottom
-          Positioned(
-            bottom: 0,
-            left: 16,
-            right: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFFE40101), Color(0xFF7E0101)],
-                  ).createShader(bounds),
-                  child: Text(
-                    title,
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
-                      color: Colors.white,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    color: Colors.white,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar();
+class _TweetCard extends StatelessWidget {
+  final NewsItem item;
+  const _TweetCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(4, 4))],
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.search_rounded, color: Colors.black38, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Search',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.black38,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ),
-          const Icon(Icons.tune_rounded, color: Colors.black54, size: 20),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryTabs extends StatelessWidget {
-  final int selected;
-  final ValueChanged<int> onSelect;
-  static const _labels = ['All', 'Agriculture', 'Business', 'Education'];
-
-  const _CategoryTabs({required this.selected, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(_labels.length, (i) {
-        final isActive = i == selected;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => onSelect(i),
-            child: Container(
-              height: 34,
-              margin: EdgeInsets.only(right: i < _labels.length - 1 ? 8 : 0),
-              decoration: BoxDecoration(
-                gradient: isActive
-                    ? const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFE40101), Color(0x00E40101)],
-                      )
-                    : null,
-                borderRadius: BorderRadius.circular(isActive ? 8 : 6),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _labels[i],
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                  color: isActive ? Colors.white : const Color(0xFF1A1A1A),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _NewsCard extends StatelessWidget {
-  final NewsItem item;
-  const _NewsCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NewsDetailScreen(item: item))),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
-        ),
-        child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Thumbnail — 96×96 rounded-[10px]
+          // Thumbnail
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 96,
-              height: 96,
-              color: const Color(0xFFEEEEEE),
-              child: const Icon(Icons.image_outlined, color: Colors.black38, size: 32),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            child: SizedBox(
+              height: 166,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) => Container(color: const Color(0xFF716E6E))),
+                  Container(color: Colors.black.withValues(alpha: 0.5)),
+                  // Eye icon top-right
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.visibility_rounded, color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          // Right column — 246px wide
-          SizedBox(
-            width: 246,
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF1A1A1A),
-                          letterSpacing: 0.2,
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(Icons.ios_share_rounded, color: Colors.black54, size: 16),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: 223,
-                  child: Text(
-                    item.summary,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: Colors.black54,
-                      height: 17 / 12,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  item.summary,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    color: Colors.black,
+                    height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Tweet Link : ',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black),
+                      ),
+                      TextSpan(
+                        text: 'https://x.com/TVKVijayHQ/status/1754051963980070948',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: const Color(0xFF1455B3),
+                          decoration: TextDecoration.underline,
+                          decorationColor: const Color(0xFF1455B3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.black38),
+                    const Icon(Icons.access_time_rounded, size: 16, color: Color(0xFF9D9B9B)),
                     const SizedBox(width: 4),
-                    Text(
-                      item.date,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: Colors.black38,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.access_time_rounded, size: 14, color: Colors.black38),
+                    Text(item.time,
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF9D9B9B))),
+                    const Spacer(),
+                    const Icon(Icons.favorite_border_rounded, size: 18, color: Color(0xFF9F1D1F)),
                     const SizedBox(width: 4),
-                    Text(
-                      item.time,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: Colors.black38,
-                      ),
-                    ),
+                    Text('1.2k',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF9F1D1F))),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.ios_share_rounded, size: 18, color: Color(0xFF4A4949)),
                   ],
                 ),
               ],
             ),
           ),
         ],
-        ),
       ),
     );
   }

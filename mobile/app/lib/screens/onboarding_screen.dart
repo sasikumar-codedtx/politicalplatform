@@ -76,7 +76,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Text(
                 'Skip',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -97,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     dotHeight: 8,
                     dotWidth: 8,
                     activeDotColor: Colors.white,
-                    dotColor: Colors.white.withOpacity(0.35),
+                    dotColor: Colors.white.withValues(alpha: 0.35),
                     spacing: 10,
                   ),
                 ),
@@ -168,7 +168,7 @@ class _OnboardingPage extends StatelessWidget {
               height: 240,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.07),
+                color: Colors.white.withValues(alpha: 0.07),
               ),
             ),
           ),
@@ -180,7 +180,7 @@ class _OnboardingPage extends StatelessWidget {
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -194,7 +194,7 @@ class _OnboardingPage extends StatelessWidget {
                   height: 130,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                   ),
                   child: Icon(data.icon, size: 64, color: Colors.white),
                 ),
@@ -214,7 +214,7 @@ class _OnboardingPage extends StatelessWidget {
                   data.subtitle,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 15,
                     height: 1.6,
                   ),

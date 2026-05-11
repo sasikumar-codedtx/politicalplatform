@@ -55,6 +55,12 @@ dependencies:
   # State management
   provider: ^6.1.2
 
+  # YouTube player
+  youtube_player_flutter: ^9.0.2
+
+  # Open URLs (YouTube fallback for embed-blocked videos)
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

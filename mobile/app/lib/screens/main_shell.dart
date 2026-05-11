@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import 'home_screen.dart';
-import 'news_screen.dart';
+import 'fan_page_screen.dart';
+import 'chat_list_screen.dart';
+import 'profile_screen.dart';
 import 'events_screen.dart';
-import 'community_screen.dart';
 import 'join_screen.dart';
-import 'shorts_screen.dart';
 import 'polls_screen.dart';
+import 'youtube_hub_screen.dart';
+import 'create_fan_post_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -58,14 +60,16 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
       backgroundColor: bg,
       body: Stack(
         children: [
-          // Main content — 4 tabs
+          // Main content — 4 tabs: Home | Forum | Chat | Profile
+          // Nav indices: 0 | 1 | [FAB=2] | 3 | 4
+          // Stack indices map: nav 0→0, 1→1, 3→2, 4→3
           IndexedStack(
             index: _selectedIndex > 2 ? _selectedIndex - 1 : _selectedIndex,
             children: const [
               HomeScreen(),
-              CommunityScreen(),
-              NewsScreen(),
-              EventsScreen(),
+              FanPageScreen(),
+              ChatListScreen(),
+              ProfileScreen(),
             ],
           ),
           // Dim overlay when FAB open
@@ -101,8 +105,18 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
             height: 60,
             child: Row(
               children: [
-                _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: f.appName, index: 0, selected: _selectedIndex, onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); }, primary: primary),
-                _NavItem(icon: Icons.people_outline_rounded, activeIcon: Icons.people_rounded, label: 'Forum', index: 1, selected: _selectedIndex, onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); }, primary: primary),
+                _NavItem(
+                  icon: Icons.home_outlined, activeIcon: Icons.home_rounded,
+                  label: f.appName, index: 0, selected: _selectedIndex,
+                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  primary: primary,
+                ),
+                _NavItem(
+                  icon: Icons.people_outline_rounded, activeIcon: Icons.people_rounded,
+                  label: 'Forum', index: 1, selected: _selectedIndex,
+                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  primary: primary,
+                ),
                 // Center FAB
                 Expanded(
                   child: GestureDetector(
@@ -129,8 +143,18 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
                     ),
                   ),
                 ),
-                _NavItem(icon: Icons.newspaper_outlined, activeIcon: Icons.newspaper_rounded, label: 'News', index: 3, selected: _selectedIndex, onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); }, primary: primary),
-                _NavItem(icon: Icons.event_outlined, activeIcon: Icons.event_rounded, label: 'Events', index: 4, selected: _selectedIndex, onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); }, primary: primary),
+                _NavItem(
+                  icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded,
+                  label: 'Chat', index: 3, selected: _selectedIndex,
+                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  primary: primary,
+                ),
+                _NavItem(
+                  icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded,
+                  label: 'Profile', index: 4, selected: _selectedIndex,
+                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  primary: primary,
+                ),
               ],
             ),
           ),
@@ -151,9 +175,10 @@ class _FabMenu extends StatelessWidget {
     final f = AppConfig.current;
     final items = [
       (Icons.card_membership_rounded, f.joinCtaLabel, () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const JoinScreen())); }),
-      (Icons.edit_outlined, 'Post', () { onClose(); }),
+      (Icons.edit_outlined, 'Post', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateFanPostScreen())); }),
       (Icons.how_to_vote_outlined, 'Poll', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const PollsScreen())); }),
-      (Icons.play_circle_outline_rounded, 'Shorts', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const ShortsScreen())); }),
+      (Icons.play_circle_outline_rounded, 'Videos', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const YoutubeHubScreen())); }),
+      (Icons.event_outlined, 'Events', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen())); }),
     ];
 
     return Column(

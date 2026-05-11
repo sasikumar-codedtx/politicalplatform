@@ -28,7 +28,6 @@ class _ManifestoViewState extends State<_ManifestoView> {
   int _tab = 0;
   static const _tabs = ['5-Year Plans', 'Visions', 'Goals & Achievements'];
   static const _years = ['2026', '2027', '2028', '2029', '2030'];
-  static const _planImages = ['assets/images/plan_1.png', 'assets/images/plan_2.png'];
 
   @override
   Widget build(BuildContext context) {
@@ -126,10 +125,7 @@ class _ManifestoViewState extends State<_ManifestoView> {
                 children: _tab == 0
                     ? List.generate(vm.plans.length, (i) => Padding(
                         padding: EdgeInsets.only(bottom: i < vm.plans.length - 1 ? 16 : 0),
-                        child: _PlanCard(
-                          plan: vm.plans[i],
-                          imagePath: _planImages[i % _planImages.length],
-                        ),
+                        child: _PlanCard(plan: vm.plans[i]),
                       ))
                     : _tab == 1
                         ? List.generate(vm.visions.length, (i) => Padding(
@@ -182,15 +178,18 @@ class _Header extends StatelessWidget {
           Positioned(
             top: 78 + topPad,
             left: 16,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+                ),
+                child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
               ),
-              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
             ),
           ),
           // Title block at bottom
@@ -234,8 +233,7 @@ class _Header extends StatelessWidget {
 
 class _PlanCard extends StatelessWidget {
   final ManifestoPlan plan;
-  final String imagePath;
-  const _PlanCard({required this.plan, required this.imagePath});
+  const _PlanCard({required this.plan});
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +255,7 @@ class _PlanCard extends StatelessWidget {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Image.asset(imagePath, fit: BoxFit.cover),
+                    child: Image.asset(plan.imageAsset, fit: BoxFit.cover),
                   ),
                   // Bottom gradient overlay
                   Positioned.fill(
@@ -324,7 +322,7 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(height: 12),
           // See Details button
           GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ManifestoDetailScreen(plan: plan, imagePath: imagePath))),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ManifestoDetailScreen(plan: plan, imagePath: plan.imageAsset))),
             child: Container(
               height: 42,
               decoration: BoxDecoration(

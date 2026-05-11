@@ -149,13 +149,15 @@ class ManifestoDetailScreen extends StatelessWidget {
     );
   }
 
-  List<String> _goalsFor(ManifestoPlan plan) => [
-    'Benefit at least 5 lakh citizens across Tamil Nadu directly.',
-    'Complete implementation within the stated timeline with quarterly reviews.',
-    'Establish district-level monitoring committees for transparent tracking.',
-    'Create sustainable local employment during implementation phase.',
-    'Publish monthly progress reports accessible to all citizens.',
-  ];
+  List<String> _goalsFor(ManifestoPlan plan) => plan.bullets.isNotEmpty
+      ? plan.bullets
+      : [
+          'Benefit at least 5 lakh citizens across Tamil Nadu directly.',
+          'Complete implementation within the stated timeline with quarterly reviews.',
+          'Establish district-level monitoring committees for transparent tracking.',
+          'Create sustainable local employment during implementation phase.',
+          'Publish monthly progress reports accessible to all citizens.',
+        ];
 
   List<String> _impactFor(ManifestoPlan plan) => [
     'Direct improvement in quality of life for rural communities.',

@@ -54,7 +54,7 @@ class _IssueCardState extends State<_IssueCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         children: [
@@ -68,7 +68,7 @@ class _IssueCardState extends State<_IssueCard> {
                   Container(
                     width: 52,
                     height: 52,
-                    decoration: BoxDecoration(color: widget.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: widget.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                     child: Icon(widget.issue.icon, color: widget.primary, size: 26),
                   ),
                   const SizedBox(width: 14),
@@ -78,7 +78,7 @@ class _IssueCardState extends State<_IssueCard> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(color: widget.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                          decoration: BoxDecoration(color: widget.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                           child: Text(widget.issue.tag, style: GoogleFonts.inter(color: widget.primary, fontSize: 10, fontWeight: FontWeight.w600)),
                         ),
                         const SizedBox(height: 5),

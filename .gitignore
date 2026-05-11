@@ -1,0 +1,3 @@
+
+# Secrets — never commit API keys
+**/lib/config/secrets.dart

@@ -78,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 height: 280,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                 ),
               ),
             ),
@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 height: 320,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -128,7 +128,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           Text(
                             flavor.tagline,
                             style: GoogleFonts.inter(
-                              color: Colors.white.withOpacity(0.75),
+                              color: Colors.white.withValues(alpha: 0.75),
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
                               letterSpacing: 0.5,
@@ -152,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   flavor.partyName,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.45),
+                    color: Colors.white.withValues(alpha: 0.45),
                     fontSize: 12,
                     letterSpacing: 1.2,
                   ),
@@ -181,7 +181,7 @@ class _LogoWidget extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),

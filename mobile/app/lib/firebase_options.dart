@@ -27,6 +27,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '151735878015',
     projectId: 'political-platform-19d77',
     storageBucket: 'political-platform-19d77.firebasestorage.app',
-    iosBundleId: 'com.codedtx.politicalplatform',
+    iosBundleId: 'com.codedtx.politicalPlatform',
   );
 }

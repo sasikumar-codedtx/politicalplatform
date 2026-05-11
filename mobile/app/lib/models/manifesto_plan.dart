@@ -6,6 +6,8 @@ class ManifestoPlan {
   final String timeline;
   final String budget;
   final String category;
+  final String imageAsset;
+  final List<String> bullets;
 
   const ManifestoPlan({
     required this.id,
@@ -15,6 +17,8 @@ class ManifestoPlan {
     required this.timeline,
     required this.budget,
     required this.category,
+    this.imageAsset = 'assets/images/plan_water.png',
+    this.bullets = const [],
   });
 }
 

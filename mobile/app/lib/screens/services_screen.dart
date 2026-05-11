@@ -78,7 +78,7 @@ class _CategorySection extends StatelessWidget {
               Container(
                 width: 30,
                 height: 30,
-                decoration: BoxDecoration(color: category.color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: category.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Icon(category.icon, color: category.color, size: 16),
               ),
               const SizedBox(width: 8),
@@ -105,14 +105,14 @@ class _ServiceTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: Container(
           width: 44,
           height: 44,
-          decoration: BoxDecoration(color: accentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(service.icon, color: accentColor, size: 22),
         ),
         title: Text(service.title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
@@ -120,7 +120,7 @@ class _ServiceTile extends StatelessWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: isLive ? accentColor.withOpacity(0.1) : Colors.grey[100],
+            color: isLive ? accentColor.withValues(alpha: 0.1) : Colors.grey[100],
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

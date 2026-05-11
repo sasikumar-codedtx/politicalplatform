@@ -251,12 +251,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final border = Color(f.borderColor);
 
     return Container(
-      color: Colors.white,
       padding: EdgeInsets.only(
         left: 16, right: 8, top: 10,
         bottom: MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: BoxDecoration(
+        color: Colors.white,
         border: Border(top: BorderSide(color: border)),
       ),
       child: Row(

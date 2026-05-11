@@ -270,13 +270,13 @@ class _AboutContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _CampaignItem(
-            imagePath: 'assets/images/event_2.png',
+            imagePath: 'assets/images/campaign1.png',
             text: "Led rallies in Vikravandi and Villupuram, set the party's ideology drawing inspiration from Periyar and social justice.",
           ),
           const SizedBox(height: 8),
           _CampaignItem(
-            imagePath: 'assets/images/campaign_2.png',
-            text: "Led rallies in Vikravandi and Villupuram, set the party's ideology drawing inspiration from Periyar and social justice.",
+            imagePath: 'assets/images/campaign2.png',
+            text: "Launched Villupuram Declaration affirming TVK's commitment to Dravidian social justice and anti-corruption governance.",
           ),
         ],
       ),

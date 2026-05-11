@@ -15,6 +15,11 @@ class PhoneLoginScreen extends StatefulWidget {
 }
 
 class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
+  static const bool _useFirebaseTestPhoneAuth = bool.fromEnvironment(
+    'USE_FIREBASE_TEST_PHONE_AUTH',
+    defaultValue: false,
+  );
+
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
   bool _codeSent = false;
@@ -30,7 +35,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     debugPrint('=== sending OTP to: $phone (${phone.length} chars)');
     setState(() { _loading = true; _error = null; });
 
-    if (kDebugMode && Platform.isIOS) {
+    if (_useFirebaseTestPhoneAuth && kDebugMode && Platform.isIOS) {
       try {
         final iosInfo = await DeviceInfoPlugin().iosInfo;
         debugPrint('=== isPhysicalDevice: ${iosInfo.isPhysicalDevice}');
@@ -44,6 +49,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       } catch (e) {
         debugPrint('=== DeviceInfo error: $e');
       }
+    } else if (kDebugMode && Platform.isIOS) {
+      debugPrint('=== Firebase test phone auth: DISABLED');
     }
 
     await FirebaseAuth.instance.verifyPhoneNumber(

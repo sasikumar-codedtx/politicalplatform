@@ -1,7 +1,7 @@
 # Political Platform — Project Knowledge Base
 
 > This file is the single source of truth for this project.
-> It is read by Claude Code at the start of every session.
+> It is read by Codex at the start of every session.
 > Read order: this file → `TEAM_WORKFLOW.md` → `ROADMAP.md` before touching code.
 > `ROADMAP.md` contains the full architecture, DB schema, RAG plan, and phase-by-phase build plan.
 > Update the Changelog at the end of every session before closing.
@@ -61,7 +61,7 @@ political-platform/
 │               └── Info.plist
 ├── docker-compose.yml
 ├── .env
-└── CLAUDE.md               # ← this file
+└── AGENTS.md               # ← this file
 ```
 
 ---
@@ -269,8 +269,7 @@ Add new flavours in `app_config.dart` only. Never use real client names in code.
 | 2026-05-11 | Clean video player + own like system — VideoPlayerScreen replaces ShortPlayerScreen throughout (no comments, no Google login needed). VideoLikeService persists likes per videoId in SharedPreferences. ShortsReelScreen comment button removed; likes now persisted and loaded per video on swipe. | video_player_screen.dart (new), video_like_service.dart (new), youtube_hub_screen.dart, home_screen.dart, shorts_reel_screen.dart |
 | 2026-05-11 | Home shorts + Fan Page — HomeViewModel loads real YouTube shorts (async, non-blocking); TVK Shorts section shows horizontal 9:16 scroll row with View All → YoutubeHubScreen(Shorts tab). Fan Page system: FanPost/FanComment models, FanPostService (SharedPreferences, seeded demo posts), FanPageScreen (Community Wall with All/Popular tabs), MyPostsScreen (My Posts + Admin Panel demo), CreateFanPostScreen, FanPostDetailScreen with own comment system. Community nav tab → FanPageScreen. FAB Post → CreateFanPostScreen. Profile → My Posts row. | home_viewmodel.dart, home_screen.dart, fan_post.dart, fan_comment.dart, fan_post_service.dart, fan_page_screen.dart, my_posts_screen.dart, create_fan_post_screen.dart, fan_post_detail_screen.dart, main_shell.dart, profile_screen.dart |
 | 2026-05-11 | Added shared assistant workflow file for Codex + Claude with mandatory reason logging, verification logging, MVVM discipline, and guidance to avoid unnecessary black backgrounds from Figma carryover | TEAM_WORKFLOW.md, AGENTS.md, CLAUDE.md |
-| 2026-05-11 | Figma photos + manifesto data complete — replaced all Icon placeholders with real Figma images: vijay_home_hero.png in hero area, vijay_hero.png in Join TVK card, leader_vijay/anand/arunraj/aadhav.png in Know Your Leaders grid. ManifestoPlan model got imageAsset+bullets fields; manifesto_screen.dart uses plan.imageAsset directly; manifesto_detail_screen.dart Key Goals reads plan.bullets (falls back to defaults if empty). leader_screen.dart campaign images fixed to campaign1.png + campaign2.png. Zero analyzer issues. | home_screen.dart, manifesto_screen.dart, manifesto_detail_screen.dart, leader_screen.dart, models/manifesto_plan.dart, services/content_service.dart |
-| 2026-05-11 | Home screen complete — added Campaign Toolkit section (horizontal scroll of 4 poster cards with Share button), TVK Television card (dark red gradient → YoutubeHubScreen), redesigned Community Wall card (white bg, 3 post previews with avatar initials), Figma-exact Poll card (red #9F1D1F checkbox, 48px options, green Get TVK Badge pill). Manifesto banner now shows vijay_hero.png. Zero analyzer issues. | home_screen.dart |
-| 2026-05-11 | Figma-exact screen rebuilds — PollsScreen (Take Action: filter chips Polls/Complaints/Donation, red 48px option rows, TVK Badge pill), NewsScreen (Latest News: section groups Speeches/Highlights/Tweets, white cards with 166px thumbnail + play button + category pill + likes/share footer), ProfileScreen (Existing Profile: avatar + stats row + Area Pulse + Local Members + About TVK), SettingsScreen (new: Edit Profile, Notification/Theme toggles, Language buttons, Log out / Delete account). All screens use #F6F6F6 bg, white top app bar, Plus Jakarta Sans font, primary #9F1D1F. Zero analyzer issues. | polls_screen.dart, news_screen.dart, profile_screen.dart, settings_screen.dart (new) |
-| 2026-05-11 | Fixed home_screen.dart compile error (orphaned brackets from prior edit). Added _SocialJusticeSection — swipeable PageView of 5 TVK ideology leaders (Periyar, Kamarajar, Ambedkar, Velunachiyar, Anjalai Ammal) with left/right arrow nav, dot indicators, dark red gradient cards. Zero analyzer issues. | home_screen.dart |
-| 2026-05-11 | Created ROADMAP.md — full architecture (local→staging→prod on AWS ECS Fargate), PostgreSQL+pgvector DB schema, RAG implementation plan, 7-phase build plan, Docker Compose full stack target, cost estimate. Mandatory reading for all AI agents. | ROADMAP.md, CLAUDE.md, AGENTS.md, TEAM_WORKFLOW.md |
+| 2026-05-11 | Fixed Firebase OTP config drift — stopped forcing simulator test phone auth by default and corrected iOS Firebase bundle ID case to match Xcode/GoogleService config | mobile/app/lib/screens/phone_login_screen.dart, mobile/app/lib/firebase_options.dart |
+| 2026-05-11 | Updated Home hero section to better match Figma dashboard node 948:1148 while keeping the app light: rebuilt top header band, Tamil title/tagline block, right-side leader image composition, Join TVK card, and Community Wall card placement/style | mobile/app/lib/screens/home_screen.dart |
+| 2026-05-11 | Fixed home_screen.dart compile error (orphaned brackets). Added _SocialJusticeSection with 5 ideology leaders, swipeable PageView, arrow nav, dot indicators. | home_screen.dart |
+| 2026-05-11 | Created ROADMAP.md — full architecture local→staging→prod, DB schema, RAG plan, 7 phases, Docker Compose full stack, cost estimate, AI agent instructions | ROADMAP.md, CLAUDE.md, AGENTS.md, TEAM_WORKFLOW.md |
