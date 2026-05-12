@@ -29,6 +29,8 @@ services:
       OLLAMA_URL: http://host.docker.internal:11434
       LLM_MODEL: ${LLM_MODEL:-llama3.2}
       APP_ENV: ${APP_ENV:-development}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -3,7 +3,6 @@ import '../models/news_item.dart';
 import '../models/leader.dart';
 import '../models/manifesto_plan.dart';
 import '../models/event.dart';
-import '../models/short_video.dart';
 
 // All methods return mock data now.
 // To wire real API: replace the return value in each method only.
@@ -38,12 +37,6 @@ class ContentService {
   static Future<List<PartyEvent>> getEvents() async {
     await Future.delayed(const Duration(milliseconds: 200));
     return _isTvk ? _tvkEvents : _incEvents;
-  }
-
-  // ── SHORTS ───────────────────────────────────────────────────────
-  static Future<List<ShortVideo>> getShorts() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    return _isTvk ? _tvkShorts : _incShorts;
   }
 
   static bool get _isTvk => _flavor == 'tn-tvk';
@@ -172,14 +165,6 @@ class ContentService {
     PartyEvent(id: 'e4', title: 'TVK Cultural Evening — Madurai', location: 'Madurai', date: 'Jun 2, 2026', time: '6:00 PM', type: 'Cultural', description: 'Music and cultural programme celebrating Tamil heritage.'),
   ];
 
-  static const List<ShortVideo> _tvkShorts = [
-    ShortVideo(id: 's1', title: 'Vijay on Clean Water Mission', duration: '1:24', category: 'Policy', timeAgo: '2 hours ago'),
-    ShortVideo(id: 's2', title: 'TVK Anthem — Full Version', duration: '4:22', category: 'Media', timeAgo: 'Today'),
-    ShortVideo(id: 's3', title: '2nd State Conference Highlights', duration: '3:10', category: 'Event', timeAgo: 'Yesterday'),
-    ShortVideo(id: 's4', title: 'Vijay Addresses Youth Wing', duration: '2:45', category: 'Speech', timeAgo: '2 days ago'),
-    ShortVideo(id: 's5', title: 'Digital Classrooms Launch', duration: '1:58', category: 'Policy', timeAgo: '3 days ago'),
-  ];
-
   // ════════════════════════════════════════════════════════════════
   // INC MOCK DATA
   // ════════════════════════════════════════════════════════════════
@@ -229,10 +214,4 @@ class ContentService {
     PartyEvent(id: 'e4', title: 'Bharat Jodo Padyatra', location: 'Chennai', date: 'Jun 1, 2026', time: '7:00 AM', type: 'Yatra', description: 'Tamil Nadu leg of Bharat Jodo connecting grassroots workers.'),
   ];
 
-  static const List<ShortVideo> _incShorts = [
-    ShortVideo(id: 's1', title: 'Rahul on Nyay Patra', duration: '2:10', category: 'Speech', timeAgo: '1 hour ago'),
-    ShortVideo(id: 's2', title: 'Bharat Jodo Nyay Yatra Highlights', duration: '3:45', category: 'Movement', timeAgo: 'Today'),
-    ShortVideo(id: 's3', title: 'Kharge on Caste Census', duration: '1:55', category: 'Policy', timeAgo: 'Yesterday'),
-    ShortVideo(id: 's4', title: 'Congress Anthem 2024', duration: '4:12', category: 'Media', timeAgo: '2 days ago'),
-  ];
 }

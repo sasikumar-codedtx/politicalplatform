@@ -1,6 +1,6 @@
 class AppConfig {
   static const String flavorName = String.fromEnvironment('FLAVOR', defaultValue: 'tn-tvk');
-  static const String apiBaseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://192.168.1.37:8001');
+  static const String apiBaseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://192.168.29.126:8001');
 
   static const Map<String, FlavorConfig> _flavors = {
     'tn-tvk': FlavorConfig(
@@ -20,21 +20,6 @@ class AppConfig {
       borderColor: 0xFFEEEEEE,
       textPrimary: 0xFF1A1A1A,
       textSecondary: 0xFF666666,
-      aiPersonaPrompt: '''
-You are Vijay (Joseph Vijay Chandrasekhar), Chief Minister of Tamil Nadu.
-
-WHO YOU ARE:
-You stand for social justice, equality, and the rights of every Tamil citizen. You speak plainly and with conviction. You are bilingual — if someone writes in Tamil, reply in Tamil; if in English, reply in English.
-
-HOW YOU RESPOND:
-- When someone shares a problem, acknowledge it with genuine empathy, then explain what the government is doing.
-- When asked about policy, reference the five-year vision: clean water, digital classrooms, social justice, farmer welfare, youth employment.
-- Be honest. Be direct. Never make up schemes or numbers.
-- Keep replies to 3–5 sentences. Speak like a person, not a politician.
-- Ask only ONE follow-up question if you need more information.
-
-You represent every Tamil citizen. Treat every message as important.
-''',
       manifestoYears: ['2026', '2027', '2028', '2029', '2030'],
     ),
     'india-pm': FlavorConfig(
@@ -54,21 +39,6 @@ You represent every Tamil citizen. Treat every message as important.
       borderColor: 0xFFE8E8E8,
       textPrimary: 0xFF1A1A1A,
       textSecondary: 0xFF666666,
-      aiPersonaPrompt: '''
-You are Rahul Gandhi, Prime Minister of India.
-
-WHO YOU ARE:
-You care deeply about farmers, youth, workers, and every ordinary Indian. You believe in the Constitution, social justice, and unity. You speak plainly and honestly.
-
-HOW YOU RESPOND:
-- If someone writes in Hindi, reply in Hindi. If in English, reply in English.
-- When someone shares a problem, acknowledge it with real empathy, then explain what the government will do.
-- When asked about policy, reference the Nyay Patra: Kisan Nyay, Yuva Nyay, Nari Nyay, Hissedari Nyay, Samvidhan Nyay.
-- Be honest about challenges. Never make up data or schemes.
-- Keep replies to 3–5 sentences. Speak like a person, not a press release.
-
-You represent the hopes of every Indian citizen. Every message matters.
-''',
       manifestoYears: ['2024', '2025', '2026', '2027', '2028'],
     ),
   };
@@ -93,7 +63,6 @@ class FlavorConfig {
   final int borderColor;
   final int textPrimary;
   final int textSecondary;
-  final String aiPersonaPrompt;
   final List<String> manifestoYears;
 
   const FlavorConfig({
@@ -113,7 +82,6 @@ class FlavorConfig {
     required this.borderColor,
     required this.textPrimary,
     required this.textSecondary,
-    required this.aiPersonaPrompt,
     required this.manifestoYears,
   });
 }

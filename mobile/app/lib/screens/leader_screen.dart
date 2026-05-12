@@ -89,7 +89,7 @@ class _LeaderViewState extends State<_LeaderView> {
             const SizedBox(height: 16),
             if (_tab == 0) _AboutContent(leader: leader),
             if (_tab == 1) _AchievementsContent(leader: leader),
-            if (_tab == 2) _MediaContent(videos: vm.media),
+            if (_tab == 2) const _MediaContent(videos: []),
             const SizedBox(height: 24),
           ],
         ),

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
-import 'dashboard_screen.dart';
+import 'main_shell.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
   const PhoneLoginScreen({super.key});
@@ -95,7 +95,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   void _goToDashboard() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      MaterialPageRoute(builder: (_) => const MainShell()),
     );
   }
 

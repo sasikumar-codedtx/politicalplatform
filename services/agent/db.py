@@ -18,7 +18,7 @@ def _connect():
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
     return conn
-
+    
 
 @contextmanager
 def get_conn():
@@ -43,10 +43,20 @@ def init_db() -> None:
                     title TEXT NOT NULL DEFAULT 'New conversation',
                     persona TEXT NOT NULL,
                     flavor_id TEXT,
+                    user_id TEXT,
                     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                     last_active_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                     last_message TEXT NOT NULL DEFAULT ''
                 );
+            """)
+            # Safe migration: add user_id column if it doesn't exist yet
+            cur.execute("""
+                ALTER TABLE chat_sessions
+                ADD COLUMN IF NOT EXISTS user_id TEXT;
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_sessions_user
+                ON chat_sessions(user_id, last_active_at DESC);
             """)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
@@ -61,9 +71,45 @@ def init_db() -> None:
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_session
                 ON chat_messages(session_id, created_at ASC, id ASC);
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS documents (
+                    id         BIGSERIAL PRIMARY KEY,
+                    flavor_id  TEXT NOT NULL,
+                    title      TEXT NOT NULL,
+                    content    TEXT NOT NULL,
+                    embedding  vector(768),
+                    source     TEXT,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_documents_flavor
+                ON documents(flavor_id);
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_documents_embedding
+                ON documents USING ivfflat (embedding vector_cosine_ops)
+                WITH (lists = 10);
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id          BIGSERIAL PRIMARY KEY,
+                    action      TEXT NOT NULL,
+                    entity_type TEXT,
+                    entity_id   TEXT,
+                    metadata    JSONB,
+                    status      TEXT NOT NULL DEFAULT 'success',
+                    error_msg   TEXT,
+                    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_created
+                ON audit_logs(created_at DESC);
+            """)
 
 
-def ensure_session(session_id: str, persona: str, flavor_id: str | None = None) -> bool:
+def ensure_session(session_id: str, persona: str, flavor_id: str | None = None, user_id: str | None = None) -> bool:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM chat_sessions WHERE id = %s", (session_id,))
@@ -73,10 +119,10 @@ def ensure_session(session_id: str, persona: str, flavor_id: str | None = None) 
             now = _utc_now()
             cur.execute(
                 """
-                INSERT INTO chat_sessions (id, persona, flavor_id, created_at, last_active_at)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO chat_sessions (id, persona, flavor_id, user_id, created_at, last_active_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
-                (session_id, persona, flavor_id, now, now),
+                (session_id, persona, flavor_id, user_id, now, now),
             )
             cur.execute(
                 """
@@ -150,14 +196,22 @@ def get_session_messages(session_id: str, include_system: bool = True) -> list[d
             ]
 
 
-def list_sessions() -> list[dict]:
+def list_sessions(user_id: str | None = None) -> list[dict]:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""
-                SELECT id, title, created_at, last_active_at, last_message
-                FROM chat_sessions
-                ORDER BY last_active_at DESC, created_at DESC
-            """)
+            if user_id:
+                cur.execute("""
+                    SELECT id, title, created_at, last_active_at, last_message, user_id
+                    FROM chat_sessions
+                    WHERE user_id = %s
+                    ORDER BY last_active_at DESC, created_at DESC
+                """, (user_id,))
+            else:
+                cur.execute("""
+                    SELECT id, title, created_at, last_active_at, last_message, user_id
+                    FROM chat_sessions
+                    ORDER BY last_active_at DESC, created_at DESC
+                """)
             return [
                 {
                     "id": row["id"],
@@ -165,6 +219,7 @@ def list_sessions() -> list[dict]:
                     "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
                     "last_active_at": row["last_active_at"].isoformat() if hasattr(row["last_active_at"], "isoformat") else str(row["last_active_at"]),
                     "last_message": row["last_message"],
+                    "user_id": row["user_id"],
                 }
                 for row in cur.fetchall()
             ]
@@ -175,3 +230,113 @@ def delete_session(session_id: str) -> bool:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM chat_sessions WHERE id = %s", (session_id,))
             return cur.rowcount > 0
+
+
+# ── Document / RAG functions ──────────────────────────────────────────────────
+
+def embedding_to_str(embedding: list[float]) -> str:
+    return "[" + ",".join(str(x) for x in embedding) + "]"
+
+
+def upsert_document(flavor_id: str, title: str, content: str, embedding: list[float], source: str | None = None) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO documents (flavor_id, title, content, embedding, source)
+                VALUES (%s, %s, %s, %s::vector, %s)
+                RETURNING id
+                """,
+                (flavor_id, title, content, embedding_to_str(embedding), source),
+            )
+            return cur.fetchone()[0]
+
+
+def list_documents(flavor_id: str | None = None) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if flavor_id:
+                cur.execute(
+                    "SELECT id, flavor_id, title, source, created_at, LEFT(content, 200) AS preview FROM documents WHERE flavor_id = %s ORDER BY id DESC",
+                    (flavor_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, flavor_id, title, source, created_at, LEFT(content, 200) AS preview FROM documents ORDER BY id DESC"
+                )
+            return [
+                {
+                    **dict(row),
+                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                }
+                for row in cur.fetchall()
+            ]
+
+
+def delete_document(doc_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM documents WHERE id = %s", (doc_id,))
+            return cur.rowcount > 0
+
+
+def search_documents(flavor_id: str, query_embedding: list[float], top_k: int = 3) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT title, content, source,
+                       1 - (embedding <=> %s::vector) AS similarity
+                FROM documents
+                WHERE flavor_id = %s
+                ORDER BY embedding <=> %s::vector
+                LIMIT %s
+                """,
+                (embedding_to_str(query_embedding), flavor_id, embedding_to_str(query_embedding), top_k),
+            )
+            return [dict(row) for row in cur.fetchall()]
+
+
+def document_count(flavor_id: str) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM documents WHERE flavor_id = %s", (flavor_id,))
+            return cur.fetchone()[0]
+
+
+# ── Audit log functions ───────────────────────────────────────────────────────
+
+import json as _json
+
+def audit(action: str, entity_type: str | None = None, entity_id: str | None = None,
+          metadata: dict | None = None, status: str = "success", error_msg: str | None = None) -> None:
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO audit_logs (action, entity_type, entity_id, metadata, status, error_msg)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (action, entity_type, str(entity_id) if entity_id else None,
+                     _json.dumps(metadata) if metadata else None, status, error_msg),
+                )
+    except Exception:
+        pass  # Never let audit logging break the main flow
+
+
+def list_audit_logs(limit: int = 100) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, action, entity_type, entity_id, metadata, status, error_msg, created_at FROM audit_logs ORDER BY created_at DESC LIMIT %s",
+                (limit,),
+            )
+            return [
+                {
+                    **dict(row),
+                    "metadata": row["metadata"] if isinstance(row["metadata"], dict) else (_json.loads(row["metadata"]) if row["metadata"] else None),
+                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                }
+                for row in cur.fetchall()
+            ]

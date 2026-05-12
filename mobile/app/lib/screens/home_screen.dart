@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/news_item.dart';
 import '../models/event.dart';
-import '../models/short_video.dart';
 import '../models/poll.dart';
 import '../models/youtube_video.dart';
 import '../viewmodels/home_viewmodel.dart';
@@ -118,9 +117,9 @@ class _HomeViewState extends State<_HomeView> {
             ),
             const SizedBox(height: 12),
             if (vm.recentShorts.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _ShortsRow(shorts: vm.shorts),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
               )
             else
               SizedBox(
@@ -1688,55 +1687,6 @@ class _ManifestoBanner extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── TVK Shorts Row ───────────────────────────────────────────────────────────
-
-class _ShortsRow extends StatelessWidget {
-  final List<ShortVideo> shorts;
-  const _ShortsRow({required this.shorts});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _ShortMiniCard(video: shorts.isNotEmpty ? shorts[0] : null)),
-        const SizedBox(width: 16),
-        Expanded(child: _ShortMiniCard(video: shorts.length > 1 ? shorts[1] : null)),
-      ],
-    );
-  }
-}
-
-class _ShortMiniCard extends StatelessWidget {
-  final ShortVideo? video;
-  const _ShortMiniCard({required this.video});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        height: 160,
-        color: const Color(0xFFEEEEEE),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Red play button — 42px circle, bg-[#e40101]
-            Container(
-              width: 42,
-              height: 42,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE40101),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
             ),
           ],
         ),
