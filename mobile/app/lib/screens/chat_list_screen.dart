@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
-import '../services/chat_storage.dart';
+import '../services/agent_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -23,14 +23,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _loadSessions() async {
-    final sessions = await ChatStorage.getSessions();
-    if (mounted) setState(() { _sessions = sessions; _loading = false; });
+    try {
+      final sessions = await AgentService.getSessions();
+      if (mounted) setState(() { _sessions = sessions; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _startNewChat() async {
     final sessionId = 'session_${DateTime.now().millisecondsSinceEpoch}';
-    final session = ChatSession(id: sessionId, title: 'New conversation', createdAt: DateTime.now(), lastMessage: '');
-    await ChatStorage.saveSession(session);
+    final session = ChatSession(
+      id: sessionId,
+      title: 'New conversation',
+      createdAt: DateTime.now(),
+      lastMessage: '',
+    );
     if (!mounted) return;
     await Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(session: session)));
     _loadSessions();
@@ -42,7 +50,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _deleteSession(ChatSession session) async {
-    await ChatStorage.deleteSession(session.id);
+    await AgentService.deleteSession(session.id);
     _loadSessions();
   }
 

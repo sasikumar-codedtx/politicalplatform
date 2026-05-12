@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
-import '../services/chat_storage.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatSession session;
@@ -27,9 +26,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadMessages() async {
-    final messages = await ChatStorage.getMessages(widget.session.id);
-    setState(() => _messages = messages);
-    _scrollToBottom();
+    try {
+      final messages = await AgentService.getHistory(widget.session.id);
+      if (mounted) setState(() => _messages = messages);
+      _scrollToBottom();
+    } catch (_) {
+      // New session — no history yet, show empty state
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -39,25 +42,11 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.clear();
     final userMsg = ChatMessage(role: 'user', content: text, timestamp: DateTime.now());
     setState(() { _messages.add(userMsg); _thinking = true; });
-    await ChatStorage.saveMessage(widget.session.id, userMsg);
     _scrollToBottom();
 
     try {
       final reply = await AgentService.sendMessage(widget.session.id, text);
       final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
-      await ChatStorage.saveMessage(widget.session.id, aiMsg);
-
-      final isFirstMessage = _messages.length <= 2;
-      final updatedSession = ChatSession(
-        id: widget.session.id,
-        title: isFirstMessage
-            ? (text.length > 40 ? '${text.substring(0, 40)}...' : text)
-            : widget.session.title,
-        createdAt: widget.session.createdAt,
-        lastMessage: reply.length > 60 ? '${reply.substring(0, 60)}...' : reply,
-      );
-      await ChatStorage.saveSession(updatedSession);
-
       setState(() { _messages.add(aiMsg); _thinking = false; });
       _scrollToBottom();
     } catch (e) {
