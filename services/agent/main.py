@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from agent import get_reply, get_session_history, clear_session
+from agent import get_reply, get_session_history, get_sessions, clear_session
+from db import init_db
 import uvicorn
 
 app = FastAPI(
@@ -36,6 +37,19 @@ class HistoryResponse(BaseModel):
     message_count: int
 
 
+class SessionSummary(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    last_active_at: str
+    last_message: str
+
+
+class SessionsResponse(BaseModel):
+    sessions: list[SessionSummary]
+    count: int
+
+
 @app.get("/")
 def root():
     return {"service": "Political Leader Agent", "status": "running", "version": "1.0.0"}
@@ -44,6 +58,11 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+def startup():
+    init_db()
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -60,6 +79,12 @@ def chat(req: ChatRequest):
 
     history = get_session_history(req.session_id)
     return ChatResponse(session_id=req.session_id, reply=reply, message_count=len(history))
+
+
+@app.get("/sessions", response_model=SessionsResponse)
+def sessions():
+    all_sessions = get_sessions()
+    return SessionsResponse(sessions=all_sessions, count=len(all_sessions))
 
 
 @app.get("/history/{session_id}", response_model=HistoryResponse)
