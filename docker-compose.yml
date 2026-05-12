@@ -1,14 +1,40 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: political_platform_db
+    environment:
+      POSTGRES_DB: political_platform
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d political_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   agent:
     build: ./services/agent
+    container_name: political_platform_agent
     ports:
       - "8001:8001"
     environment:
-      - OLLAMA_URL=http://host.docker.internal:11434
-      - LLM_MODEL=llama3.2
-      - APP_ENV=development
+      DATABASE_URL: postgresql://app:${DB_PASSWORD:-devpassword123}@postgres:5432/political_platform
+      OLLAMA_URL: http://host.docker.internal:11434
+      LLM_MODEL: ${LLM_MODEL:-llama3.2}
+      APP_ENV: ${APP_ENV:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+
+volumes:
+  pgdata:
