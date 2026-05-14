@@ -126,10 +126,12 @@ class YouTubeService {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final items = data['items'] as List<dynamic>? ?? [];
       return items
-          .map((e) => YouTubeVideo.fromSearchJson(
-                e as Map<String, dynamic>,
-                isShort: true,
-              ))
+          .map(
+            (e) => YouTubeVideo.fromSearchJson(
+              e as Map<String, dynamic>,
+              isShort: true,
+            ),
+          )
           .toList();
     } catch (_) {
       return [];
@@ -174,8 +176,9 @@ class YouTubeService {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final items = data['items'] as List<dynamic>? ?? [];
       if (items.isEmpty) return null;
-      final details = (items.first as Map<String, dynamic>)
-          ['liveStreamingDetails'] as Map<String, dynamic>?;
+      final details =
+          (items.first as Map<String, dynamic>)['liveStreamingDetails']
+              as Map<String, dynamic>?;
       final count = details?['concurrentViewers'] as String?;
       if (count == null) return null;
       final n = int.tryParse(count) ?? 0;
