@@ -31,8 +31,12 @@ _ALLOWED_AUDIO = {
     "audio/ogg", "audio/webm",
     "audio/mp4", "audio/m4a", "audio/x-m4a",
     "audio/flac", "audio/x-flac",
-    "video/webm",   # Chrome MediaRecorder outputs video/webm for audio-only
+    "video/webm",                 # Chrome MediaRecorder outputs video/webm for audio-only
+    "application/octet-stream",   # Flutter http.MultipartFile.fromPath default
+    "",                           # missing Content-Type — accept; we sniff by extension below
 }
+
+_AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".mp4", ".ogg", ".webm", ".flac", ".aac"}
 
 _MAX_AUDIO_BYTES = 10 * 1024 * 1024   # 10 MB
 
@@ -62,10 +66,18 @@ async def transcribe_audio(
         { text: "", error: "..." }
     """
     # ── Content-type check ────────────────────────────────────────────────────
+    # Some clients (Flutter http.MultipartFile.fromPath) upload audio as
+    # application/octet-stream. We accept that AND also accept missing
+    # Content-Type — instead we sniff the filename extension as the source
+    # of truth. faster-whisper figures the actual codec from file headers.
     ct = (audio_file.content_type or "").split(";")[0].strip().lower()
-    if ct and ct not in _ALLOWED_AUDIO:
-        logger.warning(f"[REST-STT] Rejected content type: {ct}")
-        return JSONResponse(status_code=400, content={"text": "", "error": f"Unsupported audio type: {ct}"})
+    ext = os.path.splitext(audio_file.filename or "")[1].lower()
+    if ct not in _ALLOWED_AUDIO and ext not in _AUDIO_EXTS:
+        logger.warning(f"[REST-STT] Rejected content type={ct!r} ext={ext!r}")
+        return JSONResponse(
+            status_code=400,
+            content={"text": "", "error": f"Unsupported audio type: {ct or 'unknown'} (filename: {audio_file.filename})"},
+        )
 
     # ── Read + size check ─────────────────────────────────────────────────────
     audio_bytes = await audio_file.read()

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 
@@ -109,7 +110,22 @@ class AgentService {
     final req = http.MultipartRequest('POST', uri);
     final token = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (token != null) req.headers['Authorization'] = 'Bearer $token';
-    req.files.add(await http.MultipartFile.fromPath('audio_file', audioFile.path));
+    // Force a real audio MIME type instead of the default
+    // application/octet-stream that Flutter's http library uses for files
+    // it can't sniff. Without this the STT route rejected us with 400.
+    final ext = audioFile.path.toLowerCase().split('.').last;
+    final mime = switch (ext) {
+      'm4a' || 'mp4' || 'aac' => MediaType('audio', 'mp4'),
+      'wav'                   => MediaType('audio', 'wav'),
+      'mp3'                   => MediaType('audio', 'mpeg'),
+      'ogg'                   => MediaType('audio', 'ogg'),
+      'webm'                  => MediaType('audio', 'webm'),
+      _                       => MediaType('audio', 'mp4'),
+    };
+    req.files.add(await http.MultipartFile.fromPath(
+      'audio_file', audioFile.path,
+      contentType: mime,
+    ));
 
     final streamed = await req.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamed);

@@ -1,7 +1,8 @@
 import asyncio
 import io
 import json
-from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+import os
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agent import get_reply, get_session_history, get_sessions, clear_session
@@ -141,7 +142,8 @@ def startup():
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest, authorization: str | None = Header(default=None)):
+async def chat(req: ChatRequest, background_tasks: BackgroundTasks,
+               authorization: str | None = Header(default=None)):
     if not req.session_id.strip():
         raise HTTPException(status_code=400, detail="session_id cannot be empty")
     if not req.message.strip():
@@ -156,6 +158,12 @@ def chat(req: ChatRequest, authorization: str | None = Header(default=None)):
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Agent error: {str(e)}")
 
+    # Pre-synth the reply in the background so the TTS cache is warm by the
+    # time mobile calls /tts. Mobile's POST /tts arrives ~50-200 ms after
+    # this /chat returns — Fish's 1-3 s synth typically finishes during that
+    # window, so the next call sees an X-Cache: HIT instead of MISS.
+    background_tasks.add_task(_tts_warm, reply, None)
+
     history = get_session_history(req.session_id)
     return ChatResponse(session_id=req.session_id, reply=reply, message_count=len(history))
 
@@ -165,21 +173,125 @@ class TtsRequest(BaseModel):
     voice: str | None = None
 
 
+# ── Disk cache for /tts ──────────────────────────────────────────────────────
+# sha256(text + "|" + voice + "|" + engine + "|" + fish_voice_id) → MP3 file
+# in services/agent/data/tts_cache/. Hit returns from disk in <10 ms; miss
+# calls Fish (~1-3 s) and writes the result for next time. Cache survives
+# restarts, no expiry. /chat schedules a background prefetch so the audio
+# is usually warm by the time mobile asks for it.
+import hashlib as _hashlib
+import logging as _logging
+from pathlib import Path as _Path
+from fastapi.responses import Response as _Response
+
+_tts_log = _logging.getLogger("agent.tts")
+_tts_log.setLevel(_logging.INFO)
+
+_TTS_CACHE_DIR = _Path(__file__).parent / "data" / "tts_cache"
+_TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+_tts_log.info(f"[TTS] cache dir = {_TTS_CACHE_DIR}")
+
+
+def _tts_cache_path(text: str, voice: str | None) -> _Path:
+    h = _hashlib.sha256()
+    h.update(text.encode("utf-8"))
+    h.update(b"|")
+    h.update((voice or "").encode("utf-8"))
+    h.update(b"|")
+    h.update((os.getenv("TTS_ENGINE", "edge") or "edge").encode("utf-8"))
+    h.update(b"|")
+    h.update((os.getenv("FISH_AUDIO_VOICE_ID", "") or "").encode("utf-8"))
+    return _TTS_CACHE_DIR / f"{h.hexdigest()[:24]}.mp3"
+
+
+async def _tts_warm(text: str, voice: str | None = None) -> bool:
+    """Synth (text, voice) into the cache. Idempotent — returns True if a
+    cache file exists after the call (whether from a prior request or a fresh
+    synth done here). Never raises — caller can fire-and-forget."""
+    text = (text or "").strip()
+    if not text:
+        return False
+    cache_file = _tts_cache_path(text, voice)
+    if cache_file.exists() and cache_file.stat().st_size > 0:
+        return True
+    try:
+        audio = await synthesize_sentence(text, voice=voice)
+        cache_file.write_bytes(audio)
+        _tts_log.info(f"[TTS] prefetch  cached  {len(audio):>6} B  {cache_file.name}  text={text[:40]!r}")
+        return True
+    except Exception as e:
+        _tts_log.warning(f"[TTS] prefetch failed: {e}  text={text[:40]!r}")
+        return False
+
+
 @app.post("/tts")
 async def tts(req: TtsRequest):
-    """One-shot text-to-speech for voice mode on mobile. Returns MP3 bytes
-    synthesised with whichever engine is active (Fish clone when
-    TTS_ENGINE=fish, else edge-tts). Doesn't touch chat state."""
+    """One-shot text-to-speech for voice mode on mobile. Returns MP3 bytes.
+
+    Disk-cached. X-Cache: HIT (returned from local disk, ~5 ms) or MISS
+    (called Fish, ~1-3 s, then cached for next time). Both paths log a
+    single line so you can see in the gateway terminal whether the cache
+    is doing its job.
+    """
     text = (req.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
+
+    cache_file = _tts_cache_path(text, req.voice)
+    if cache_file.exists() and cache_file.stat().st_size > 0:
+        data = cache_file.read_bytes()
+        _tts_log.info(f"[TTS] HIT   {len(data):>6} B  {cache_file.name}  text={text[:40]!r}")
+        return _Response(
+            content=data,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "no-store", "X-Cache": "HIT"},
+        )
+
     try:
         audio = await synthesize_sentence(text, voice=req.voice)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Synthesis failed: {e}")
-    from fastapi.responses import Response
-    return Response(content=audio, media_type="audio/mpeg",
-                    headers={"Cache-Control": "no-store"})
+
+    try:
+        cache_file.write_bytes(audio)
+        _tts_log.info(f"[TTS] MISS  {len(audio):>6} B  {cache_file.name}  text={text[:40]!r}")
+    except Exception as e:
+        _tts_log.warning(f"[TTS] MISS (write failed: {e})  text={text[:40]!r}")
+
+    return _Response(
+        content=audio,
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-store", "X-Cache": "MISS"},
+    )
+
+
+@app.get("/tts/cache/stats")
+def tts_cache_stats():
+    """How many entries are in the TTS cache and how big it is. Use this
+    after a conversation to confirm caching is actually happening."""
+    files = list(_TTS_CACHE_DIR.glob("*.mp3"))
+    total = sum(f.stat().st_size for f in files)
+    return {
+        "cache_dir":  str(_TTS_CACHE_DIR),
+        "entries":    len(files),
+        "total_kb":   round(total / 1024, 1),
+        "newest":     max((f.stat().st_mtime for f in files), default=None),
+    }
+
+
+@app.delete("/tts/cache")
+def tts_cache_clear():
+    """Wipe the TTS cache. Useful when you change Fish voice id and want
+    to force re-synthesis of all phrases."""
+    removed = 0
+    for f in _TTS_CACHE_DIR.glob("*.mp3"):
+        try:
+            f.unlink()
+            removed += 1
+        except Exception:
+            pass
+    _tts_log.info(f"[TTS] cache cleared — {removed} files removed")
+    return {"removed": removed}
 
 
 @app.get("/sessions", response_model=SessionsResponse)

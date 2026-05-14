@@ -36,6 +36,12 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _processing = false;
   bool _replayingLast = false;     // briefly true while we re-synth the last reply
 
+  // Monotonic counter for TTS requests. Each call to _speak() captures the
+  // current value and only proceeds to play if it's still the latest. This
+  // discards stale Fish responses when the user has already moved on to a
+  // newer reply — fixes "an old voice plays after I sent a new message".
+  int _speakGen = 0;
+
   @override
   void initState() {
     super.initState();
@@ -106,7 +112,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() => _processing = true);
     try {
-      final transcribed = await AgentService.transcribe(File(path));
+      // Force STT language for Tamil-flavor sessions. Whisper auto-detect
+      // sometimes confuses Tamil speech with Hindi on short utterances and
+      // returns Devanagari text — the LLM then replies in Hindi.
+      // Hardcode the script per flavor so this can't happen.
+      final sttLang = AppConfig.flavorName == 'tn-tvk' ? 'ta' : null;
+      final transcribed = await AgentService.transcribe(File(path), language: sttLang);
       if (transcribed.isEmpty) return;
 
       final userMsg = ChatMessage(role: 'user', content: transcribed, timestamp: DateTime.now());
@@ -129,19 +140,31 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _speak(String text) async {
+    final myGen = ++_speakGen;
     try {
       final mp3Bytes = await AgentService.synthesizeSpeech(text);
+
+      // If the user sent another mic turn while we were waiting on Fish,
+      // there's a newer _speak in flight. Discard this one — playing it
+      // now would be "old voice telling latest reply" which is exactly
+      // the bug the user reported.
+      if (myGen != _speakGen) return;
+
       final dir = await getTemporaryDirectory();
       final out = File('${dir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
       await out.writeAsBytes(mp3Bytes, flush: true);
-      // Stop & release the previous source so a NEW reply replaces the old one
-      // mid-playback (instead of being ignored because the player is still
-      // playing the previous file).
+
+      // Stop any currently playing audio so the new reply takes over.
       try { await _player.stop(); } catch (_) {}
+
+      // Last-chance check before play — a newer reply may have arrived
+      // while we were writing the file to disk.
+      if (myGen != _speakGen) return;
+
       await _player.setFilePath(out.path);
       await _player.play();
     } catch (e) {
-      _showError('Playback failed: $e');
+      if (myGen == _speakGen) _showError('Playback failed: $e');
     }
   }
 
