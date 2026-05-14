@@ -15,6 +15,7 @@ A multi-client political AI agent platform. Citizens can talk to their political
 **First client:** `india-pm` flavour (see client mapping in memory).
 
 **5 planned modules:**
+
 1. CM AI Agent (chat with political leader)
 2. Citizen Services (Vahan / Sarathi integrations)
 3. Community & Project Platform
@@ -85,6 +86,7 @@ political-platform/
 ## Local Dev Setup
 
 ### Run backend
+
 ```bash
 conda activate political-agent
 cd services/agent
@@ -93,18 +95,21 @@ python main.py
 ```
 
 ### Run Ollama
+
 ```bash
 ollama serve
 # Runs on http://localhost:11434
 ```
 
 ### Run Flutter
+
 ```bash
 cd mobile/app
 flutter run
 ```
 
 ### Pod install (iOS)
+
 ```bash
 export LANG=en_US.UTF-8
 cd mobile/app/ios
@@ -112,6 +117,7 @@ pod install
 ```
 
 ### API URL
+
 Hardcoded LAN IP in `mobile/app/lib/config/app_config.dart`.
 Run `ipconfig getifaddr en0` to get current IP and update if changed.
 
@@ -135,12 +141,14 @@ Current screens were built before MVVM was adopted. Migrate gradually — do not
 ## What Is Built
 
 ### Auth
+
 - Firebase Phone OTP (iOS + Android)
 - `appVerificationDisabledForTesting` correctly skipped on physical devices
 - Firebase ID token sent as `Authorization: Bearer` on every API call
 - Backend accepts token but does **not** verify it yet (open for now)
 
 ### Mobile
+
 - Login screen → phone number → OTP → dashboard
 - Dashboard → list of past sessions (local), swipe to delete, new chat FAB
 - Chat screen → message bubbles, animated thinking dots, auto-scroll
@@ -148,6 +156,7 @@ Current screens were built before MVVM was adopted. Migrate gradually — do not
 - Flavour system — `india-pm` flavour with Indian flag green/saffron theme
 
 ### Backend
+
 - `POST /chat` — send message, get AI reply
 - `GET /history/{session_id}` — get past messages
 - `DELETE /session/{session_id}` — clear session
@@ -177,40 +186,48 @@ Current screens were built before MVVM was adopted. Migrate gradually — do not
 These rules are non-negotiable. Every session must follow them.
 
 ### Shared assistant workflow
+
 - Codex and Claude must both follow `TEAM_WORKFLOW.md`
 - When touching code, always log the reason and verification there
 - Keep `TEAM_WORKFLOW.md`, `AGENTS.md`, and `CLAUDE.md` aligned if workflow rules change
 
 ### 1. Never break existing functionality
+
 - Test what is working before changing anything near it
 - If a change touches a working feature, explicitly verify it still works after
 
 ### 2. Step by step — no mass changes
+
 - One feature or fix per session
 - Each change must be small enough to review and revert independently
 - Never refactor and add features at the same time
 
 ### 3. Flutter MVVM — strictly
+
 - Screens contain only UI (widgets, animations)
 - Business logic lives in ViewModels
 - API/storage calls live in Services
 - No `http` calls or `SharedPreferences` access directly inside a screen
 
 ### 4. No over-engineering
+
 - Build exactly what is needed, nothing more
 - No abstractions for hypothetical future requirements
 - Three similar lines is better than a premature abstraction
 
 ### 5. No comments that explain what the code does
+
 - Good names make comments redundant
 - Only comment WHY something is done if it is non-obvious
 
 ### 6. Security
+
 - Never commit secrets (.env, API keys, service account files)
 - Never expose real client names in code — use flavour IDs only
 - Validate all user input at the boundary (API endpoints, form fields)
 
 ### 7. Every session ends with a Changelog entry
+
 - Add a row to the Changelog at the bottom of this file
 - Format: `DATE | WHAT CHANGED | FILES TOUCHED`
 
@@ -272,14 +289,27 @@ Add new flavours in `app_config.dart` only. Never use real client names in code.
 | 2026-05-11 | Figma photos + manifesto data complete — replaced all Icon placeholders with real Figma images: vijay_home_hero.png in hero area, vijay_hero.png in Join TVK card, leader_vijay/anand/arunraj/aadhav.png in Know Your Leaders grid. ManifestoPlan model got imageAsset+bullets fields; manifesto_screen.dart uses plan.imageAsset directly; manifesto_detail_screen.dart Key Goals reads plan.bullets (falls back to defaults if empty). leader_screen.dart campaign images fixed to campaign1.png + campaign2.png. Zero analyzer issues. | home_screen.dart, manifesto_screen.dart, manifesto_detail_screen.dart, leader_screen.dart, models/manifesto_plan.dart, services/content_service.dart |
 | 2026-05-11 | Home screen complete — added Campaign Toolkit section (horizontal scroll of 4 poster cards with Share button), TVK Television card (dark red gradient → YoutubeHubScreen), redesigned Community Wall card (white bg, 3 post previews with avatar initials), Figma-exact Poll card (red #9F1D1F checkbox, 48px options, green Get TVK Badge pill). Manifesto banner now shows vijay_hero.png. Zero analyzer issues. | home_screen.dart |
 | 2026-05-11 | Figma-exact screen rebuilds — PollsScreen (Take Action: filter chips Polls/Complaints/Donation, red 48px option rows, TVK Badge pill), NewsScreen (Latest News: section groups Speeches/Highlights/Tweets, white cards with 166px thumbnail + play button + category pill + likes/share footer), ProfileScreen (Existing Profile: avatar + stats row + Area Pulse + Local Members + About TVK), SettingsScreen (new: Edit Profile, Notification/Theme toggles, Language buttons, Log out / Delete account). All screens use #F6F6F6 bg, white top app bar, Plus Jakarta Sans font, primary #9F1D1F. Zero analyzer issues. | polls_screen.dart, news_screen.dart, profile_screen.dart, settings_screen.dart (new) |
-| 2026-05-11 | Fixed home_screen.dart compile error (orphaned brackets from prior edit). Added _SocialJusticeSection — swipeable PageView of 5 TVK ideology leaders (Periyar, Kamarajar, Ambedkar, Velunachiyar, Anjalai Ammal) with left/right arrow nav, dot indicators, dark red gradient cards. Zero analyzer issues. | home_screen.dart |
+| 2026-05-11 | Fixed home_screen.dart compile error (orphaned brackets from prior edit). Added_SocialJusticeSection — swipeable PageView of 5 TVK ideology leaders (Periyar, Kamarajar, Ambedkar, Velunachiyar, Anjalai Ammal) with left/right arrow nav, dot indicators, dark red gradient cards. Zero analyzer issues. | home_screen.dart |
 | 2026-05-11 | Created ROADMAP.md — full architecture (local→staging→prod on AWS ECS Fargate), PostgreSQL+pgvector DB schema, RAG implementation plan, 7-phase build plan, Docker Compose full stack target, cost estimate. Mandatory reading for all AI agents. | ROADMAP.md, CLAUDE.md, AGENTS.md, TEAM_WORKFLOW.md |
 | 2026-05-11 | Started backend chat persistence foundation on `codex/backend-chat-persistence` — added DB-backed session/message storage in agent service and new `GET /sessions` endpoint; chat persistence no longer depends on the in-memory dict | services/agent/db.py, services/agent/agent.py, services/agent/main.py |
 | 2026-05-12 | Admin UI complete redesign — dark sidebar nav (Knowledge Base / Add Content sections), stats cards, source-type badges (Manual/File/URL/YouTube), color-coded similarity progress bars on Test Retrieval, audit log with category filter pills, design token system | services/admin-ui/src/App.jsx |
-| 2026-05-12 | Firebase token verification — new auth.py module: dev mode decodes JWT payload without verification (local dev unaffected), production mode uses firebase-admin SDK for full cryptographic verification. /chat and /sessions now return 401 on invalid token in prod. FIREBASE_SERVICE_ACCOUNT_JSON / _PATH env vars added. firebase-admin==6.5.0 added to requirements. | services/agent/auth.py (new), services/agent/main.py, services/agent/requirements.txt, docker-compose.yml, .env |
+| 2026-05-12 | Firebase token verification — new auth.py module: dev mode decodes JWT payload without verification (local dev unaffected), production mode uses firebase-admin SDK for full cryptographic verification. /chat and /sessions now return 401 on invalid token in prod. FIREBASE_SERVICE_ACCOUNT_JSON /_PATH env vars added. firebase-admin==6.5.0 added to requirements. | services/agent/auth.py (new), services/agent/main.py, services/agent/requirements.txt, docker-compose.yml, .env |
 | 2026-05-12 | Fixed critical empty-reply bug — role anchor was appended AFTER the last user message; model receiving system message as final turn generated 0 tokens. Fixed: role anchor now inserted before the last user message. RAG similarity threshold raised 0.4→0.55 to stop noise queries (greetings etc.) from triggering irrelevant context injection. | services/agent/agent.py, services/agent/rag.py |
 | 2026-05-12 | Admin UI: replaced ADD CONTENT sidebar items with a single ＋ Add Content FAB (bottom-right). Tap opens a centred modal with 4 segment tabs (Paste Text / Upload File / Scrape URL / YouTube). Sidebar now shows only KNOWLEDGE BASE nav items. Modal closes on Escape or backdrop click, auto-closes after successful add. | services/admin-ui/src/App.jsx |
 | 2026-05-12 | Flutter chat hardening — sendMessage timeout raised 60→90s; empty reply now throws instead of creating empty bubble; network errors surface readable messages (timeout vs unreachable); getSessions no longer throws on failure (returns empty list so UI stays functional). | mobile/app/lib/services/agent_service.dart |
 | 2026-05-12 | Fixed language detection — AI was replying in Tamil even when user typed in English. Root cause: model anchored to Tamil from conversation history. Fix: role_anchor() now detects Unicode script of each user message (Tamil block ஀-௿ / Devanagari / Latin) and injects an explicit per-turn LANGUAGE instruction ("Reply ONLY in English. Do NOT use Tamil."). Works correctly across language switches mid-conversation. | services/agent/guard.py, services/agent/agent.py |
 | 2026-05-12 | Fixed YouTube transcript (youtube-transcript-api 0.6.2→1.2.4 — completely new API; old class-method API removed). Rewrote get_youtube_transcript() for v1.x: api.list()/api.fetch(), FetchedTranscriptSnippet.text instead of dict["text"], language priority ta→en→any. Fixed URL scraper: 3-pass extraction (main area → all p/li/h tags → full body), improved User-Agent, better error message for JS-rendered sites. | services/agent/scraper.py, services/agent/requirements.txt |
 | 2026-05-12 | Default system prompts now live in DB and are admin-editable — not in .env. New `personas` table seeded once from persona.SEED_PERSONAS on init_db(); admin UI gained "System Prompt" page with monospace editor, char/word counts, unsaved-changes indicator, and Reset-to-default. Backend endpoints: GET/PUT/POST /admin/personas[/{flavor_id}][/reset]. agent.py refreshes the session's system message from DB on every call so edits take effect on the next turn (existing chats included). Audit log records persona_updated / persona_reset. | services/agent/db.py, services/agent/persona.py, services/agent/agent.py, services/agent/main.py, services/admin-ui/src/App.jsx |
+| 2026-05-13 | Realtime 3D avatar + streaming voice — additive scaffold, existing /chat untouched. New WebSocket `/ws/chat` streams Ollama tokens with sentence-level early flush (first comma), spawns parallel edge-tts MP3 synthesis per sentence, and sends interleaved text + binary audio frames. Avatar pipeline: photo or RPM GLB URL → cached GLB served by `GET /avatar/{id}.glb`. New `avatars` table + register/list/get/delete helpers. Web client (`services/web-avatar/`) renders the GLB with @react-three/fiber, drives ARKit `jawOpen` blendshape from a shared Web Audio AnalyserNode, plays MP3 sentences in order through one `<audio>` element. Pluggable photo→3D provider hook via `PHOTO_TO_AVATAR_API` env. Sub-1s first-audio latency on the early-flush path. | services/agent/streaming.py (new), services/agent/tts.py (new), services/agent/avatar_gen.py (new), services/agent/main.py, services/agent/db.py, services/agent/requirements.txt, services/web-avatar/* (new), .gitignore |
+| 2026-05-13 | Admin UI Avatars page — new sidebar section between Audit Log and Prompts with 🧑 Avatars entry. Page has segmented "From GLB URL" / "Upload Photo" form (name + url or name + file), avatar grid showing source badge (URL / Photo / Photo-placeholder), creation time, GLB download link, and delete action. Per-flavor filtered via existing flavor switcher. AddFab hidden on this page (matches Prompts behavior). | services/admin-ui/src/App.jsx |
+| 2026-05-13 | Offline-friendly procedural 3D avatar — ProceduralAvatar.jsx renders a stylized head from Three.js primitives (no GLB, no network). AvatarCanvas falls back to it when `glbUrl` is null, a HEAD probe returns 404, or GLB loading throws. Built-in dropdown option always present in the web client. Photo upload no longer fails when readyplayer.me is DNS-blocked — record is saved with needs_regeneration=true and the canvas renders procedural for it. Default-GLB env hints added (DEFAULT_AVATAR_URL, LOCAL_DEFAULT_GLB, PHOTO_TO_AVATAR_API). | services/web-avatar/src/ProceduralAvatar.jsx (new), services/web-avatar/src/AvatarCanvas.jsx, services/web-avatar/src/App.jsx, services/agent/avatar_gen.py, .env |
+| 2026-05-13 | Sketchfab embed avatars — new first-class avatar type for networks that DNS-block readyplayer.me but allow sketchfab.com. avatars table gains embed_url column (migration safe). New `POST /admin/avatars/from-embed` endpoint. Admin UI gets "🎬 From Sketchfab" tab (now the default) with embed URL field. SketchfabViewer.jsx loads the Sketchfab Viewer API and drives morph targets for lip sync where available, falling back to silent playback when the model has none. Auto-seeded on startup from DEFAULT_SKETCHFAB_EMBED env (pre-filled with the "Vijay the Master 3D" model). DEFAULT_SKETCHFAB_NAME and DEFAULT_SKETCHFAB_FLAVOR for naming/flavor binding. | services/agent/db.py, services/agent/main.py, services/admin-ui/src/App.jsx, services/web-avatar/src/SketchfabViewer.jsx (new), services/web-avatar/src/App.jsx, services/web-avatar/src/styles.css, .env |
+| 2026-05-13 | D-ID Streams photoreal talking-photo integration — uploads a face photo to api.d-id.com, opens a WebRTC peer connection (browser ↔ D-ID, our backend proxies signaling so the API key stays server-side), pushes each sentence from the LLM stream to `/talks/streams/{id}` and the browser renders the resulting lip-synced video. Avatars table gains did_source_url + did_voice_id columns. New endpoints: /admin/avatars/from-did-photo, /did/stream/{create,sdp,ice,talk,close}. New web component DIDViewer.jsx with imperative .speak() handle. useAvatarChat exposes onSentence + muteLocalAudio (D-ID streams its own audio). Admin UI gets a "👤 Talking Photo (D-ID)" tab (now default) with voice id field. DID_API_KEY env var. | services/agent/did.py (new), services/agent/main.py, services/agent/db.py, services/web-avatar/src/DIDViewer.jsx (new), services/web-avatar/src/App.jsx, services/web-avatar/src/useAvatarChat.js, services/web-avatar/src/styles.css, services/admin-ui/src/App.jsx, .env |
+| 2026-05-13 | MVP1 self-hosted avatar pipeline + gateway architecture — pivoted from cloud APIs (D-ID/Sketchfab/RPM) to a self-hosted stack because the dev box has no NVIDIA GPU. New services/avatar-service/ (port 8002) and gateway services/run.py (port 9000) that boots agent (8001) + avatar-service (8002) as subprocesses and reverse-proxies HTTP + WebSocket based on path prefix. Frontends point at :9000 only. avatars table gains face_avatar_id + piper_voice_id columns. New endpoint POST /admin/avatars/face. WS /ws/chat accepts avatar_id and routes TTS to avatar-service when face avatar selected. Admin UI gets "📸 Face Photo" tab as the default. Hotfix: replaced piper-tts with edge-tts (piper-phonemize has no Python 3.13 wheels), and switched .env loading to absolute Path(**file**).resolve().parents[2] so DATABASE_URL no longer falls back to the wrong default under uvicorn's reloader subprocess. | services/run.py (rewritten), services/avatar-service/* (new), services/agent/avatar_client.py (new), services/agent/main.py, services/agent/agent.py, services/agent/db.py, services/web-avatar/src/App.jsx, services/web-avatar/src/useAvatarChat.js, services/web-avatar/src/styles.css, services/admin-ui/src/App.jsx |
+| 2026-05-13 | MVP2 + MVP3-lite — Canvas-based 2D talking-head animation. New FacePhotoCanvas.jsx replaces the static-<img> FacePhotoStage. Single requestAnimationFrame loop drives: (a) mouth opening as a dark ellipse scaled by audio amplitude from SentenceAudioPlayer.AnalyserNode, (b) random eye blinks (~every 3-6s) drawn as skin-toned bars sampled from the photo, (c) subtle head sway via canvas rotate. Mouth/eye positions are fractional bbox heuristics — accurate for centered forward-facing portraits, will be replaced with face-api.js landmarks in MVP2.5 if needed. OpenVoice clone (the other MVP3 item) is explicitly deferred — 2-3s CPU latency made it not worth shipping for realtime, kept as an offline batch tool for future. | services/web-avatar/src/FacePhotoCanvas.jsx (new), services/web-avatar/src/App.jsx, services/web-avatar/src/styles.css |
+| 2026-05-14 | Cleanup PR — deleted all non-face avatar paths. Removed files: services/agent/{avatar_gen.py, did.py}; services/web-avatar/src/{AvatarCanvas.jsx, ProceduralAvatar.jsx, SketchfabViewer.jsx, DIDViewer.jsx}; services/avatar-service/piper_tts.py shim. Stripped from main.py: AvatarFromUrlRequest, AvatarFromEmbedRequest, DID*Request models; endpoints /admin/avatars/{from-url,from-embed,from-photo,from-did-photo}, /did/stream/{create,sdp,ice,talk,close}, GET /avatar/{id}.glb; *seed_default_sketchfab_avatar() startup hook. db.py: dropped columns photo_filename, source_url, embed_url, did_source_url, did_voice_id, needs_regeneration via DROP COLUMN IF EXISTS; simplified register_avatar signature to (id, name, flavor_id, face_avatar_id, piper_voice_id); removed get_avatar_by_embed_url. web-avatar/package.json: removed three, @react-three/fiber, @react-three/drei deps. web-avatar/App.jsx: dropped the 4-way cascade, only renders FacePhotoCanvas or empty-state. admin-ui/App.jsx: AvatarsView collapsed to a single form (no more 5-tab segment), AvatarCard simplified to one badge. .env: removed DEFAULT_AVATAR_URL, LOCAL_DEFAULT_GLB, PHOTO_TO_AVATAR_API, DEFAULT_SKETCHFAB**, DID_API_KEY, DID_API_BASE; added GATEWAY_PORT + AVATAR_SERVICE_URL hints. ~700 lines deleted net. | services/agent/main.py, services/agent/db.py, services/admin-ui/src/App.jsx, services/web-avatar/src/App.jsx, services/web-avatar/package.json, .env (+ deletions listed above) |
+| 2026-05-14 | MVP2.5 — MediaPipe Face Landmarker for accurate mouth positioning. New faceLandmarks.js wraps @mediapipe/tasks-vision (478-point face mesh, WASM + model loaded from jsDelivr/Google CDN on first photo). On photo upload, browser detects mouth + eye bboxes once and FacePhotoCanvas uses them instead of fraction heuristics. Falls back to centered defaults with a clear "Face not detected" warning if MediaPipe fails to load or no face is found. Censor-bar blink overlay removed — looked bad without proper eyelid warping; idle blink can come back in MVP3 with curved mask + skin sampling from the brow. Mouth ellipse made narrower (0.30 of bbox width) so the dark doesn't leak past the lips at high amplitude. | services/web-avatar/package.json, services/web-avatar/src/faceLandmarks.js (new), services/web-avatar/src/FacePhotoCanvas.jsx, services/web-avatar/src/styles.css |
+| 2026-05-14 | gpu-avatar service scaffolded for LivePortrait + audio2motion (mock pipeline now, real pipeline later). New service on port 8003 with HTTP contract: POST /gpu-svc/sources (photo→source_id), POST /gpu-svc/sources/{id}/speak (audio→task_id), GET /gpu-svc/streams/{task_id} (MJPEG multipart/x-mixed-replace at 25fps), GET /gpu-svc/sources/{id}/idle (continuous idle stream). Mock pipeline renders source photo with amplitude-driven cartoon mouth using PIL/numpy — same wire format the real GPU pipeline will use. Swap is one file replacement (`mock_pipeline.py` → `real_pipeline.py` with LivePortrait + an audio2motion model like Real3D-Portrait / GeneFace++). Gateway proxy upgraded from `await client.request` to `client.send(stream=True)` + StreamingResponse so MJPEG / SSE / large file responses don't block. SERVICES table in run.py now boots all three. GPU_AVATAR_URL env hint added. | services/gpu-avatar/* (new), services/run.py, .env, CLAUDE.md |
+| 2026-05-14 | Per-service enable/disable flags in run.py. SERVICES table gains enabled_env / default_enabled / required_envs keys. _is_enabled() reads ENABLE_AGENT / ENABLE_AVATAR_SERVICE / ENABLE_GPU_AVATAR / ENABLE_TAVUS from .env (truthy = 1/true/yes/on; falsy = 0/false/no/off). Services with `required_envs` (e.g. tavus-service needs TAVUS_API_KEY) are auto-skipped if those vars are unset, with a clear log line. Gateway proxy returns `503 {service disabled, reason}` JSON for any HTTP request to a disabled prefix, and `4503` WebSocket close for disabled WS paths — no more `ConnectionRefused` confusion. /_gateway/services now reports `enabled` + `reason` per service. tavus-service entry pre-wired in SERVICES (cwd doesn't exist yet, so it skips gracefully until that service is scaffolded next session). | services/run.py, .env |
+| 2026-05-14 | tavus-service scaffolded (Phase 1 — Tavus built-in LLM, no webhook). New service on port 8005 with HTTP proxy in front of api.tavusapi.com. Endpoints: GET /tavus-svc/replicas, GET /tavus-svc/personas, POST /tavus-svc/conversations (returns Daily.co room URL), GET/DELETE /tavus-svc/conversations/{id}. Auth via TAVUS_API_KEY (server-side only — never sent to browser). TAVUS_SYSTEM_PROMPT default sets the Vijay/TVK persona inline as `conversational_context`. Custom-LLM webhook stubbed at /tavus-svc/webhook for Phase 2 (Ollama+RAG via ngrok / Cloudflare Tunnel). Smoke test: POST /tavus-svc/conversations with a stock replica_id → open the returned conversation_url in a browser tab for live two-way video chat with no further client code. | services/tavus-service/* (new), CLAUDE.md |
+| 2026-05-14 | tavus-service personal replica training (face + voice cloning). Tavus trains face and voice from one video — no separate voice-only path in CVI. New endpoints: POST /tavus-svc/replicas (kick off training from a public https video URL — Tavus pulls and processes ~30-60 min), GET /tavus-svc/replicas/{id} (poll status: pending → training → ready), DELETE /tavus-svc/replicas/{id}. tavus_client gained create_replica / get_replica / delete_replica. Once ready, the same /tavus-svc/conversations endpoint uses the trained replica_id and the CVI speaks with Vijay's actual cloned voice + face. README documents the dashboard path (https://platform.tavus.io) as the no-code alternative, plus consent/ToS caveat for public-figure cloning. | services/tavus-service/main.py, services/tavus-service/tavus_client.py, services/tavus-service/README.md |

@@ -3,12 +3,16 @@ Streaming TTS.
 
 edge-tts is the default — free, CPU-only, supports English / Tamil / Hindi out of
 the box, and streams MP3 chunks. The public surface here (`synthesize_sentence`,
-`pick_voice`) is intentionally minimal so XTTS-v2 streaming (voice cloning) or
-any other engine can be dropped in without touching the WebSocket layer.
+`pick_voice`) is intentionally minimal so alternative engines can be dropped in
+without touching the WebSocket layer.
+
+Set TTS_ENGINE=fish in .env to use Fish Audio voice cloning (Vijay's voice).
+Set TTS_ENGINE=edge (default) for generic Microsoft Neural voices.
 """
 import os
 import edge_tts
 
+TTS_ENGINE    = os.getenv("TTS_ENGINE", "edge")
 DEFAULT_VOICE = os.getenv("TTS_VOICE", "en-IN-NeerjaNeural")
 DEFAULT_RATE  = os.getenv("TTS_RATE", "+0%")
 
@@ -35,6 +39,10 @@ def pick_voice(text: str) -> str:
 
 async def synthesize_sentence(text: str, voice: str | None = None) -> bytes:
     """One sentence in, MP3 bytes out. Concurrent calls are safe."""
+    if TTS_ENGINE == "fish":
+        from tts_fish import synthesize_cloned
+        return await synthesize_cloned(text)
+
     voice = voice or pick_voice(text)
     communicate = edge_tts.Communicate(text, voice, rate=DEFAULT_RATE)
     buf = bytearray()

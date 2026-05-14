@@ -55,6 +55,8 @@ SERVICES = [
         "port":   8001,
         "prefix": "/",                    # fallback — anything not matched elsewhere
         "ws":     ["/ws/chat"],
+        "enabled_env":     "ENABLE_AGENT",
+        "default_enabled": True,
     },
     {
         "name":   "avatar-service",
@@ -63,6 +65,8 @@ SERVICES = [
         "port":   8002,
         "prefix": "/avatar-svc/",
         "ws":     [],
+        "enabled_env":     "ENABLE_AVATAR_SERVICE",
+        "default_enabled": True,
     },
     {
         "name":   "gpu-avatar",
@@ -71,10 +75,30 @@ SERVICES = [
         "port":   8003,
         "prefix": "/gpu-svc/",
         "ws":     [],
+        "enabled_env":     "ENABLE_GPU_AVATAR",
+        "default_enabled": False,        # off by default — only useful w/ real GPU
     },
-    # Future services go here:
-    # { "name": "vision", "cwd": HERE / "vision-service", "module": "main:app",
-    #   "port": 8004, "prefix": "/vision/", "ws": [] },
+    {
+        "name":   "tavus-service",
+        "cwd":    HERE / "tavus-service",
+        "module": "main:app",
+        "port":   8005,
+        "prefix": "/tavus-svc/",
+        "ws":     [],
+        "enabled_env":     "ENABLE_TAVUS",
+        "default_enabled": False,
+        "required_envs":   ["TAVUS_API_KEY"],   # skipped if missing
+    },
+    {
+        "name":   "sst",
+        "cwd":    HERE / "sst",
+        "module": "app:app",
+        "port":   8004,
+        "prefix": "/stt-svc/",
+        "ws":     [],
+        "enabled_env":     "ENABLE_SST",
+        "default_enabled": False,
+    },
 ]
 
 GATEWAY_PORT = int(os.getenv("GATEWAY_PORT", "9000"))
@@ -87,6 +111,32 @@ def _python() -> str:
 
 # ── Child process management ─────────────────────────────────────────────────
 _procs: list[subprocess.Popen] = []
+
+# Names of services that are NOT going to be started this run — used by the
+# gateway's HTTP proxy to fail-fast with a clear 503 instead of dialing
+# nothing on those ports.
+_disabled_names: set[str] = set()
+_skip_reasons:   dict[str, str] = {}
+
+
+def _truthy(val: str) -> bool | None:
+    s = (val or "").strip().lower()
+    if s in ("1", "true", "yes", "on"):  return True
+    if s in ("0", "false", "no", "off"): return False
+    return None
+
+
+def _is_enabled(svc: dict) -> tuple[bool, str]:
+    explicit = _truthy(os.getenv(svc["enabled_env"], ""))
+    enabled = svc["default_enabled"] if explicit is None else explicit
+    if not enabled:
+        return False, f"{svc['enabled_env']}=false"
+    missing = [v for v in svc.get("required_envs", []) if not os.getenv(v, "").strip()]
+    if missing:
+        return False, f"missing env: {', '.join(missing)}"
+    if not svc["cwd"].exists():
+        return False, f"dir not found: {svc['cwd']}"
+    return True, ""
 
 
 def _spawn(svc: dict) -> subprocess.Popen:
@@ -143,20 +193,26 @@ def _pick_target(path: str) -> dict:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # boot children
+    enabled_services: list[dict] = []
     for svc in SERVICES:
-        if not svc["cwd"].exists():
-            print(f"[gateway] !! {svc['name']} dir missing at {svc['cwd']}, skipping", flush=True)
+        ok, reason = _is_enabled(svc)
+        if not ok:
+            _disabled_names.add(svc["name"])
+            _skip_reasons[svc["name"]] = reason
+            print(f"[gateway] !! {svc['name']:>14}            DISABLED  ({reason})", flush=True)
             continue
+        enabled_services.append(svc)
         _procs.append(_spawn(svc))
 
-    # wait for them to be ready before accepting traffic
-    print(f"[gateway] waiting for backends to report /health …", flush=True)
-    results = await asyncio.gather(*[_wait_ready(s) for s in SERVICES if s["cwd"].exists()],
-                                   return_exceptions=True)
-    for svc, ok in zip([s for s in SERVICES if s["cwd"].exists()], results):
-        status = "READY" if ok is True else "TIMEOUT/ERROR"
-        print(f"[gateway]   {svc['name']:>14} :{svc['port']}  {status}", flush=True)
+    if not enabled_services:
+        print("[gateway] !! no enabled services — gateway will only serve /_gateway/*", flush=True)
+    else:
+        print(f"[gateway] waiting for backends to report /health …", flush=True)
+        results = await asyncio.gather(*[_wait_ready(s) for s in enabled_services],
+                                       return_exceptions=True)
+        for svc, ok in zip(enabled_services, results):
+            status = "READY" if ok is True else "TIMEOUT/ERROR"
+            print(f"[gateway]   {svc['name']:>14} :{svc['port']}  {status}", flush=True)
 
     print(f"[gateway] open  http://localhost:{GATEWAY_PORT}", flush=True)
     yield
@@ -192,7 +248,11 @@ async def gateway_health():
 @app.get("/_gateway/services")
 def gateway_services():
     return [
-        {"name": s["name"], "port": s["port"], "prefix": s["prefix"], "ws": s["ws"]}
+        {
+            "name": s["name"], "port": s["port"], "prefix": s["prefix"], "ws": s["ws"],
+            "enabled": s["name"] not in _disabled_names,
+            "reason":  _skip_reasons.get(s["name"]),
+        }
         for s in SERVICES
     ]
 
@@ -210,6 +270,9 @@ async def proxy_ws(client_ws: WebSocket, ws_path: str):
     svc = _pick_target(path)
     if path not in svc["ws"]:
         await client_ws.close(code=4404)
+        return
+    if svc["name"] in _disabled_names:
+        await client_ws.close(code=4503)
         return
 
     await client_ws.accept()
@@ -253,6 +316,12 @@ async def proxy_ws(client_ws: WebSocket, ws_path: str):
 async def proxy_http(request: Request, full_path: str):
     path = "/" + full_path
     svc = _pick_target(path)
+    if svc["name"] in _disabled_names:
+        return JSONResponse(
+            {"detail": f"{svc['name']} disabled ({_skip_reasons.get(svc['name'], 'no reason')})",
+             "service": svc["name"], "prefix": svc["prefix"]},
+            status_code=503,
+        )
     target = f"http://127.0.0.1:{svc['port']}{path}"
 
     headers = {k: v for k, v in request.headers.items()
