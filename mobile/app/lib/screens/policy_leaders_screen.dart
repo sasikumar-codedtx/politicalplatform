@@ -88,7 +88,7 @@ class PolicyLeadersScreen extends StatelessWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: kPolicyLeaders.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 18),
+                separatorBuilder: (context, i) => const SizedBox(height: 18),
                 itemBuilder: (context, i) => _LeaderCard(
                   leader: kPolicyLeaders[i],
                   onTap: () => Navigator.push(
@@ -154,18 +154,18 @@ class _HeroBanner extends StatelessWidget {
             ),
           ),
 
-          // Bottom dark gradient (bottom half)
+          // Bottom dark gradient — strong enough to guarantee text legibility
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            height: 108,
+            height: 130,
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Color(0x29000000), Colors.transparent],
+                  colors: [Color(0xCC000000), Colors.transparent],
                 ),
               ),
             ),
@@ -279,13 +279,13 @@ class _LeaderCard extends StatelessWidget {
             // Leader portrait (right side)
             Positioned(
               right: 0,
-              top: 12,
+              top: 6,
               width: 97,
-              height: 101,
+              height: 107,
               child: Image.asset(
                 leader.imagePath,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomCenter,
                 errorBuilder: (_, e, s) => const SizedBox.shrink(),
               ),
             ),

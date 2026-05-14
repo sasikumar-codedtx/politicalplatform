@@ -11,14 +11,14 @@ import '../viewmodels/home_viewmodel.dart';
 import '../services/youtube_service.dart';
 import 'news_screen.dart';
 import 'news_detail_screen.dart';
-import 'leader_screen.dart';
 import 'manifesto_screen.dart';
 import 'chat_list_screen.dart';
 import 'events_screen.dart';
 import 'polls_screen.dart';
-import 'profile_screen.dart';
 import 'video_player_screen.dart';
 import 'youtube_hub_screen.dart';
+import 'fan_page_screen.dart';
+import 'policy_leaders_screen.dart';
 // ─── Hardcoded campaign song ──────────────────────────────────────────────────
 const _kCampaignSongVideoId = 'JHJmFbLeK-Y';
 const _kCampaignSongTitle = 'TVK Campaign Song';
@@ -78,14 +78,22 @@ class _HomeViewState extends State<_HomeView> {
               // ── 1. Hero banner ───────────────────────────────────
               const _HeroSection(),
 
-              // ── 2. Campaign Song — no header, card directly ───────
+              // ── 2. Leaders Deck + Community Row ──────────────────
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _SocialJusticeAndCommunityRow(),
+              ),
+              const SizedBox(height: 20),
+
+              // ── 3. Campaign Song — no header, card directly ───────
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: _CampaignSongCard(),
               ),
               const SizedBox(height: 20),
 
-              // ── 3. Latest Updates ────────────────────────────────
+              // ── 4. Latest Updates ────────────────────────────────
               if (vm.latestNews.isNotEmpty) ...[
                 _SectionHeader(
                   label: 'Latest Updates',
@@ -96,19 +104,6 @@ class _HomeViewState extends State<_HomeView> {
                 _LatestUpdatesHScroll(news: vm.latestNews),
                 const SizedBox(height: 20),
               ],
-
-              // ── 4. Know Your Leaders ─────────────────────────────
-              _SectionHeader(
-                label: 'Know your leaders',
-                onMore: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const LeaderScreen())),
-              ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: _LeadersGrid(),
-              ),
-              const SizedBox(height: 20),
 
               // ── 5. Manifesto — cinematic, no header ───────────────
               GestureDetector(
@@ -450,6 +445,7 @@ class _HeroSection extends StatelessWidget {
 
 // ─── Hero app bar (transparent overlay, white icons) ─────────────────────────
 
+
 class _HeroAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -497,28 +493,6 @@ class _HeroAppBar extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        // Right user avatar — av2
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/av2.png',
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorBuilder: (_, e, s) => Container(
-                width: 40,
-                height: 40,
-                color: const Color(0xFFE40101),
-                child: const Icon(Icons.person_rounded,
-                    color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -1088,139 +1062,327 @@ class _LatestNewsCard extends StatelessWidget {
   }
 }
 
-// ─── Know Your Leaders ────────────────────────────────────────────────────────
+// ─── Social Justice + Community Row ──────────────────────────────────────────
 
-class _LeadersGrid extends StatelessWidget {
-  const _LeadersGrid();
+const _leaderImages = [
+  'assets/images/leader_kamarajar.png',
+  'assets/images/leader_ambedkar.png',
+  'assets/images/leader_periyar.png',
+  'assets/images/leader_anjalai.png',
+  'assets/images/leader_velunachiyar.png',
+];
 
-  static const _leaders = [
-    ('Vijay', 'President', 'assets/images/leader_vijay.png'),
-    ('N. Anand', 'General Secretary', 'assets/images/leader_anand.png'),
-    ('K. G. Arunraj', 'Propaganda & Policy\nGeneral Secretary',
-        'assets/images/leader_arunraj.png'),
-    ('Aadhav Arjuna', 'E.C.M\nGeneral Secretary',
-        'assets/images/leader_aadhav.png'),
-  ];
+const _leaderCardColors = [
+  Color(0xFF8B5A3C),
+  Color(0xFF4A5240),
+  Color(0xFF2C2C2C),
+  Color(0xFF6B3A2A),
+  Color(0xFF3D4A38),
+];
+
+const _leaderNames = [
+  'Kamarajar',
+  'B. R. Ambedkar',
+  'Periyar',
+  'Anjalai Ammal',
+  'Velu Nachiyar',
+];
+
+const _leaderRoles = [
+  'Karmaveer',
+  'Babasaheb',
+  'Thanthai',
+  'Jhansi Rani of South India',
+  'Veeramangai',
+];
+
+class _SocialJusticeAndCommunityRow extends StatelessWidget {
+  const _SocialJusticeAndCommunityRow();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          Expanded(
-            child: _LeaderCard(
-              name: _leaders[0].$1,
-              role: _leaders[0].$2,
-              photo: _leaders[0].$3,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _LeaderCard(
-              name: _leaders[1].$1,
-              role: _leaders[1].$2,
-              photo: _leaders[1].$3,
-            ),
-          ),
-        ]),
-        const SizedBox(height: 16),
-        Row(children: [
-          Expanded(
-            child: _LeaderCard(
-              name: _leaders[2].$1,
-              role: _leaders[2].$2,
-              photo: _leaders[2].$3,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _LeaderCard(
-              name: _leaders[3].$1,
-              role: _leaders[3].$2,
-              photo: _leaders[3].$3,
-            ),
-          ),
-        ]),
+        const Expanded(child: _SocialJusticeDeck()),
+        const SizedBox(width: 12),
+        const Expanded(child: _CommunityWallCard()),
       ],
     );
   }
 }
 
-class _LeaderCard extends StatelessWidget {
-  final String name;
-  final String role;
-  final String photo;
-  const _LeaderCard(
-      {required this.name, required this.role, required this.photo});
+class _SocialJusticeDeck extends StatefulWidget {
+  const _SocialJusticeDeck();
+
+  @override
+  State<_SocialJusticeDeck> createState() => _SocialJusticeDeckState();
+}
+
+class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
+  int _currentIndex = 0;
+  static const int _leaderCount = 5;
+
+  void _prev() => setState(
+      () => _currentIndex = (_currentIndex - 1 + _leaderCount) % _leaderCount);
+  void _next() =>
+      setState(() => _currentIndex = (_currentIndex + 1) % _leaderCount);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Card stack — 4:3 aspect (width=4, height=3 → height < width)
+        AspectRatio(
+          aspectRatio: 4 / 3,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              for (int offset = 2; offset >= 0; offset--) _buildCard(offset),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Prev / dots / Next row below the card
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _DeckNavBtn(icon: Icons.arrow_back_rounded, onTap: _prev),
+            const SizedBox(width: 10),
+            ...List.generate(_leaderCount, (i) {
+              final isActive = i == _currentIndex;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                width: isActive ? 16 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFFE40101)
+                      : const Color(0xFFDDDDDD),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+            const SizedBox(width: 10),
+            _DeckNavBtn(icon: Icons.arrow_forward_rounded, onTap: _next),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard(int offset) {
+    final index = (_currentIndex + offset) % _leaderCount;
+    final isFront = offset == 0;
+
+    double rotation = 0;
+    double tx = 0;
+    double ty = 0;
+    double scale = 1.0;
+
+    if (offset == 2) {
+      rotation = -8 * 3.14159 / 180;
+      tx = -6;
+      ty = 5;
+      scale = 0.88;
+    } else if (offset == 1) {
+      rotation = 5 * 3.14159 / 180;
+      tx = 5;
+      ty = 3;
+      scale = 0.94;
+    }
+
+    return Positioned.fill(
+      child: Transform.translate(
+        offset: Offset(tx, ty),
+        child: Transform.scale(
+          scale: scale,
+          child: Transform.rotate(
+            angle: rotation,
+            child: GestureDetector(
+              onTap: isFront
+                  ? () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PolicyLeadersScreen()),
+                      )
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  color: _leaderCardColors[index],
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          _leaderImages[index],
+                          fit: BoxFit.contain,
+                          alignment: Alignment.bottomCenter,
+                          errorBuilder: (_, e, s) => const SizedBox.shrink(),
+                        ),
+                      ),
+                      // Bottom gradient + leader name
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: 56,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [Colors.black87, Colors.transparent],
+                            ),
+                          ),
+                          alignment: Alignment.bottomLeft,
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _leaderRoles[index],
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white70,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              Text(
+                                _leaderNames[index],
+                                style: GoogleFonts.bebasNeue(
+                                  fontSize: 15,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Small rounded nav button used below the deck
+class _DeckNavBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _DeckNavBtn({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: const Color(0xFFE40101), size: 16),
+      ),
+    );
+  }
+}
+
+class _CommunityWallCard extends StatelessWidget {
+  const _CommunityWallCard();
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const LeaderScreen()),
+        MaterialPageRoute(builder: (_) => const FanPageScreen()),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: 160,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
-            borderRadius: BorderRadius.circular(10),
-          ),
+        borderRadius: BorderRadius.circular(14),
+        child: AspectRatio(
+          aspectRatio: 4 / 3,
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              Positioned(
-                left: -12,
-                bottom: 0,
-                height: 130,
-                width: 120,
-                child: Image.asset(
-                  photo,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.bottomLeft,
-                  errorBuilder: (context, error, stack) =>
-                      const SizedBox.shrink(),
+              Image.asset(
+                'assets/images/wall.png',
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (_, e, s) => Container(
+                  color: const Color(0xFFE40101),
                 ),
               ),
-              Positioned(
-                left: 13,
-                top: 11,
-                right: 8,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1A1A1A),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      role,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        color: Colors.black54,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
+              Container(
+                color: Colors.black.withValues(alpha: 0.45),
               ),
               const Positioned(
-                right: 12,
+                left: 12,
                 bottom: 14,
-                child: Icon(Icons.arrow_outward_rounded,
-                    size: 18, color: Color(0xFFE40101)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _CommunityText(),
+                  ],
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CommunityText extends StatelessWidget {
+  const _CommunityText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'COMMUNITY',
+          style: GoogleFonts.bebasNeue(
+            fontSize: 22,
+            color: Colors.white,
+            letterSpacing: 0.5,
+            height: 1.1,
+          ),
+        ),
+        Text(
+          'WALL',
+          style: GoogleFonts.bebasNeue(
+            fontSize: 22,
+            color: Color(0xFFE40101),
+            letterSpacing: 0.5,
+            height: 1.0,
+          ),
+        ),
+      ],
     );
   }
 }
