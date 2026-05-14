@@ -19,6 +19,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late YoutubePlayerController _controller;
   bool _liked = false;
   bool _hasError = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -41,7 +42,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   void _onControllerUpdate() {
     if (_controller.value.hasError && !_hasError) {
-      if (mounted) setState(() => _hasError = true);
+      if (mounted) setState(() { _hasError = true; _isLoading = false; });
+    }
+    if ((_controller.value.isPlaying || _controller.value.isReady) &&
+        _isLoading) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -147,7 +152,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   onOpenYouTube: _openInYouTube,
                 )
               else
-                player,
+                Stack(
+                  children: [
+                    player,
+                    if (_isLoading && !_hasError)
+                      Positioned.fill(
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFE40101),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               // Title + channel + actions
               Expanded(
                 child: Container(
