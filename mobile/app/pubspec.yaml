@@ -64,6 +64,21 @@ dependencies:
   # Video player (splash screen)
   video_player: ^2.9.2
 
+  # Voice mode — record from mic, play TTS replies
+  record: ^5.1.2
+  just_audio: ^0.9.42
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.4
+
+# Pin record's transitive interface so the Linux subplatform compiles.
+# `record_linux 0.7.2` (the version pub resolves) implements
+# record_platform_interface 1.2.x and is missing the newer `startStream`
+# method, so we pin the interface back to that line. Android/iOS — which
+# is all we ship to — use their own implementations and are unaffected.
+dependency_overrides:
+  record_platform_interface: 1.2.0
+  record_linux: 0.7.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

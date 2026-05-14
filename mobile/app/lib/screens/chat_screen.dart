@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:record/record.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
@@ -16,8 +22,19 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _recorder = AudioRecorder();
+  final _player   = AudioPlayer();
+
   List<ChatMessage> _messages = [];
   bool _thinking = false;
+
+  // Voice mode — engaged when user taps the mic at least once this session.
+  // Reset when the screen is disposed.
+  bool _voiceMode = false;
+
+  bool _recording  = false;
+  bool _processing = false;
+  bool _replayingLast = false;     // briefly true while we re-synth the last reply
 
   @override
   void initState() {
@@ -25,17 +42,135 @@ class _ChatScreenState extends State<ChatScreen> {
     _loadMessages();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    _recorder.dispose();
+    _player.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadMessages() async {
     try {
       final messages = await AgentService.getHistory(widget.session.id);
       if (mounted) setState(() => _messages = messages);
       _scrollToBottom();
-    } catch (_) {
-      // New session — no history yet, show empty state
+    } catch (_) {}
+  }
+
+  // ── Mic + voice mode ──────────────────────────────────────────────────────
+
+  Future<bool> _ensureMicPermission() async {
+    final status = await Permission.microphone.request();
+    if (status.isGranted) return true;
+    _showError('Microphone permission denied');
+    return false;
+  }
+
+  Future<void> _toggleMic() async {
+    if (_processing) return;
+    if (_recording) {
+      await _stopAndProcess();
+    } else {
+      await _startRecording();
     }
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _startRecording() async {
+    if (!await _ensureMicPermission()) return;
+    try {
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: path,
+      );
+      setState(() {
+        _recording = true;
+        _voiceMode = true;
+      });
+    } catch (e) {
+      _showError('Could not start recording: $e');
+    }
+  }
+
+  Future<void> _stopAndProcess() async {
+    setState(() => _recording = false);
+    final path = await _recorder.stop();
+    if (path == null) return;
+
+    setState(() => _processing = true);
+    try {
+      final transcribed = await AgentService.transcribe(File(path));
+      if (transcribed.isEmpty) return;
+
+      final userMsg = ChatMessage(role: 'user', content: transcribed, timestamp: DateTime.now());
+      setState(() { _messages.add(userMsg); _thinking = true; });
+      _scrollToBottom();
+
+      final reply = await AgentService.sendMessage(widget.session.id, transcribed);
+      final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
+      setState(() { _messages.add(aiMsg); _thinking = false; });
+      _scrollToBottom();
+
+      if (_voiceMode) await _speak(reply);
+    } catch (e) {
+      _showError('$e');
+      setState(() => _thinking = false);
+    } finally {
+      if (mounted) setState(() => _processing = false);
+      try { await File(path).delete(); } catch (_) {}
+    }
+  }
+
+  Future<void> _speak(String text) async {
+    try {
+      final mp3Bytes = await AgentService.synthesizeSpeech(text);
+      final dir = await getTemporaryDirectory();
+      final out = File('${dir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
+      await out.writeAsBytes(mp3Bytes, flush: true);
+      // Stop & release the previous source so a NEW reply replaces the old one
+      // mid-playback (instead of being ignored because the player is still
+      // playing the previous file).
+      try { await _player.stop(); } catch (_) {}
+      await _player.setFilePath(out.path);
+      await _player.play();
+    } catch (e) {
+      _showError('Playback failed: $e');
+    }
+  }
+
+  // Replay the most recent assistant message with the cloned voice.
+  // Auto-engages voice mode so future replies play too. If there is no AI
+  // message yet, shows a hint and just turns voice mode on.
+  Future<void> _onReplayTap() async {
+    if (_replayingLast || _processing) return;
+    final lastAi = _messages.lastWhere(
+      (m) => m.role == 'assistant',
+      orElse: () => ChatMessage(role: '', content: '', timestamp: DateTime.now()),
+    );
+    setState(() => _voiceMode = true);     // engage for future turns either way
+    if (lastAi.content.isEmpty) {
+      _showError('Send a message first — there\'s nothing to replay.');
+      return;
+    }
+    setState(() => _replayingLast = true);
+    try {
+      // Stop anything currently playing so a tap restarts cleanly.
+      await _player.stop();
+      await _speak(lastAi.content);
+    } finally {
+      if (mounted) setState(() => _replayingLast = false);
+    }
+  }
+
+  // Text-mode send: typing is always silent (no TTS), regardless of voice mode.
+  Future<void> _sendText() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _thinking) return;
 
@@ -51,12 +186,15 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollToBottom();
     } catch (e) {
       setState(() => _thinking = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to get reply: $e'), backgroundColor: Colors.red),
-        );
-      }
+      _showError('$e');
     }
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
   }
 
   void _scrollToBottom() {
@@ -70,6 +208,8 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -87,16 +227,25 @@ class _ChatScreenState extends State<ChatScreen> {
         scrolledUnderElevation: 1,
         title: Row(
           children: [
+            // tvk_flag.png as the AppBar avatar
             Container(
-              width: 32,
-              height: 32,
+              width: 36, height: 36,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
               ),
-              child: Icon(Icons.person_rounded, color: color, size: 18),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/tvk_flag.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: color.withValues(alpha: 0.1),
+                    child: Icon(Icons.person_rounded, color: color, size: 18),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 widget.session.title,
@@ -104,6 +253,18 @@ class _ChatScreenState extends State<ChatScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+            ),
+            // Replay / voice-mode button — always visible.
+            //   Tap            → replay the last AI reply with the cloned voice
+            //                    AND auto-engage voice mode for future replies.
+            //   Long-press     → silence voice mode.
+            //   Color reflects state: filled red when voice mode on, gray outline off.
+            _ReplayButton(
+              voiceModeOn: _voiceMode,
+              busy: _processing || _replayingLast,
+              activeColor: color,
+              onTap: _onReplayTap,
+              onLongPress: () => setState(() => _voiceMode = false),
             ),
           ],
         ),
@@ -116,32 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.08),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.auto_awesome, size: 36, color: color.withValues(alpha: 0.6)),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'What\'s on your mind?',
-                          style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 15, fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Ask CM Vijay anything',
-                          style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  )
+                ? _buildEmpty(color)
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
@@ -155,6 +291,53 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
           ),
           _buildInputBar(color),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmpty(Color color) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Media.jpg in the empty state, where the sparkle was
+          Container(
+            width: 140, height: 140,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: color, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.18),
+                  blurRadius: 22,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/Media.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: color.withValues(alpha: 0.1),
+                  child: Icon(Icons.auto_awesome, size: 56, color: color.withValues(alpha: 0.6)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text("What's on your mind?",
+              style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Ask CM Vijay anything — type, or tap the mic',
+              style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       ),
     );
@@ -210,13 +393,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _dot(color, 0),
-            const SizedBox(width: 4),
-            _dot(color, 150),
-            const SizedBox(width: 4),
-            _dot(color, 300),
-          ],
+          children: [_dot(color, 0), const SizedBox(width: 4), _dot(color, 150), const SizedBox(width: 4), _dot(color, 300)],
         ),
       ),
     );
@@ -238,10 +415,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputBar(Color color) {
     final f = AppConfig.current;
     final border = Color(f.borderColor);
+    final canSend = !_thinking && !_processing && _controller.text.trim().isNotEmpty;
 
     return Container(
       padding: EdgeInsets.only(
-        left: 16, right: 8, top: 10,
+        left: 12, right: 8, top: 10,
         bottom: MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: BoxDecoration(
@@ -257,6 +435,7 @@ class _ChatScreenState extends State<ChatScreen> {
               minLines: 1,
               style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
               textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) => setState(() {}),     // refresh send-button enabled state
               decoration: InputDecoration(
                 hintText: 'Type your message...',
                 hintStyle: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 14),
@@ -276,22 +455,104 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               ),
-              onSubmitted: (_) => _sendMessage(),
+              onSubmitted: (_) => _sendText(),
             ),
           ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: _thinking ? const Color(0xFFE0E0E0) : color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.send_rounded, color: _thinking ? const Color(0xFF999999) : Colors.white, size: 20),
-            ),
+          const SizedBox(width: 6),
+          // Mic button — next to send, per the design
+          _circleButton(
+            color: _recording ? color : color.withValues(alpha: 0.12),
+            iconColor: _recording ? Colors.white : color,
+            icon: _processing
+                ? Icons.hourglass_top_rounded
+                : (_recording ? Icons.stop_rounded : Icons.mic_rounded),
+            onTap: _toggleMic,
+            pulsing: _recording,
+          ),
+          const SizedBox(width: 6),
+          // Send button
+          _circleButton(
+            color: canSend ? color : const Color(0xFFE0E0E0),
+            iconColor: canSend ? Colors.white : const Color(0xFF999999),
+            icon: Icons.send_rounded,
+            onTap: canSend ? _sendText : null,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _circleButton({
+    required Color color,
+    required Color iconColor,
+    required IconData icon,
+    required VoidCallback? onTap,
+    bool pulsing = false,
+  }) {
+    final btn = Container(
+      width: 44, height: 44,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: pulsing
+            ? [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 18, spreadRadius: 2)]
+            : null,
+      ),
+      child: Icon(icon, color: iconColor, size: 20),
+    );
+    return GestureDetector(onTap: onTap, child: btn);
+  }
+}
+
+
+/// AppBar replay button — Hotstar-style.
+///   Tap        → replay the last AI reply with the cloned voice
+///   Long-press → silence (turn voice mode off)
+///   Filled red = voice mode on, gray outline = voice mode off,
+///   pulsing red = currently playing.
+class _ReplayButton extends StatelessWidget {
+  final bool voiceModeOn;
+  final bool busy;
+  final Color activeColor;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _ReplayButton({
+    required this.voiceModeOn,
+    required this.busy,
+    required this.activeColor,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = voiceModeOn ? activeColor : Colors.transparent;
+    final fg = voiceModeOn ? Colors.white : const Color(0xFF999999);
+    final border = voiceModeOn ? activeColor : const Color(0xFFCCCCCC);
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            color: bg,
+            shape: BoxShape.circle,
+            border: Border.all(color: border, width: 1.5),
+            boxShadow: busy
+                ? [BoxShadow(color: activeColor.withValues(alpha: 0.55), blurRadius: 16, spreadRadius: 2)]
+                : null,
+          ),
+          child: Icon(
+            busy ? Icons.graphic_eq : Icons.volume_up_rounded,
+            color: fg,
+            size: 18,
+          ),
+        ),
       ),
     );
   }

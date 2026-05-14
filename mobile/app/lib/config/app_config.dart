@@ -1,6 +1,15 @@
 class AppConfig {
-  static const String flavorName = String.fromEnvironment('FLAVOR', defaultValue: 'tn-tvk');
-  static const String apiBaseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://192.168.29.126:8001');
+  static const String flavorName = String.fromEnvironment(
+    'FLAVOR',
+    defaultValue: 'tn-tvk',
+  );
+  // Gateway port (9000) — proxies to agent (8001), avatar-service (8002), gpu-avatar
+  // (8003), stt (8004), tavus-service (8005). Mobile MUST hit the gateway so paths
+  // like /stt/transcribe and /avatar-svc/* reach the right backend.
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://192.168.29.66:9000',
+  );
 
   static const Map<String, FlavorConfig> _flavors = {
     'tn-tvk': FlavorConfig(
@@ -43,7 +52,8 @@ class AppConfig {
     ),
   };
 
-  static FlavorConfig get current => _flavors[flavorName] ?? _flavors['tn-tvk']!;
+  static FlavorConfig get current =>
+      _flavors[flavorName] ?? _flavors['tn-tvk']!;
 }
 
 class FlavorConfig {

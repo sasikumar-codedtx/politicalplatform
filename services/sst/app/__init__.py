@@ -10,4 +10,11 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
-app.include_router(transcribe.router)   # POST /asr  +  POST /transcribe
+
+# Mount transcribe routes TWICE so both work:
+#   - bare   /transcribe, /asr        — when the STT service is called directly on :8004
+#   - /stt/* prefix                   — when callers reach us through the gateway on :9000
+# Without the prefixed mount, gateway requests like /stt/transcribe arrive
+# here unchanged and 404 because the route is just /transcribe.
+app.include_router(transcribe.router)
+app.include_router(transcribe.router, prefix="/stt")

@@ -90,14 +90,14 @@ SERVICES = [
         "required_envs":   ["TAVUS_API_KEY"],   # skipped if missing
     },
     {
-        "name":   "sst",
+        "name":   "stt",
         "cwd":    HERE / "sst",
         "module": "app:app",
         "port":   8004,
-        "prefix": "/stt-svc/",
+        "prefix": "/stt/",
         "ws":     [],
-        "enabled_env":     "ENABLE_SST",
-        "default_enabled": False,
+        "enabled_env":     "ENABLE_STT",
+        "default_enabled": True,
     },
 ]
 

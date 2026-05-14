@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     GPU_VRAM_SHED:    float = 95.0
 
     # ── Language ──────────────────────────────────────────────────────────────
-    SUPPORTED_LANGUAGES: set = {"sw", "en"}
+    SUPPORTED_LANGUAGES: set = {"ta", "en"}
 
     # ── Derived (not from .env) ────────────────────────────────────────────────
     @property

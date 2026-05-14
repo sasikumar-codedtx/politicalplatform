@@ -37,7 +37,7 @@ _ALLOWED_AUDIO = {
 _MAX_AUDIO_BYTES = 10 * 1024 * 1024   # 10 MB
 
 
-async def _infer(file_path: str, lang: str, initial_prompt: str = "") -> dict:
+async def _infer(file_path: str, lang: Optional[str], initial_prompt: str = "") -> dict:
     level = get_load_level()
     if level == "overload":
         level = "shed"
@@ -75,10 +75,16 @@ async def transcribe_audio(
         return JSONResponse(status_code=400, content={"text": "", "error": "Audio is empty or too short"})
 
     # ── Language ──────────────────────────────────────────────────────────────
-    lang = "en"
+    # If the caller didn't specify a language (or passes "auto"), pass None
+    # down so faster-whisper auto-detects from the first speech segment. This
+    # is what lets Tamil / Hindi / English speakers all work without the mobile
+    # having to know which language was spoken.
+    lang: Optional[str] = None
     if language:
         candidate = language.strip().lower()
-        if candidate in settings.SUPPORTED_LANGUAGES:
+        if candidate and candidate != "auto":
+            # Allow anything; faster-whisper supports 99 languages. We use
+            # SUPPORTED_LANGUAGES only to pick a model variant — see stt_engine.
             lang = candidate
 
     # ── Save temp file ────────────────────────────────────────────────────────
@@ -89,21 +95,21 @@ async def transcribe_audio(
         with open(tmp, "wb") as f:
             f.write(audio_bytes)
 
-        logger.info(f"[REST-STT] {len(audio_bytes)//1024} KB | lang={lang}")
+        logger.info(f"[REST-STT] {len(audio_bytes)//1024} KB | lang={lang or 'auto'}")
         result = await _infer(tmp, lang, initial_prompt or "")
 
         if not result.get("text"):
             return {
                 "text": "",
-                "language": lang,
+                "language": result.get("language") or lang or "auto",
                 "language_probability": 0.0,
                 "error": "No speech detected in audio.",
             }
 
-        logger.info(f"[REST-STT] → \"{result['text'][:80]}\"")
+        logger.info(f"[REST-STT] lang={result.get('language')} → \"{result['text'][:80]}\"")
         return {
             "text":                 result["text"],
-            "language":             result.get("language", lang),
+            "language":             result.get("language") or lang or "auto",
             "language_probability": result.get("language_probability", 1.0),
         }
 

@@ -160,6 +160,28 @@ def chat(req: ChatRequest, authorization: str | None = Header(default=None)):
     return ChatResponse(session_id=req.session_id, reply=reply, message_count=len(history))
 
 
+class TtsRequest(BaseModel):
+    text: str
+    voice: str | None = None
+
+
+@app.post("/tts")
+async def tts(req: TtsRequest):
+    """One-shot text-to-speech for voice mode on mobile. Returns MP3 bytes
+    synthesised with whichever engine is active (Fish clone when
+    TTS_ENGINE=fish, else edge-tts). Doesn't touch chat state."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+    try:
+        audio = await synthesize_sentence(text, voice=req.voice)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Synthesis failed: {e}")
+    from fastapi.responses import Response
+    return Response(content=audio, media_type="audio/mpeg",
+                    headers={"Cache-Control": "no-store"})
+
+
 @app.get("/sessions", response_model=SessionsResponse)
 def sessions(authorization: str | None = Header(default=None)):
     uid, auth_error = verify_token(authorization)

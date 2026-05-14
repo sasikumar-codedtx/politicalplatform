@@ -72,9 +72,14 @@ def preload_models():
 
 # ── Inference ─────────────────────────────────────────────────────────────────
 
-def _model_id_for(lang: str, load_level: str) -> str:
+def _model_id_for(lang: str | None, load_level: str) -> str:
     if load_level == "shed":
         return settings.MODEL_SHED
+    # Whisper's "english" variant is monolingual; we never want it for
+    # Tamil/Hindi/auto-detect input. Only use the SW model when explicitly
+    # asked for Swahili (the SW model is also multilingual but kept for
+    # legacy callers). Default to the EN model which IS multilingual unless
+    # named `.en`.
     return settings.MODEL_SW_NORMAL if lang == "sw" else settings.MODEL_EN_NORMAL
 
 
@@ -125,13 +130,17 @@ def transcribe(
 
 def transcribe_file(
     file_path: str,
-    lang: str,
+    lang: str | None,
     load_level: str = "normal",
     initial_prompt: str = "",
 ) -> dict:
     """
     Blocking transcription from an audio file path.
-    faster-whisper accepts file paths directly — no numpy conversion needed.
+
+    `lang` may be None — in that case faster-whisper auto-detects the spoken
+    language and transcribes in that language. This is what supports Tamil
+    and Hindi out of the box without the caller having to declare anything.
+
     Returns { text, language, language_probability }.
     """
     model_id = _model_id_for(lang, load_level)
@@ -140,7 +149,7 @@ def transcribe_file(
     with _get_pool(model_id).acquire() as model:
         segments, info = model.transcribe(
             file_path,
-            language=lang,
+            language=lang,                 # None → faster-whisper auto-detects
             beam_size=profile["beam_size"],
             best_of=profile.get("best_of", 1),
             vad_filter=True,
@@ -155,7 +164,7 @@ def transcribe_file(
 
     return {
         "text":                 " ".join(text_parts).strip(),
-        "language":             info.language if info.language else lang,
+        "language":             info.language if info.language else (lang or "auto"),
         "language_probability": round(info.language_probability, 3),
     }
 
