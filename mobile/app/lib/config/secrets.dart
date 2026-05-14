@@ -3,6 +3,6 @@
 
 class Secrets {
   static const String youtubeApiKey = 'AIzaSyB8KSgDz3_3amuVPKjaCsrhHq1CHAZl-4w';
-  // Placeholder channel — switch to TVK handle when ready
-  static const String youtubeChannelHandle = 'LiverpoolFC';
+  // TVK official channel handle (without @)
+  static const String youtubeChannelHandle = 'tvkvijay';
 }

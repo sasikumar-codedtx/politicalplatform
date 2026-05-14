@@ -14,6 +14,7 @@ import 'news_detail_screen.dart';
 import 'manifesto_screen.dart';
 // chat_list_screen.dart kept for other nav paths — remove if truly unused
 import 'events_screen.dart';
+import 'event_detail_screen.dart';
 import 'polls_screen.dart';
 import 'video_player_screen.dart';
 import 'youtube_hub_screen.dart';
@@ -1467,12 +1468,10 @@ class _CommunityWallCard extends StatelessWidget {
               Container(
                 color: Colors.black.withValues(alpha: 0.45),
               ),
-              const Positioned(
-                left: 12,
-                bottom: 14,
+              const Positioned.fill(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _CommunityText(),
                   ],
@@ -1492,24 +1491,24 @@ class _CommunityText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'COMMUNITY',
           style: GoogleFonts.bebasNeue(
-            fontSize: 22,
+            fontSize: 32,
             color: Colors.white,
-            letterSpacing: 0.5,
+            letterSpacing: 1,
             height: 1.1,
           ),
         ),
         Text(
           'WALL',
           style: GoogleFonts.bebasNeue(
-            fontSize: 22,
+            fontSize: 32,
             color: Color(0xFFE40101),
-            letterSpacing: 0.5,
+            letterSpacing: 1,
             height: 1.0,
           ),
         ),
@@ -2402,23 +2401,23 @@ class _ToolkitCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Grouped campaign image — bottom-right corner
+            // Toolkit image — small, bottom-right corner
             Positioned(
-              right: 0,
-              bottom: 0,
-              width: 90,
-              height: 89,
+              right: 6,
+              bottom: 6,
+              width: 60,
+              height: 60,
               child: Image.asset(
-                'assets/images/combined.png',
-                fit: BoxFit.cover,
+                'assets/images/toolkit.png',
+                fit: BoxFit.contain,
                 alignment: Alignment.bottomRight,
                 errorBuilder: (_, e, s) => const SizedBox.shrink(),
               ),
             ),
             // Fade left so the image blends into the gradient
             Positioned(
-              right: 50, bottom: 0, top: 0,
-              width: 50,
+              right: 40, bottom: 0, top: 0,
+              width: 40,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -2453,129 +2452,194 @@ class _EventsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: events
-          .map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _EventCard(event: e),
-              ))
-          .toList(),
+      children: List.generate(events.length, (i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _EventCard(event: events[i], index: i),
+      )),
     );
   }
 }
 
 class _EventCard extends StatelessWidget {
   final PartyEvent event;
-  const _EventCard({required this.event});
+  final int index;
+  const _EventCard({required this.event, required this.index});
+
+  static const _monthNums = {
+    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+  };
+  static const _weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   Widget build(BuildContext context) {
-    // Parse day + month from date string e.g. "May 15, 2026"
+    // Parse "May 20, 2026" or "Jun 2, 2026"
     final parts = event.date.split(' ');
-    final month = parts.isNotEmpty ? parts[0].substring(0, 3).toUpperCase() : '';
-    final day = parts.length > 1 ? parts[1].replaceAll(',', '') : '';
+    final month = parts.isNotEmpty ? parts[0].substring(0, 3) : '';
+    final dayStr = parts.length > 1 ? parts[1].replaceAll(',', '') : '';
+    final year = parts.length > 2 ? int.tryParse(parts[2]) ?? 2026 : 2026;
+    final dayNum = int.tryParse(dayStr) ?? 1;
+    final monthNum = _monthNums[month] ?? 1;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 112,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Left date block — red bg
-            Container(
-              width: 72,
-              color: const Color(0xFFE40101),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(day,
-                      style: GoogleFonts.bebasNeue(
-                          fontSize: 36, color: Colors.white, height: 1)),
-                  Text(month,
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white70,
-                          letterSpacing: 1)),
-                ],
+    String dayOfWeek = '';
+    try {
+      final dt = DateTime(year, monthNum, dayNum);
+      dayOfWeek = _weekDays[dt.weekday - 1];
+    } catch (_) {}
+
+    final imgPath = 'assets/images/event_${(index % 4) + 1}.png';
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => EventDetailScreen(event: event, imagePath: imgPath)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          height: 171,
+          child: Stack(
+            children: [
+              // Background image — rally/event photo
+              Positioned.fill(
+                child: Image.asset(
+                  imgPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: const Color(0xFF8B1A1A)),
+                ),
               ),
-            ),
-            // Right content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      event.title,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1A1A1A),
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+              // Dark red gradient overlay (bottom half)
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x00A23435), Color(0xFF1A0000)],
+                      stops: [0.3, 1.0],
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 13, color: Color(0xFFE40101)),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            '${event.location} · ${event.time}',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: Colors.black54,
+                  ),
+                ),
+              ),
+              // Date box + title + location — bottom of card
+              Positioned(
+                left: 16,
+                bottom: 16,
+                right: 16,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // White date box (41×48)
+                    Container(
+                      width: 41,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Red month label
+                          Container(
+                            width: 41,
+                            height: 18,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFA23435),
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(8)),
                             ),
-                            maxLines: 1,
+                            alignment: Alignment.center,
+                            child: Text(
+                              month,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 8,
+                                color: Colors.white,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                          // Day number
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  dayStr,
+                                  style: GoogleFonts.bebasNeue(
+                                      fontSize: 16,
+                                      color: const Color(0xFF1A1A1A),
+                                      height: 1),
+                                ),
+                                Text(
+                                  dayOfWeek,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 7,
+                                    color: Colors.black38,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Title + location
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            event.title,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE40101).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'UPCOMING',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFE40101),
-                          letterSpacing: 0.5,
-                        ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined,
+                                  size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  event.location,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                    letterSpacing: 0.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            // Right arrow
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFFCCCCCC), size: 20),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -2867,7 +2931,7 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
                 bottom: 0,
                 width: 200,
                 child: Image.asset(
-                  'assets/images/tv_flat_screen.png',
+                  'assets/images/tvfull.png',
                   fit: BoxFit.contain,
                   alignment: Alignment.centerRight,
                   errorBuilder: (_, e, s) => const SizedBox.shrink(),

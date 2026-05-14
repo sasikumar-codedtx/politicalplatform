@@ -13,19 +13,32 @@ class YouTubeService {
   static Future<String?> _getChannelId() async {
     if (_channelId != null) return _channelId;
     try {
+      final handle = Secrets.youtubeChannelHandle;
       final uri = Uri.parse(
         '$_base/channels?part=id'
-        '&forHandle=${Secrets.youtubeChannelHandle}'
+        '&forHandle=@$handle'
         '&key=${Secrets.youtubeApiKey}',
       );
       final res = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return null;
+      if (res.statusCode != 200) {
+        // ignore: avoid_print
+        print('[YouTube] _getChannelId ${res.statusCode}: ${res.body.substring(0, res.body.length.clamp(0, 300))}');
+        return null;
+      }
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final items = data['items'] as List<dynamic>? ?? [];
-      if (items.isEmpty) return null;
+      if (items.isEmpty) {
+        // ignore: avoid_print
+        print('[YouTube] _getChannelId: no channel found for handle @$handle');
+        return null;
+      }
       _channelId = (items.first as Map<String, dynamic>)['id'] as String;
+      // ignore: avoid_print
+      print('[YouTube] resolved channel ID: $_channelId');
       return _channelId;
-    } catch (_) {
+    } catch (e) {
+      // ignore: avoid_print
+      print('[YouTube] _getChannelId error: $e');
       return null;
     }
   }
@@ -92,13 +105,21 @@ class YouTubeService {
         '&key=${Secrets.youtubeApiKey}',
       );
       final res = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return [];
+      if (res.statusCode != 200) {
+        // ignore: avoid_print
+        print('[YouTube] getVideos ${res.statusCode}: ${res.body.substring(0, res.body.length.clamp(0, 300))}');
+        return [];
+      }
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final items = data['items'] as List<dynamic>? ?? [];
+      // ignore: avoid_print
+      print('[YouTube] getVideos: ${items.length} results');
       return items
           .map((e) => YouTubeVideo.fromSearchJson(e as Map<String, dynamic>))
           .toList();
-    } catch (_) {
+    } catch (e) {
+      // ignore: avoid_print
+      print('[YouTube] getVideos error: $e');
       return [];
     }
   }
