@@ -240,15 +240,19 @@ class _HeroSection extends StatelessWidget {
             ),
           ),
 
-          // 2. Social leaders background image — blur 3px, 40% opacity
-          Positioned.fill(
+          // 2. Social leaders background — fit full width so all leaders visible
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
             child: Opacity(
               opacity: 0.4,
               child: ImageFiltered(
                 imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
                 child: Image.asset(
                   'assets/images/hero_bg_blur.png',
-                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  fit: BoxFit.fitWidth,
                   errorBuilder: (_, e, s) => const SizedBox.shrink(),
                 ),
               ),
@@ -302,14 +306,18 @@ class _HeroSection extends StatelessWidget {
             ),
           ),
 
-          // 5. Wave section background (yellow-left / red-right diagonal)
-          //    Figma: Group 1321314829 — x=-28.5, y=281, 439×220.5
+          // 5. Hero bottom cut image — full width, replaces custom painter
+          //    herosectionbottomcut.png: 1560×882 → scales to screenWidth × 220.5
           Positioned(
-            left: -28.5,
+            left: 0,
+            right: 0,
             top: 281 + dy,
-            width: 439,
-            height: 220.5,
-            child: CustomPaint(painter: _HeroWavePainter()),
+            child: Image.asset(
+              'assets/images/herosectionbottomcut.png',
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+              errorBuilder: (_, e, s) => const SizedBox.shrink(),
+            ),
           ),
 
           // 6. Small Vijay (red outfit, fist raised) — Figma x=-47, y=167, 232×349
@@ -438,34 +446,7 @@ class _HeroSection extends StatelessWidget {
   }
 }
 
-// ─── Wave background painter ──────────────────────────────────────────────────
-// Yellow left trapezoid + red right area, matching Figma diagonal separator.
 
-class _HeroWavePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Yellow area: left trapezoid.  Diagonal runs (225,0)→(58,h).
-    final yellow = Path()
-      ..moveTo(0, 0)
-      ..lineTo(225, 0)
-      ..lineTo(58, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(yellow, Paint()..color = const Color(0xFFFFCA00));
-
-    // Red area: right of the diagonal
-    final red = Path()
-      ..moveTo(225, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(58, size.height)
-      ..close();
-    canvas.drawPath(red, Paint()..color = const Color(0xFFE40101));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 // ─── Hero app bar (transparent overlay, white icons) ─────────────────────────
 
@@ -474,23 +455,18 @@ class _HeroAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // TVK logo circle — white bg
-        Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: ClipOval(
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/images/tvk_flag.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, e, s) => const Icon(Icons.flag_rounded,
-                    color: Color(0xFFE40101)),
-              ),
+        // Left avatar — av1
+        ClipOval(
+          child: Image.asset(
+            'assets/images/av1.png',
+            width: 40,
+            height: 40,
+            fit: BoxFit.cover,
+            errorBuilder: (_, e, s) => Container(
+              width: 40,
+              height: 40,
+              color: Colors.white24,
+              child: const Icon(Icons.person, color: Colors.white, size: 20),
             ),
           ),
         ),
@@ -521,19 +497,7 @@ class _HeroAppBar extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        // Language icon — frosted glass circle
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.language_rounded,
-              color: Colors.white, size: 18),
-        ),
-        const SizedBox(width: 8),
-        // Profile avatar
+        // Right user avatar — av2
         GestureDetector(
           onTap: () => Navigator.push(
             context,
@@ -541,7 +505,7 @@ class _HeroAppBar extends StatelessWidget {
           ),
           child: ClipOval(
             child: Image.asset(
-              'assets/images/vijay_home_hero.png',
+              'assets/images/av2.png',
               width: 40,
               height: 40,
               fit: BoxFit.cover,

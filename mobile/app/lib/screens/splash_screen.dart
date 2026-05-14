@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../config/app_config.dart';
+import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -10,190 +10,67 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late final AnimationController _logoController;
-  late final AnimationController _textController;
-  late final Animation<double> _logoScale;
-  late final Animation<double> _logoFade;
-  late final Animation<double> _textFade;
-  late final Animation<Offset> _textSlide;
+class _SplashScreenState extends State<SplashScreen> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-
-    _logoController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _textController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-
-    _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
-    );
-    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeIn),
-    );
-    _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeIn),
-    );
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeOut),
-    );
-
-    _logoController.forward().then((_) {
-      _textController.forward().then((_) {
-        Future.delayed(const Duration(milliseconds: 900), widget.onComplete);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _controller = VideoPlayerController.asset('assets/images/splashvideo.mov')
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _initialized = true);
+          _controller.setLooping(false);
+          _controller.setVolume(1.0);
+          _controller.play();
+          _controller.addListener(_onVideoUpdate);
+        }
+      }).catchError((_) {
+        // If video fails to load, skip to next screen immediately
+        widget.onComplete();
       });
-    });
+  }
+
+  void _onVideoUpdate() {
+    if (!_controller.value.isPlaying &&
+        _controller.value.isInitialized &&
+        _controller.value.position >= _controller.value.duration) {
+      _controller.removeListener(_onVideoUpdate);
+      _restoreUI();
+      widget.onComplete();
+    }
+  }
+
+  void _restoreUI() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _textController.dispose();
+    _controller.removeListener(_onVideoUpdate);
+    _controller.dispose();
+    _restoreUI();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final flavor = AppConfig.current;
-    final primary = Color(flavor.primaryColor);
-    final secondary = Color(flavor.accentColor);
-
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [primary, primary.withValues(alpha: 0.8)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Background circles
-            Positioned(
-              top: -80,
-              right: -60,
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.06),
+      backgroundColor: Colors.black,
+      body: _initialized
+          ? SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller.value.size.width,
+                  height: _controller.value.size.height,
+                  child: VideoPlayer(_controller),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -80,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            // Main content
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Logo
-                  ScaleTransition(
-                    scale: _logoScale,
-                    child: FadeTransition(
-                      opacity: _logoFade,
-                      child: _LogoWidget(primary: primary, secondary: secondary),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  // Party name + tagline
-                  FadeTransition(
-                    opacity: _textFade,
-                    child: SlideTransition(
-                      position: _textSlide,
-                      child: Column(
-                        children: [
-                          Text(
-                            flavor.appName.toUpperCase(),
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 3,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            flavor.tagline,
-                            style: GoogleFonts.inter(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Bottom tagline
-            Positioned(
-              bottom: 48,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _textFade,
-                child: Text(
-                  flavor.partyName,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.45),
-                    fontSize: 12,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LogoWidget extends StatelessWidget {
-  final Color primary;
-  final Color secondary;
-  const _LogoWidget({required this.primary, required this.secondary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          Icons.back_hand_rounded,
-          size: 60,
-          color: primary,
-        ),
-      ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
