@@ -1,15 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import 'home_screen.dart';
 import 'fan_page_screen.dart';
-import 'chat_list_screen.dart';
+import 'news_screen.dart';
 import 'profile_screen.dart';
-import 'events_screen.dart';
-import 'join_screen.dart';
-import 'polls_screen.dart';
-import 'youtube_hub_screen.dart';
-import 'create_fan_post_screen.dart';
+import 'chat_list_screen.dart';
+import 'phone_login_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -18,35 +16,34 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> with SingleTickerProviderStateMixin {
+class _MainShellState extends State<MainShell> {
+  // 0=Home 1=Forum  [2=VoiceChat action]  3=News 4=MyTVK
   int _selectedIndex = 0;
-  bool _fabOpen = false;
-  late final AnimationController _fabController;
-  late final Animation<double> _fabAnim;
 
-  @override
-  void initState() {
-    super.initState();
-    _fabController = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
-    _fabAnim = CurvedAnimation(parent: _fabController, curve: Curves.easeOut);
-  }
-
-  @override
-  void dispose() {
-    _fabController.dispose();
-    super.dispose();
-  }
-
-  void _toggleFab() {
-    setState(() => _fabOpen = !_fabOpen);
-    _fabOpen ? _fabController.forward() : _fabController.reverse();
-  }
-
-  void _closeFab() {
-    if (_fabOpen) {
-      setState(() => _fabOpen = false);
-      _fabController.reverse();
+  void _onNavTap(int index) {
+    if (index == 2) {
+      // Centre button — voice chat
+      _openVoiceChat();
+      return;
     }
+    setState(() => _selectedIndex = index);
+  }
+
+  void _openVoiceChat() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+    } else {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const ChatListScreen()));
+    }
+  }
+
+  // Tab indices 0,1,3,4 → stack indices 0,1,2,3
+  int get _stackIndex {
+    if (_selectedIndex <= 1) return _selectedIndex;
+    return _selectedIndex - 1; // 3→2, 4→3
   }
 
   @override
@@ -58,40 +55,13 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
 
     return Scaffold(
       backgroundColor: bg,
-      body: Stack(
-        children: [
-          // Main content — 4 tabs: Home | Forum | Chat | Profile
-          // Nav indices: 0 | 1 | [FAB=2] | 3 | 4
-          // Stack indices map: nav 0→0, 1→1, 3→2, 4→3
-          IndexedStack(
-            index: _selectedIndex > 2 ? _selectedIndex - 1 : _selectedIndex,
-            children: const [
-              HomeScreen(),
-              FanPageScreen(),
-              ChatListScreen(),
-              ProfileScreen(),
-            ],
-          ),
-          // Dim overlay when FAB open
-          if (_fabOpen)
-            GestureDetector(
-              onTap: _closeFab,
-              child: Container(color: Colors.black.withValues(alpha: 0.65)),
-            ),
-          // FAB menu
-          if (_fabOpen)
-            Positioned(
-              bottom: 80,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _fabAnim,
-                child: SlideTransition(
-                  position: Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(_fabAnim),
-                  child: _FabMenu(primary: primary, onClose: _closeFab),
-                ),
-              ),
-            ),
+      body: IndexedStack(
+        index: _stackIndex,
+        children: const [
+          HomeScreen(),
+          FanPageScreen(),
+          NewsScreen(),
+          ProfileScreen(),
         ],
       ),
       bottomNavigationBar: Container(
@@ -106,53 +76,64 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
             child: Row(
               children: [
                 _NavItem(
-                  icon: Icons.home_outlined, activeIcon: Icons.home_rounded,
-                  label: f.appName, index: 0, selected: _selectedIndex,
-                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  label: f.appName,
+                  index: 0,
+                  selected: _selectedIndex,
+                  onTap: _onNavTap,
                   primary: primary,
                 ),
                 _NavItem(
-                  icon: Icons.people_outline_rounded, activeIcon: Icons.people_rounded,
-                  label: 'Forum', index: 1, selected: _selectedIndex,
-                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  icon: Icons.people_outline_rounded,
+                  activeIcon: Icons.people_rounded,
+                  label: 'Forum',
+                  index: 1,
+                  selected: _selectedIndex,
+                  onTap: _onNavTap,
                   primary: primary,
                 ),
-                // Center FAB
+                // Centre — Talk to My Leader
                 Expanded(
                   child: GestureDetector(
-                    onTap: _toggleFab,
+                    onTap: () => _onNavTap(2),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
+                        Container(
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
                             color: primary,
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: primary.withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 4))],
+                            boxShadow: [
+                              BoxShadow(
+                                color: primary.withValues(alpha: 0.4),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
                           ),
-                          child: AnimatedRotation(
-                            turns: _fabOpen ? 0.125 : 0,
-                            duration: const Duration(milliseconds: 220),
-                            child: const Icon(Icons.add, color: Colors.white, size: 26),
-                          ),
+                          child: const Icon(Icons.mic_rounded,
+                              color: Colors.white, size: 24),
                         ),
                       ],
                     ),
                   ),
                 ),
                 _NavItem(
-                  icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded,
-                  label: 'Chat', index: 3, selected: _selectedIndex,
-                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                  icon: Icons.newspaper_outlined,
+                  activeIcon: Icons.newspaper_rounded,
+                  label: 'News',
+                  index: 3,
+                  selected: _selectedIndex,
+                  onTap: _onNavTap,
                   primary: primary,
                 ),
-                _NavItem(
-                  icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded,
-                  label: 'Profile', index: 4, selected: _selectedIndex,
-                  onTap: (i) { _closeFab(); setState(() => _selectedIndex = i); },
+                _MyTvkNavItem(
+                  index: 4,
+                  selected: _selectedIndex,
+                  onTap: _onNavTap,
                   primary: primary,
                 ),
               ],
@@ -164,66 +145,7 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
   }
 }
 
-class _FabMenu extends StatelessWidget {
-  final Color primary;
-  final VoidCallback onClose;
-
-  const _FabMenu({required this.primary, required this.onClose});
-
-  @override
-  Widget build(BuildContext context) {
-    final f = AppConfig.current;
-    final items = [
-      (Icons.card_membership_rounded, f.joinCtaLabel, () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const JoinScreen())); }),
-      (Icons.edit_outlined, 'Post', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateFanPostScreen())); }),
-      (Icons.how_to_vote_outlined, 'Poll', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const PollsScreen())); }),
-      (Icons.play_circle_outline_rounded, 'Videos', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const YoutubeHubScreen())); }),
-      (Icons.event_outlined, 'Events', () { onClose(); Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen())); }),
-    ];
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        ...items.reversed.map((item) => GestureDetector(
-          onTap: item.$3,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 120),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFEEEEEE)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(item.$1, color: primary, size: 18),
-                const SizedBox(width: 10),
-                Text(item.$2, style: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontSize: 14, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        )),
-        const SizedBox(height: 10),
-        GestureDetector(
-          onTap: onClose,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: primary,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: primary.withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 4))],
-            ),
-            child: const Icon(Icons.close, color: Colors.white, size: 24),
-          ),
-        ),
-        const SizedBox(height: 10),
-      ],
-    );
-  }
-}
+// ─── Standard nav item ────────────────────────────────────────────────────────
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
@@ -234,7 +156,15 @@ class _NavItem extends StatelessWidget {
   final ValueChanged<int> onTap;
   final Color primary;
 
-  const _NavItem({required this.icon, required this.activeIcon, required this.label, required this.index, required this.selected, required this.onTap, required this.primary});
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.index,
+    required this.selected,
+    required this.onTap,
+    required this.primary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +176,97 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isActive ? activeIcon : icon, color: isActive ? primary : const Color(0xFF555555), size: 22),
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? primary : const Color(0xFF555555),
+              size: 22,
+            ),
             const SizedBox(height: 3),
-            Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: isActive ? FontWeight.w700 : FontWeight.w400, color: isActive ? primary : const Color(0xFF555555))),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight:
+                    isActive ? FontWeight.w700 : FontWeight.w400,
+                color: isActive ? primary : const Color(0xFF555555),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── My TVK tab — shows user avatar when logged in ───────────────────────────
+
+class _MyTvkNavItem extends StatelessWidget {
+  final int index;
+  final int selected;
+  final ValueChanged<int> onTap;
+  final Color primary;
+
+  const _MyTvkNavItem({
+    required this.index,
+    required this.selected,
+    required this.onTap,
+    required this.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = selected == index;
+
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onTap(index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                final loggedIn =
+                    snapshot.hasData && snapshot.data != null;
+                if (loggedIn) {
+                  return ClipOval(
+                    child: Image.asset(
+                      'assets/images/av2.png',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) => Icon(
+                        Icons.person_rounded,
+                        color: isActive
+                            ? primary
+                            : const Color(0xFF555555),
+                        size: 22,
+                      ),
+                    ),
+                  );
+                }
+                return Icon(
+                  isActive
+                      ? Icons.person_rounded
+                      : Icons.person_outline_rounded,
+                  color:
+                      isActive ? primary : const Color(0xFF555555),
+                  size: 22,
+                );
+              },
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'My TVK',
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight:
+                    isActive ? FontWeight.w700 : FontWeight.w400,
+                color:
+                    isActive ? primary : const Color(0xFF555555),
+              ),
+            ),
           ],
         ),
       ),

@@ -6,6 +6,7 @@ import '../models/youtube_playlist.dart';
 import '../services/youtube_service.dart';
 import 'video_player_screen.dart';
 import 'shorts_reel_screen.dart';
+import 'playlist_detail_screen.dart';
 
 class YoutubeHubScreen extends StatefulWidget {
   /// 0 = Live, 1 = Videos, 2 = Shorts, 3 = Playlists
@@ -987,7 +988,14 @@ class _PlaylistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PlaylistDetailScreen(playlist: playlist),
+        ),
+      ),
+      child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1084,6 +1092,7 @@ class _PlaylistCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

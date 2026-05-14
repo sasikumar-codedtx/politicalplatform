@@ -92,6 +92,10 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
     )
     response.raise_for_status()
     reply = response.json()["message"]["content"]
+    # Strip <think>...</think> blocks emitted by reasoning models (e.g. gpt-oss)
+    # before storing or returning to the user.
+    import re as _re
+    reply = _re.sub(r"<think>.*?</think>", "", reply, flags=_re.DOTALL).strip()
     add_message(session_id, "assistant", reply)
     audit("chat_message", entity_type="session", entity_id=session_id,
           metadata={"flavor_id": flavor_id, "message_preview": user_message[:80]})

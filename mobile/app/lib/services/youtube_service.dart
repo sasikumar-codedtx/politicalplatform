@@ -107,7 +107,7 @@ class YouTubeService {
   static Future<List<YouTubeVideo>> getRecentVideos({int count = 12}) =>
       getVideos(count: count);
 
-  /// Short-form videos (< 4 minutes) from the channel.
+  /// Short-form videos (< 4 minutes, #shorts keyword) from the channel.
   static Future<List<YouTubeVideo>> getShorts({int count = 20}) async {
     try {
       final channelId = await _getChannelId();
@@ -117,12 +117,18 @@ class YouTubeService {
         '&channelId=$channelId'
         '&type=video'
         '&videoDuration=short'
+        '&q=%23shorts'
         '&order=date'
         '&maxResults=$count'
         '&key=${Secrets.youtubeApiKey}',
       );
       final res = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return [];
+      if (res.statusCode != 200) {
+        // ignore: avoid_print
+        print('[YouTubeService] getShorts ${res.statusCode}: '
+            '${res.body.substring(0, res.body.length.clamp(0, 200))}');
+        return [];
+      }
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final items = data['items'] as List<dynamic>? ?? [];
       return items
@@ -158,6 +164,49 @@ class YouTubeService {
       return items
           .map((e) => YouTubePlaylist.fromJson(e as Map<String, dynamic>))
           .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Videos inside a playlist (up to [maxResults]).
+  static Future<List<YouTubeVideo>> getPlaylistVideos(
+    String playlistId, {
+    int maxResults = 50,
+  }) async {
+    try {
+      final uri = Uri.parse(
+        '$_base/playlistItems?part=snippet'
+        '&playlistId=$playlistId'
+        '&maxResults=$maxResults'
+        '&key=${Secrets.youtubeApiKey}',
+      );
+      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) {
+        // ignore: avoid_print
+        print('[YouTubeService] getPlaylistVideos ${res.statusCode}: '
+            '${res.body.substring(0, res.body.length.clamp(0, 200))}');
+        return [];
+      }
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = data['items'] as List<dynamic>? ?? [];
+      return items.map((e) {
+        final snippet =
+            (e as Map<String, dynamic>)['snippet'] as Map<String, dynamic>;
+        final thumbnails =
+            snippet['thumbnails'] as Map<String, dynamic>? ?? {};
+        final thumb = (thumbnails['high'] ??
+                thumbnails['medium'] ??
+                thumbnails['default']) as Map<String, dynamic>?;
+        return YouTubeVideo(
+          videoId: (snippet['resourceId']
+              as Map<String, dynamic>)['videoId'] as String,
+          title: snippet['title'] as String? ?? '',
+          thumbnailUrl: thumb?['url'] as String? ?? '',
+          channelTitle: snippet['channelTitle'] as String? ?? '',
+          publishedAt: snippet['publishedAt'] as String? ?? '',
+        );
+      }).toList();
     } catch (_) {
       return [];
     }

@@ -30,7 +30,6 @@ class _LeaderViewState extends State<_LeaderView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<LeaderViewModel>();
-    final topPad = MediaQuery.of(context).padding.top;
 
     if (vm.loading || vm.leader == null) {
       return const Scaffold(
@@ -43,11 +42,34 @@ class _LeaderViewState extends State<_LeaderView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      // ── iOS-style navigation bar ─────────────────────────────────
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF1A1A1A), size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Know Your Leaders',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1A1A1A),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(0.5),
+          child: Container(height: 0.5, color: const Color(0xFFEEEEEE)),
+        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Hero(leader: leader, topPad: topPad),
+            _Hero(leader: leader, topPad: 0),
             const SizedBox(height: 16),
             // Tabs
             Padding(
