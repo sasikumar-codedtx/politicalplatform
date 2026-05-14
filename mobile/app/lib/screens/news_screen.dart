@@ -5,8 +5,24 @@ import '../models/news_item.dart';
 import '../services/content_service.dart';
 import 'news_detail_screen.dart';
 
-// ─── Category filter list ─────────────────────────────────────────────────────
+// ─── Filter constants ─────────────────────────────────────────────────────────
 const _kCategories = ['All', 'Party', 'Event', 'Policy', 'Agriculture'];
+
+const _kDistricts = [
+  'All Districts', 'Chennai', 'Coimbatore', 'Madurai', 'Salem',
+  'Tiruvallur', 'Vellore', 'Erode', 'Tirunelveli', 'Thanjavur',
+  'Tiruchirappalli', 'Kanchipuram', 'Namakkal',
+];
+
+const _kVerticals = [
+  'All Sectors', 'Education', 'Child Care', 'PWD', 'Health',
+  'Agriculture', 'Youth', 'Women', 'Infrastructure', 'Employment',
+];
+
+const _kMinistries = [
+  'All Ministries', 'Finance', 'Education', 'Health', 'Agriculture',
+  'Revenue', 'Infrastructure', 'Social Welfare', 'IT & Digital',
+];
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -20,6 +36,9 @@ class _NewsScreenState extends State<NewsScreen> {
   bool _loading = true;
   String _activeCategory = 'All';
   String _searchQuery = '';
+  String _activeDistrict = 'All Districts';
+  String _activeVertical = 'All Sectors';
+  String _activeMinistry = 'All Ministries';
 
   @override
   void initState() {
@@ -46,6 +65,177 @@ class _NewsScreenState extends State<NewsScreen> {
     return list;
   }
 
+  bool get _hasActiveAdvancedFilter =>
+      _activeDistrict != 'All Districts' ||
+      _activeVertical != 'All Sectors' ||
+      _activeMinistry != 'All Ministries';
+
+  void _openFilterSheet() {
+    // Local copies so changes only apply on "Apply"
+    String tmpDistrict = _activeDistrict;
+    String tmpVertical = _activeVertical;
+    String tmpMinistry = _activeMinistry;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          bool hasActive = tmpDistrict != 'All Districts' ||
+              tmpVertical != 'All Sectors' ||
+              tmpMinistry != 'All Ministries';
+
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.72,
+            minChildSize: 0.4,
+            maxChildSize: 0.92,
+            builder: (_, scrollCtrl) => Column(
+              children: [
+                // Handle + header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.black12,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Text('Filter News',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1A1A1A),
+                              )),
+                          const Spacer(),
+                          if (hasActive)
+                            GestureDetector(
+                              onTap: () => setSheetState(() {
+                                tmpDistrict = 'All Districts';
+                                tmpVertical = 'All Sectors';
+                                tmpMinistry = 'All Ministries';
+                              }),
+                              child: Text('Clear All',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFFE40101),
+                                  )),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFF0F0F0)),
+
+                // Active filter chips
+                if (hasActive)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        if (tmpDistrict != 'All Districts')
+                          _ActiveChip(
+                            label: tmpDistrict,
+                            onRemove: () => setSheetState(
+                                () => tmpDistrict = 'All Districts'),
+                          ),
+                        if (tmpVertical != 'All Sectors')
+                          _ActiveChip(
+                            label: tmpVertical,
+                            onRemove: () => setSheetState(
+                                () => tmpVertical = 'All Sectors'),
+                          ),
+                        if (tmpMinistry != 'All Ministries')
+                          _ActiveChip(
+                            label: tmpMinistry,
+                            onRemove: () => setSheetState(
+                                () => tmpMinistry = 'All Ministries'),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                // Scrollable filter sections
+                Expanded(
+                  child: ListView(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    children: [
+                      _SheetFilterSection(
+                        title: 'District',
+                        options: _kDistricts,
+                        active: tmpDistrict,
+                        onSelect: (v) => setSheetState(() => tmpDistrict = v),
+                      ),
+                      const SizedBox(height: 20),
+                      _SheetFilterSection(
+                        title: 'Sector',
+                        options: _kVerticals,
+                        active: tmpVertical,
+                        onSelect: (v) => setSheetState(() => tmpVertical = v),
+                      ),
+                      const SizedBox(height: 20),
+                      _SheetFilterSection(
+                        title: 'Ministry',
+                        options: _kMinistries,
+                        active: tmpMinistry,
+                        onSelect: (v) => setSheetState(() => tmpMinistry = v),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Apply button
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16,
+                      16 + MediaQuery.of(ctx).padding.bottom),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _activeDistrict = tmpDistrict;
+                        _activeVertical = tmpVertical;
+                        _activeMinistry = tmpMinistry;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE40101),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text('Apply Filters',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          )),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
@@ -70,10 +260,12 @@ class _NewsScreenState extends State<NewsScreen> {
                       categories: _kCategories,
                       activeCategory: _activeCategory,
                       searchQuery: _searchQuery,
+                      hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
                       onCategoryChanged: (c) =>
                           setState(() => _activeCategory = c),
                       onSearchChanged: (q) =>
                           setState(() => _searchQuery = q),
+                      onOpenFilters: _openFilterSheet,
                     ),
             ),
           ],
@@ -201,57 +393,116 @@ class _NewsBody extends StatelessWidget {
   final List<String> categories;
   final String activeCategory;
   final String searchQuery;
+  final bool hasActiveAdvancedFilter;
   final ValueChanged<String> onCategoryChanged;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onOpenFilters;
 
   const _NewsBody({
     required this.news,
     required this.categories,
     required this.activeCategory,
     required this.searchQuery,
+    required this.hasActiveAdvancedFilter,
     required this.onCategoryChanged,
     required this.onSearchChanged,
+    required this.onOpenFilters,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search bar
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFDEDEDE)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x29000000),
-                      blurRadius: 1.5,
+              // Search bar + filter toggle
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFDEDEDE)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x29000000),
+                            blurRadius: 1.5,
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        onChanged: onSearchChanged,
+                        style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14, color: const Color(0xFF242424)),
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF242424).withValues(alpha: 0.5),
+                          ),
+                          prefixIcon: const Icon(Icons.search_rounded,
+                              color: Color(0xFF888888), size: 20),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: TextField(
-                  onChanged: onSearchChanged,
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14, color: const Color(0xFF242424)),
-                  decoration: InputDecoration(
-                    hintText: 'Search',
-                    hintStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF242424).withValues(alpha: 0.5),
-                    ),
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        color: Color(0xFF888888), size: 20),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  // Filter button → opens bottom sheet
+                  GestureDetector(
+                    onTap: onOpenFilters,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: hasActiveAdvancedFilter
+                            ? const Color(0xFFE40101)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: hasActiveAdvancedFilter
+                              ? const Color(0xFFE40101)
+                              : const Color(0xFFDEDEDE),
+                        ),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x18000000), blurRadius: 4),
+                        ],
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.tune_rounded,
+                            size: 20,
+                            color: hasActiveAdvancedFilter
+                                ? Colors.white
+                                : const Color(0xFF555555),
+                          ),
+                          if (hasActiveAdvancedFilter)
+                            Positioned(
+                              top: 6, right: 6,
+                              child: Container(
+                                width: 8, height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               // Category filter chips
@@ -298,16 +549,55 @@ class _NewsBody extends StatelessWidget {
             ],
           ),
         ),
+
+        // ── Active filter chips row (when filters are applied) ──────────────
+        if (hasActiveAdvancedFilter)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Row(
+              children: [
+                const Icon(Icons.filter_list_rounded,
+                    size: 14, color: Color(0xFFE40101)),
+                const SizedBox(width: 4),
+                Text('Filters active',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFE40101),
+                    )),
+                const Spacer(),
+                GestureDetector(
+                  onTap: onOpenFilters,
+                  child: Text('Edit',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF555555),
+                        decoration: TextDecoration.underline,
+                      )),
+                ),
+              ],
+            ),
+          ),
+
         const SizedBox(height: 10),
         // News list
         Expanded(
           child: news.isEmpty
               ? Center(
-                  child: Text(
-                    'No news found',
-                    style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        color: const Color(0xFF888888)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.newspaper_outlined,
+                          size: 48, color: Color(0xFFCCCCCC)),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No news found',
+                        style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            color: const Color(0xFF888888)),
+                      ),
+                    ],
                   ),
                 )
               : ListView.separated(
@@ -325,6 +615,113 @@ class _NewsBody extends StatelessWidget {
                     ),
                   ),
                 ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Bottom-sheet: active filter chip with remove ────────────────────────────
+
+class _ActiveChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+  const _ActiveChip({required this.label, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE40101).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE40101).withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFE40101),
+              )),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close_rounded,
+                size: 14, color: Color(0xFFE40101)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Bottom-sheet: section with wrap of filter chips ─────────────────────────
+
+class _SheetFilterSection extends StatelessWidget {
+  final String title;
+  final List<String> options;
+  final String active;
+  final ValueChanged<String> onSelect;
+
+  const _SheetFilterSection({
+    required this.title,
+    required this.options,
+    required this.active,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF444444),
+              letterSpacing: 0.3,
+            )),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((opt) {
+            final isActive = opt == active;
+            return GestureDetector(
+              onTap: () => onSelect(opt),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFFE40101)
+                      : const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isActive
+                        ? const Color(0xFFE40101)
+                        : const Color(0xFFE0E0E0),
+                  ),
+                ),
+                child: Text(
+                  opt,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight:
+                        isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive
+                        ? Colors.white
+                        : const Color(0xFF444444),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );

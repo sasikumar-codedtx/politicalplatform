@@ -8,6 +8,7 @@ import 'news_screen.dart';
 import 'profile_screen.dart';
 import 'chat_list_screen.dart';
 import 'phone_login_screen.dart';
+import 'join_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -22,22 +23,74 @@ class _MainShellState extends State<MainShell> {
 
   void _onNavTap(int index) {
     if (index == 2) {
-      // Centre button — voice chat
-      _openVoiceChat();
+      // Centre button — voice chat, requires login
+      _requireLoginThen(() {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const ChatListScreen()));
+      });
       return;
+    }
+    if (index == 4) {
+      // Profile tab — requires login
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _requireLoginThen(() => setState(() => _selectedIndex = 4));
+        return;
+      }
     }
     setState(() => _selectedIndex = index);
   }
 
-  void _openVoiceChat() {
+  /// Shows a login bottom sheet. If the user skips, calls [onSkip].
+  /// If the user logs in, calls [onSuccess] and then prompts to join TVK.
+  void _requireLoginThen(VoidCallback onSuccess) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
-    } else {
-      Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const ChatListScreen()));
+    if (user != null) {
+      onSuccess();
+      return;
     }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _LoginGateSheet(
+        onLogin: () async {
+          Navigator.pop(context);
+          await Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+          // After login, prompt Join TVK
+          if (FirebaseAuth.instance.currentUser != null && mounted) {
+            onSuccess();
+            _promptJoinTvk();
+          }
+        },
+        onSkip: () {
+          Navigator.pop(context);
+          onSuccess();
+        },
+      ),
+    );
+  }
+
+  void _promptJoinTvk() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _JoinTvkPromptSheet(
+        onJoin: () {
+          Navigator.pop(context);
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const JoinScreen()));
+        },
+        onLater: () => Navigator.pop(context),
+      ),
+    );
   }
 
   // Tab indices 0,1,3,4 → stack indices 0,1,2,3
@@ -193,6 +246,204 @@ class _NavItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Login gate bottom sheet ──────────────────────────────────────────────────
+
+class _LoginGateSheet extends StatelessWidget {
+  final VoidCallback onLogin;
+  final VoidCallback onSkip;
+  const _LoginGateSheet({required this.onLogin, required this.onSkip});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE40101).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person_outline_rounded,
+                color: Color(0xFFE40101), size: 30),
+          ),
+          const SizedBox(height: 16),
+          Text('Login to Continue',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1A1A),
+              )),
+          const SizedBox(height: 8),
+          Text(
+            'Login with your mobile number to access\nthis feature. Or skip to browse.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: Colors.black54,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: onLogin,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE40101),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE40101).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text('Login with Mobile',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  )),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: onSkip,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+              ),
+              alignment: Alignment.center,
+              child: Text('Skip for Now',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF555555),
+                  )),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Join TVK prompt sheet (shown after login) ────────────────────────────────
+
+class _JoinTvkPromptSheet extends StatelessWidget {
+  final VoidCallback onJoin;
+  final VoidCallback onLater;
+  const _JoinTvkPromptSheet({required this.onJoin, required this.onLater});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // TVK yellow-red badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFCA00), Color(0xFFE40101)],
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('ACTIVE MEMBER',
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 14,
+                  color: Colors.white,
+                  letterSpacing: 1.5,
+                )),
+          ),
+          const SizedBox(height: 16),
+          Text('Become a TVK Member',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1A1A),
+              )),
+          const SizedBox(height: 8),
+          Text(
+            'Get your official TVK member ID card,\naccess exclusive events, and more.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: Colors.black54,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: onJoin,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFCA00), Color(0xFFE40101)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE40101).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text('Join TVK Now',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  )),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: onLater,
+            child: Text('Maybe Later',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black45,
+                )),
+          ),
+        ],
       ),
     );
   }

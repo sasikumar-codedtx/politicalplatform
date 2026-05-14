@@ -72,17 +72,27 @@ class ContentService {
     ManifestoPlan(
       id: 'p1', year: '2026',
       title: 'Clean Water for Villages',
-      description: 'Initiative to provide purified drinking water to 500 villages using solar-powered filtration. Reduces water-borne diseases. Saves women\'s time on water collection.',
+      description: 'The "Clean Water for Villages" project is a comprehensive initiative to transform rural households across Tamil Nadu by ensuring sustainable, safe, and reliable drinking water. Installing solar-powered filtration systems in 500 villages, drawn from rivers, reservoirs, or groundwater, integrated with piped distribution maintained by local Panchayats and the Water Supply Board.',
       timeline: 'Jan 2026 – Sep 2026 (8 months)',
       budget: '₹500 Crore',
       category: 'Infrastructure',
       imageAsset: 'assets/images/plan_water.png',
+      ministry: 'Ministry of Rural Development',
       bullets: [
         'Solar-powered filtration systems in 500 villages.',
         'Pipes laid to every household in targeted areas.',
         'Local Panchayat maintenance teams trained.',
         'Water quality testing labs at block level.',
         'Women\'s time saved: 2+ hours daily.',
+      ],
+      milestones: [
+        ManifestoMilestone(date: 'July 2026', title: 'Project Initiation', description: 'Appointing project lead, form steering committee (local leaders + govt + funders + NGO), set high-level objectives.'),
+        ManifestoMilestone(date: 'August 2026', title: 'Baseline Assessment & Community Census', description: 'Household census, water-use patterns, current coping strategies, existing infrastructure mapping, social & gender needs.'),
+        ManifestoMilestone(date: 'August 2026', title: 'Hydrogeological & Water Quality Survey', description: 'Site-specific surveys (borehole yield, aquifer tests, spring source mapping), seasonal variability assessment, physico-chemical and bacteriological testing.'),
+        ManifestoMilestone(date: 'September 2026', title: 'Pilot Construction & Testing (1 Village)', description: 'Mobilize works, install source/treatment/storage/distribution, train 1–2 local operators, implement simple telemetry or manual monitoring.'),
+        ManifestoMilestone(date: 'November 2026', title: 'Commissioning & Water Quality Validation', description: 'Hydraulic tests, flow & pressure checks, full lab certification, finalize residual disinfection protocols, user acceptance tests.'),
+        ManifestoMilestone(date: 'January 2027', title: 'Scale-up Roll-out (Remaining Villages)', description: 'Refine SOPs from pilot, batch procurement for cost savings, roll out construction in waves, stagger commissioning.'),
+        ManifestoMilestone(date: 'March 2027', title: 'Handover & Long-term Sustainability', description: 'Formal handover to local authority/WUC, long-term maintenance contract, spare-parts pipeline, plan for eventual asset replacement.'),
       ],
     ),
     ManifestoPlan(
@@ -92,6 +102,7 @@ class ContentService {
       timeline: 'Mar 2026 – Dec 2026 (9 months)',
       budget: '₹800 Crore',
       category: 'Education',
+      ministry: 'Ministry of Education',
       imageAsset: 'assets/images/plan_education.png',
       bullets: [
         'Free laptops/tablets for students.',
@@ -99,6 +110,12 @@ class ContentService {
         'Special scholarships for rural & first-generation learners.',
         'AI & coding labs in district-level schools.',
         'Skill training centres linked with industry jobs.',
+      ],
+      milestones: [
+        ManifestoMilestone(date: 'March 2026', title: 'School Assessment', description: 'Audit of 1000 target schools across 38 districts, infrastructure readiness check, bandwidth mapping.'),
+        ManifestoMilestone(date: 'June 2026', title: 'Hardware Procurement', description: 'Tender and procurement of smart boards, tablets, laptops, and high-speed internet equipment.'),
+        ManifestoMilestone(date: 'September 2026', title: 'Installation & Training', description: 'Deployment across schools with teacher training programmes and digital content integration.'),
+        ManifestoMilestone(date: 'December 2026', title: 'Launch & Evaluation', description: 'Official launch with student feedback, performance metrics baseline, continuous improvement plan.'),
       ],
     ),
     ManifestoPlan(

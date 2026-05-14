@@ -78,6 +78,8 @@ dependencies:
 dependency_overrides:
   record_platform_interface: 1.2.0
   record_linux: 0.7.2
+  # Image picker (camera + gallery for Join TVK face capture)
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +91,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # App icon generator
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/vijay_home_hero.png"
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
