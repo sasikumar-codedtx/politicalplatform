@@ -122,8 +122,8 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
                 _NavItem(
-                  icon: Icons.newspaper_outlined,
-                  activeIcon: Icons.newspaper_rounded,
+                  icon: Icons.campaign_outlined,
+                  activeIcon: Icons.campaign_rounded,
                   label: 'News',
                   index: 3,
                   selected: _selectedIndex,

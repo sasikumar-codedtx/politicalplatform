@@ -131,6 +131,29 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
+          // Conditional back button — only when this screen was pushed
+          Builder(
+            builder: (ctx) {
+              if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
+              return Positioned(
+                top: topPad + 14,
+                left: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                    ),
+                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                  ),
+                ),
+              );
+            },
+          ),
           Positioned(
             bottom: 0,
             left: 16,

@@ -19,6 +19,8 @@ import 'video_player_screen.dart';
 import 'youtube_hub_screen.dart';
 import 'fan_page_screen.dart';
 import 'policy_leaders_screen.dart';
+import 'policy_leader_detail_screen.dart';
+// TvkFamilyScreen is defined in policy_leaders_screen.dart
 // ─── Hardcoded campaign song ──────────────────────────────────────────────────
 const _kCampaignSongVideoId = 'JHJmFbLeK-Y';
 const _kCampaignSongTitle = 'TVK Campaign Song';
@@ -80,6 +82,13 @@ class _HomeViewState extends State<_HomeView> {
 
               // ── 2. Leaders Deck + Community Row ──────────────────
               const SizedBox(height: 16),
+              _SectionHeader(
+                label: 'Policy Leaders',
+                onMore: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const PolicyLeadersScreen())),
+              ),
+              const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _SocialJusticeAndCommunityRow(),
@@ -105,11 +114,15 @@ class _HomeViewState extends State<_HomeView> {
                 const SizedBox(height: 20),
               ],
 
-              // ── 5. Manifesto — cinematic, no header ───────────────
-              GestureDetector(
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const ManifestoScreen())),
-                child: const _ManifestoCinematic(),
+              // ── 5. TVK Family + Manifesto ─────────────────────────
+              // No outer padding — section manages its own layout
+              _ManifestoAndLeadersSection(
+                onManifestoTap: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const ManifestoScreen())),
+                onSeeMoreTap: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const TvkFamilyScreen())),
               ),
               const SizedBox(height: 20),
 
@@ -762,6 +775,22 @@ class _CampaignSongCard extends StatelessWidget {
             children: [
               // White background
               Container(color: Colors.white),
+              // Red decorative glow behind leader
+              Positioned(
+                right: 0,
+                bottom: 0,
+                width: 200,
+                height: 140,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.bottomRight,
+                      radius: 0.9,
+                      colors: [Color(0x44E40101), Color(0x00E40101)],
+                    ),
+                  ),
+                ),
+              ),
               // Right: large Vijay figure
               Positioned(
                 right: 0,
@@ -800,37 +829,53 @@ class _CampaignSongCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🔥 New pill
+                    // New pill
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF6B00).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: const Color(0xFFFF6B00).withValues(alpha: 0.35)),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFE40101)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('🔥', style: TextStyle(fontSize: 10)),
+                          const Icon(Icons.local_fire_department_rounded,
+                              color: Color(0xFFE40101), size: 14),
                           const SizedBox(width: 3),
                           Text('New',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFFFF6B00),
+                                color: const Color(0xFFE40101),
                               )),
                         ],
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'TVK\nCampaign Song',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1A1A1A),
-                        height: 1.2,
+                    RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'TVK',
+                            style: TextStyle(
+                              foreground: Paint()
+                                ..shader = const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Color(0xFFE40101), Color(0xFFFFCA00)],
+                                ).createShader(const Rect.fromLTWH(0, 0, 60, 30)),
+                            ),
+                          ),
+                          const TextSpan(
+                            text: '\nCampaign Song',
+                            style: TextStyle(color: Color(0xFF111214)),
+                          ),
+                        ],
                       ),
                     ),
                     const Spacer(),
@@ -936,7 +981,7 @@ class _LatestUpdatesHScrollState extends State<_LatestUpdatesHScroll> {
     return Column(
       children: [
         SizedBox(
-          height: 220,
+          height: 284,
           child: PageView.builder(
             controller: _pageCtrl,
             itemCount: items.length,
@@ -963,12 +1008,12 @@ class _LatestUpdatesHScrollState extends State<_LatestUpdatesHScroll> {
             return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: active ? 18 : 6,
-              height: 6,
+              width: active ? 18 : 5,
+              height: 5,
               decoration: BoxDecoration(
                 color: active
                     ? const Color(0xFFE40101)
-                    : const Color(0xFFDDDDDD),
+                    : const Color(0xFFE40101).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(50),
               ),
             );
@@ -992,7 +1037,7 @@ class _LatestNewsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(
           width: double.infinity,
-          height: 220,
+          height: 284,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1130,47 +1175,39 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Card stack — 4:3 aspect (width=4, height=3 → height < width)
-        AspectRatio(
-          aspectRatio: 4 / 3,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              for (int offset = 2; offset >= 0; offset--) _buildCard(offset),
-            ],
+    // Arrows sit on left/right sides, vertically centred, bleeding outside the card
+    return AspectRatio(
+      aspectRatio: 4 / 3,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Back cards first (lower z), front card last (highest z)
+          for (int offset = 2; offset >= 0; offset--) _buildCard(offset),
+
+          // Left arrow — vertically centred, outside card edge
+          Positioned(
+            left: -14,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: _DeckNavBtn(
+                  icon: Icons.arrow_back_rounded, onTap: _prev),
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        // Prev / dots / Next row below the card
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _DeckNavBtn(icon: Icons.arrow_back_rounded, onTap: _prev),
-            const SizedBox(width: 10),
-            ...List.generate(_leaderCount, (i) {
-              final isActive = i == _currentIndex;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                width: isActive ? 16 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFFE40101)
-                      : const Color(0xFFDDDDDD),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              );
-            }),
-            const SizedBox(width: 10),
-            _DeckNavBtn(icon: Icons.arrow_forward_rounded, onTap: _next),
-          ],
-        ),
-      ],
+
+          // Right arrow — vertically centred, outside card edge
+          Positioned(
+            right: -14,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: _DeckNavBtn(
+                  icon: Icons.arrow_forward_rounded, onTap: _next),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1207,11 +1244,29 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                   ? () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const PolicyLeadersScreen()),
+                          builder: (_) => PolicyLeaderDetailScreen(
+                            leader: kPolicyLeaders[
+                                (_currentIndex + offset) % _leaderCount],
+                          ),
+                        ),
                       )
                   : null,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+              child: isFront
+                  ? AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: ScaleTransition(
+                          scale: Tween<double>(begin: 0.90, end: 1.0).animate(
+                              CurvedAnimation(
+                                  parent: anim,
+                                  curve: Curves.easeOutBack)),
+                          child: child,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        key: ValueKey(index),
+                        borderRadius: BorderRadius.circular(14),
                 child: Container(
                   color: _leaderCardColors[index],
                   child: Stack(
@@ -1269,6 +1324,69 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                   ),
                 ),
               ),
+            ) // close AnimatedSwitcher
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        color: _leaderCardColors[index],
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: Image.asset(
+                                _leaderImages[index],
+                                fit: BoxFit.contain,
+                                alignment: Alignment.bottomCenter,
+                                errorBuilder: (_, e, s) =>
+                                    const SizedBox.shrink(),
+                              ),
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              height: 56,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      Colors.black87,
+                                      Colors.transparent
+                                    ],
+                                  ),
+                                ),
+                                alignment: Alignment.bottomLeft,
+                                padding:
+                                    const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _leaderRoles[index],
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                    Text(
+                                      _leaderNames[index],
+                                      style: GoogleFonts.bebasNeue(
+                                        fontSize: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
           ),
         ),
@@ -1277,7 +1395,7 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
   }
 }
 
-// Small rounded nav button used below the deck
+// Small rounded nav button used beside the deck
 class _DeckNavBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -1387,102 +1505,354 @@ class _CommunityText extends StatelessWidget {
   }
 }
 
-// ─── Manifesto Cinematic ──────────────────────────────────────────────────────
-// Figma: full-bleed TN map bg + Vijay foreground + "Manifesto" + "See Details"
+// ─── TVK Family + Manifesto section ──────────────────────────────────────────
+
+class _ManifestoAndLeadersSection extends StatelessWidget {
+  final VoidCallback onManifestoTap;
+  final VoidCallback onSeeMoreTap;
+  const _ManifestoAndLeadersSection(
+      {required this.onManifestoTap, required this.onSeeMoreTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── "TVK Family" header row ──────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'TVK Family',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF242424),
+                ),
+              ),
+              GestureDetector(
+                onTap: onSeeMoreTap,
+                child: Text(
+                  'See More',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFE40101),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ── Row 1: Vijay + N. Anand ──────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _LeaderMiniCard(
+                  name: 'Vijay',
+                  role: 'President',
+                  imagePath: 'assets/images/leader_vijay.png',
+                  leaderData: kTvkLeaders[0],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _LeaderMiniCard(
+                  name: 'N. Anand',
+                  role: 'General Secretary',
+                  imagePath: 'assets/images/leader_anand.png',
+                  leaderData: kTvkLeaders[1],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ── Row 2: K. G. Arunraj + Aadhav Arjuna ─────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _LeaderMiniCard(
+                  name: 'K. G. Arunraj',
+                  role: 'Propaganda & Policy\nGeneral Secretary',
+                  imagePath: 'assets/images/leader_arunraj.png',
+                  leaderData: kTvkLeaders[2],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _LeaderMiniCard(
+                  name: 'Aadhav Arjuna',
+                  role: 'E.C.M\nGeneral Secretary',
+                  imagePath: 'assets/images/leader_aadhav.png',
+                  leaderData: kTvkLeaders[3],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ── Manifesto cinematic — full width, no horizontal padding ───────
+        GestureDetector(
+          onTap: onManifestoTap,
+          child: const _ManifestoCinematic(),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Leader mini card (Figma 1328:9160) ──────────────────────────────────────
+// 2-column grid, 160px tall, white→transparent gradient, red glow, portrait
+
+class _LeaderMiniCard extends StatelessWidget {
+  final String name;
+  final String role;
+  final String imagePath;
+  final PolicyLeaderData? leaderData;
+
+  const _LeaderMiniCard({
+    required this.name,
+    required this.role,
+    required this.imagePath,
+    this.leaderData,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: leaderData == null
+          ? null
+          : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      PolicyLeaderDetailScreen(leader: leaderData!),
+                ),
+              ),
+      child: Container(
+        height: 160,
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 8,
+              offset: Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // White solid top (31.7%) → transparent — portrait shows through bottom
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.317, 1.0],
+                    colors: [Colors.white, Colors.white, Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
+
+            // Red/pink radial glow centred in the lower half
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 64,
+              height: 96,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.9,
+                    colors: [Color(0x44E89090), Color(0x00E89090)],
+                  ),
+                ),
+              ),
+            ),
+
+            // Leader portrait — slightly over-sized so face fills bottom area
+            Positioned(
+              left: -8,
+              top: 44,
+              bottom: 0,
+              right: 20,
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomLeft,
+                errorBuilder: (_, e, s) => const SizedBox.shrink(),
+              ),
+            ),
+
+            // Name + role — top-left
+            Positioned(
+              left: 14,
+              top: 12,
+              right: 36,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF242424),
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    role.replaceAll('\\n', '\n'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF242424),
+                      height: 1.35,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+
+            // Arrow — bottom-right
+            const Positioned(
+              right: 10,
+              bottom: 12,
+              child: Icon(
+                Icons.arrow_outward_rounded,
+                color: Color(0xFFE40101),
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Manifesto cinematic — full-width, Figma-exact ───────────────────────────
 
 class _ManifestoCinematic extends StatelessWidget {
   const _ManifestoCinematic();
 
   @override
   Widget build(BuildContext context) {
+    final sw = MediaQuery.of(context).size.width;
+
     return SizedBox(
-      width: double.infinity,
-      height: 280,
+      width: sw,
+      height: 420,
       child: Stack(
         clipBehavior: Clip.hardEdge,
         children: [
-          // 1. TN constituency map — full bleed background
+          // Dark base
+          Positioned.fill(child: Container(color: const Color(0xFF0A0000))),
+
+          // TN map — full bleed, earthy tones
           Positioned.fill(
             child: Image.asset(
               'assets/images/constituency_map.png',
               fit: BoxFit.cover,
               alignment: Alignment.center,
-              errorBuilder: (_, e, s) => Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFD9E8F5), Color(0xFFB0C8E0)],
-                  ),
-                ),
-              ),
+              errorBuilder: (_, e, s) => const SizedBox.shrink(),
             ),
           ),
-          // 2. Dark overlay so text is readable
+
+          // Dark overlay to deepen the map
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Color(0x66000000), Color(0x22000000)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x66000000), Color(0xCC000000)],
                 ),
               ),
             ),
           ),
-          // 3. Vijay in white/red outfit (left-centre)
+
+          // Vijay full-body — left side, standing tall
           Positioned(
-            left: -20,
+            left: -sw * 0.08,
             bottom: 0,
-            top: -10,
-            width: 240,
+            width: sw * 0.78,
+            height: 420,
             child: Image.asset(
-              'assets/images/vijay_manifesto.png',
+              'assets/images/combined.png',
               fit: BoxFit.contain,
               alignment: Alignment.bottomLeft,
-              errorBuilder: (_, e, s) => const SizedBox.shrink(),
+              errorBuilder: (_, e, s) => Image.asset(
+                'assets/images/vijay_manifesto.png',
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomLeft,
+                errorBuilder: (_, e2, s2) => const SizedBox.shrink(),
+              ),
             ),
           ),
-          // 4. "Manifesto" text + "See Details" — right side
+
+          // "Manifesto" + "See Details ↗" — right side, bottom
           Positioned(
             right: 20,
-            bottom: 40,
+            bottom: 60,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Manifesto',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
-                    letterSpacing: 0.3,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'See Details',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'See Details',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFE40101),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_outward_rounded,
-                          color: Colors.white, size: 14),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_outward_rounded,
+                      color: Color(0xFFE40101),
+                      size: 16,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1492,6 +1862,7 @@ class _ManifestoCinematic extends StatelessWidget {
     );
   }
 }
+
 
 // ─── TVK Shorts Row ───────────────────────────────────────────────────────────
 // Figma 1328:9238 — horizontal scroll of 9:16 portrait cards (154×257)
