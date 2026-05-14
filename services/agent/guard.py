@@ -1,17 +1,16 @@
 """
 Input guard — detects prompt injection attempts before they reach the LLM.
 
-Users chat with a political leader AI. Malicious users may try to:
-- Override the persona ("you are now a general AI")
-- Extract system instructions ("what are your instructions?")
-- Jailbreak ("ignore all previous instructions")
-- Impersonate system roles ("[SYSTEM]: ...")
-
-This module catches these attempts and returns a safe refusal response
-without ever sending the injection to Ollama.
+Detection logic (regex patterns, script detection) lives here. Every prompt
+STRING the user sees or that gets injected into the LLM context is fetched
+from the admin-managed `prompts` table via `prompts.get_prompt(...)`.
 """
 
 import re
+
+from prompts import get_prompt
+
+DEFAULT_FLAVOR_ID = "tn-tvk"
 
 # Patterns that indicate a prompt injection attempt.
 # Case-insensitive. If any match, the message is blocked.
@@ -41,41 +40,25 @@ _INJECTION_PATTERNS = [
 
 _COMPILED = [re.compile(p, re.IGNORECASE) for p in _INJECTION_PATTERNS]
 
-# Safe refusal — stays in character as the political leader
-_REFUSAL = (
-    "I'm here to talk about governance, policies, and citizen welfare. "
-    "I can't help with that kind of request. "
-    "Is there something about Tamil Nadu's development I can assist you with?"
-)
-
-_REFUSAL_TA = (
-    "நான் ஆட்சி, கொள்கைகள் மற்றும் குடிமக்கள் நலனைப் பற்றி பேச இங்கே இருக்கிறேன். "
-    "அந்த வகையான கோரிக்கைக்கு என்னால் உதவ முடியாது. "
-    "தமிழ்நாட்டின் வளர்ச்சியைப் பற்றி ஏதாவது கேட்க விரும்புகிறீர்களா?"
-)
-
 
 def _is_tamil(text: str) -> bool:
     return bool(re.search(r'[஀-௿]', text))
 
 
 def check_injection(message: str) -> str | None:
-    """Check message for injection patterns.
-
-    Returns None if the message is safe.
-    Returns a refusal string if injection is detected.
-    """
+    """Return None if the message is safe; an admin-edited refusal string otherwise."""
     for pattern in _COMPILED:
         if pattern.search(message):
-            return _REFUSAL_TA if _is_tamil(message) else _REFUSAL
+            key = "refusal:ta" if _is_tamil(message) else "refusal:en"
+            return get_prompt(key)
     return None
 
 
 def _detect_script(text: str) -> str:
     """Return 'tamil', 'hindi', or 'english' based on Unicode script."""
-    if re.search(r'[஀-௿]', text):   # Tamil block
+    if re.search(r'[஀-௿]', text):
         return 'tamil'
-    if re.search(r'[ऀ-ॿ]', text):   # Devanagari (Hindi)
+    if re.search(r'[ऀ-ॿ]', text):
         return 'hindi'
     return 'english'
 
@@ -83,22 +66,13 @@ def _detect_script(text: str) -> str:
 def role_anchor(flavor_id: str | None, user_message: str = "") -> str:
     """Short system reminder injected just before each user turn.
 
-    Re-anchors persona AND explicitly tells the model which language
-    to use based on the script the user just typed in.
-    This overrides any drift from previous conversation history.
+    Pulls both the per-flavor persona reminder and the per-script language
+    instruction from the admin-managed prompts table.
     """
-    if flavor_id == "india-pm":
-        persona_line = "You are Rahul Gandhi, Prime Minister of India. Stay fully in character."
-    else:
-        persona_line = "You are Vijay, Chief Minister of Tamil Nadu. Stay fully in character."
-
+    flavor = flavor_id or DEFAULT_FLAVOR_ID
+    persona_line = get_prompt(f"role_anchor:{flavor}")
     script = _detect_script(user_message) if user_message else "english"
+    lang_line = get_prompt(f"language:{script}")
 
-    if script == "tamil":
-        lang_line = "LANGUAGE: The user's message is in Tamil script. Reply ONLY in Tamil. Do NOT use English."
-    elif script == "hindi":
-        lang_line = "LANGUAGE: The user's message is in Hindi. Reply ONLY in Hindi. Do NOT use English or Tamil."
-    else:
-        lang_line = "LANGUAGE: The user's message is in English. Reply ONLY in English. Do NOT use Tamil or any other language."
-
-    return f"{persona_line}\n{lang_line}"
+    parts = [p for p in (persona_line, lang_line) if p]
+    return "\n".join(parts)

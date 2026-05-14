@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-const API = 'http://localhost:8001'
+const API = 'http://localhost:9000'
 const FLAVORS = [
   { id: 'tn-tvk', label: 'TVK', color: '#E40101' },
   { id: 'india-pm', label: 'India PM', color: '#19AAED' },
@@ -536,6 +536,8 @@ const ACTION_META = {
   injection_blocked:     { icon: '🚨', color: t.danger,   label: 'Blocked' },
   url_scrape_failed:     { icon: '⚠️', color: t.warning,  label: 'URL Fail' },
   youtube_ingest_failed: { icon: '⚠️', color: t.warning,  label: 'YT Fail' },
+  prompt_updated:        { icon: '🎭', color: t.primary,  label: 'Prompt' },
+  prompt_reset:          { icon: '↺',  color: t.muted,    label: 'Reset' },
 }
 
 function AuditLogView() {
@@ -611,12 +613,369 @@ function AuditLogView() {
   )
 }
 
-// ── Sidebar (clean — no ADD CONTENT section) ──────────────────────────────
+// ── Prompts view ──────────────────────────────────────────────────────────
+const CATEGORY_ICON = {
+  persona:     '🎭',
+  role_anchor: '⚓',
+  language:    '🌐',
+  refusal:     '🛡',
+  rag:         '📎',
+  misc:        '•',
+}
+
+function PromptEditor({ prompt, onSaved }) {
+  const [content, setContent] = useState(prompt.content)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState(null)
+  const [expanded, setExpanded] = useState(false)
+  const lineCount = (content.match(/\n/g) || []).length + 1
+  const isLarge = lineCount > 8 || content.length > 400
+
+  useEffect(() => { setContent(prompt.content); setMsg(null) }, [prompt.key, prompt.content])
+
+  const dirty = content !== prompt.content
+  const encodedKey = prompt.key.split('/').map(encodeURIComponent).join('/')
+
+  const save = async () => {
+    if (!content.trim()) { setMsg({ ok: false, text: 'Cannot be empty' }); return }
+    setSaving(true); setMsg(null)
+    try {
+      const r = await fetch(`${API}/admin/prompts/${encodedKey}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.detail || 'Failed to save')
+      setMsg({ ok: true, text: `Saved · ${d.length} chars` })
+      onSaved()
+    } catch (e) { setMsg({ ok: false, text: e.message }) }
+    finally { setSaving(false) }
+  }
+
+  const reset = async () => {
+    if (!confirm(`Reset "${prompt.label}" to the factory default? Current edits will be overwritten.`)) return
+    setSaving(true); setMsg(null)
+    try {
+      const r = await fetch(`${API}/admin/prompts/${encodedKey}/reset`, { method: 'POST' })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.detail || 'Failed to reset')
+      setMsg({ ok: true, text: 'Reset to factory default' })
+      onSaved()
+    } catch (e) { setMsg({ ok: false, text: e.message }) }
+    finally { setSaving(false) }
+  }
+
+  const showFull = expanded || !isLarge
+  const rows = showFull ? Math.max(6, Math.min(lineCount + 2, 30)) : 4
+
+  return (
+    <div style={{ border: `1.5px solid ${dirty ? t.warning : t.border}`, borderRadius: 10, padding: 16, background: '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: t.sidebar }}>{prompt.label || prompt.key}</span>
+            <code style={{ fontSize: 10, color: t.muted, background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>{prompt.key}</code>
+            {prompt.is_seed_default && <Badge color={t.muted}>factory default</Badge>}
+            {dirty && <Badge color={t.warning}>unsaved</Badge>}
+          </div>
+          {prompt.description && (
+            <div style={{ fontSize: 11, color: t.muted, lineHeight: 1.5 }}>{prompt.description}</div>
+          )}
+        </div>
+        <div style={{ fontSize: 10, color: t.muted, whiteSpace: 'nowrap' }}>
+          {new Date(prompt.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+        </div>
+      </div>
+
+      <textarea
+        value={content}
+        onChange={e => setContent(e.target.value)}
+        rows={rows}
+        spellCheck={false}
+        style={{
+          width: '100%', padding: '10px 12px',
+          border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 12,
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+          color: t.sidebar, background: '#FAFAFA', lineHeight: 1.6, resize: 'vertical',
+        }}
+      />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, gap: 8 }}>
+        <div style={{ display: 'flex', gap: 10, fontSize: 11, color: t.muted, alignItems: 'center' }}>
+          <span>{content.length.toLocaleString()} chars</span>
+          {isLarge && (
+            <button onClick={() => setExpanded(!expanded)} style={{
+              border: 'none', background: 'transparent', color: t.primary, cursor: 'pointer',
+              fontSize: 11, fontWeight: 600,
+            }}>
+              {expanded ? '↑ Collapse' : '↓ Expand'}
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {dirty && (
+            <Button variant="ghost" color={t.muted} size="sm"
+              onClick={() => setContent(prompt.content)} disabled={saving}>Discard</Button>
+          )}
+          {prompt.has_seed_default && !prompt.is_seed_default && (
+            <Button variant="ghost" color={t.muted} size="sm" onClick={reset} disabled={saving}>↺ Reset</Button>
+          )}
+          <Button color={t.primary} size="sm" onClick={save} disabled={saving || !dirty}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        </div>
+      </div>
+      <Toast msg={msg} />
+    </div>
+  )
+}
+
+function PromptsView() {
+  const [groups, setGroups] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [filter, setFilter] = useState('all')
+
+  const load = async () => {
+    setLoading(true); setError(null)
+    try {
+      const r = await fetch(`${API}/admin/prompts`)
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.detail || 'Failed to load')
+      setGroups(d.groups || [])
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [])
+
+  const visible = filter === 'all' ? groups : groups.filter(g => g.category === filter)
+  const totalCount = groups.reduce((n, g) => n + g.prompts.length, 0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card>
+        <SectionHeader
+          title={`Prompts · ${totalCount} entries`}
+          action={<Button variant="ghost" color={t.muted} size="sm" onClick={load} disabled={loading}>↻ Refresh</Button>}
+        />
+        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1E40AF', lineHeight: 1.6 }}>
+            Every prompt sent to the LLM — personas, role anchors, language instructions, refusal messages, the RAG context wrapper —
+            is stored here. Nothing is read from <code>.env</code> or hardcoded in the agent. Edits apply on the next chat turn,
+            including in existing sessions.
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button onClick={() => setFilter('all')} style={chipStyle(filter === 'all')}>
+              All ({totalCount})
+            </button>
+            {groups.map(g => (
+              <button key={g.category} onClick={() => setFilter(g.category)} style={chipStyle(filter === g.category)}>
+                {CATEGORY_ICON[g.category] || '•'} {g.label} ({g.prompts.length})
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Loading prompts…</div>}
+      {error && <Toast msg={{ ok: false, text: error }} />}
+
+      {visible.map(group => (
+        <Card key={group.category}>
+          <SectionHeader title={`${CATEGORY_ICON[group.category] || '•'}  ${group.label}`} />
+          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {group.prompts.map(p => (
+              <PromptEditor key={p.key} prompt={p} onSaved={load} />
+            ))}
+          </div>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+function chipStyle(active) {
+  return {
+    padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+    cursor: 'pointer', border: 'none',
+    background: active ? t.sidebar : '#F1F5F9',
+    color: active ? '#fff' : t.muted,
+  }
+}
+
+// ── Avatars page ─────────────────────────────────────────────────────────
+
+function AvatarsView({ flavor }) {
+  const [avatars, setAvatars] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  const [name, setName] = useState('')
+  const [piperVoiceId, setPiperVoiceId] = useState('en_US-amy-medium')
+  const [file, setFile] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const r = await fetch(`${API}/admin/avatars?flavor_id=${encodeURIComponent(flavor)}`)
+      const d = await r.json()
+      setAvatars(d.avatars || [])
+    } catch (e) {
+      setToast({ ok: false, text: `Failed to load: ${e.message}` })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [flavor])
+
+  const reset = () => {
+    setName(''); setFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!name.trim()) { setToast({ ok: false, text: 'Name is required' }); return }
+    if (!file)        { setToast({ ok: false, text: 'Photo is required' }); return }
+    setBusy(true)
+    try {
+      const fd = new FormData()
+      fd.append('name', name.trim())
+      fd.append('flavor_id', flavor)
+      fd.append('voice_id', piperVoiceId || 'en_US-amy-medium')
+      fd.append('photo', file)
+      const r = await fetch(`${API}/admin/avatars/face`, { method: 'POST', body: fd })
+      if (!r.ok) throw new Error((await r.json()).detail || 'Request failed')
+      const data = await r.json()
+      setToast({ ok: true, text: `Avatar "${data.name}" added` })
+      reset()
+      load()
+    } catch (e) {
+      setToast({ ok: false, text: e.message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (id, n) => {
+    if (!confirm(`Delete avatar "${n || id.slice(0, 8)}"?`)) return
+    try {
+      const r = await fetch(`${API}/admin/avatars/${id}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Delete failed')
+      setToast({ ok: true, text: 'Avatar deleted' })
+      load()
+    } catch (e) {
+      setToast({ ok: false, text: e.message })
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {toast && <Toast msg={toast} />}
+
+      <Card>
+        <SectionHeader title="Add a face photo avatar" />
+        <div style={{ padding: 16 }}>
+          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Input label="Display name" value={name} onChange={e => setName(e.target.value)}
+                   placeholder="e.g. Vijay" required />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: t.muted }}>
+                Face photo <span style={{ color: t.danger }}>*</span>
+              </label>
+              <input ref={fileInputRef} type="file" accept="image/*"
+                onChange={e => setFile(e.target.files?.[0] || null)}
+                style={{ padding: '9px 12px', border: `1.5px solid ${t.border}`, borderRadius: 8, fontSize: 13, background: '#fff' }} />
+              <span style={{ fontSize: 11, color: t.muted }}>
+                Forward-facing portrait works best. Stored in <strong>avatar-service</strong> on port 8002 and animated locally
+                (no cloud calls). Web client overlays a 2D mouth + idle blinks while TTS speaks.
+              </span>
+            </div>
+            <Input label="Voice id" value={piperVoiceId} onChange={e => setPiperVoiceId(e.target.value)}
+                   placeholder="en_US-amy-medium"
+                   hint="Any edge-tts voice. Indian English: en-IN-NeerjaNeural. Tamil: ta-IN-PallaviNeural. Hindi: hi-IN-SwaraNeural. Aliases like en_US-amy-medium also work." />
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <Button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add avatar'}</Button>
+              <Button type="button" variant="ghost" color={t.muted} onClick={reset}>Reset</Button>
+            </div>
+          </form>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionHeader title={`Avatars for ${FLAVORS.find(f => f.id === flavor)?.label || flavor}`} />
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Loading…</div>
+        ) : avatars.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>
+            No avatars yet. Add one above.
+          </div>
+        ) : (
+          <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+            {avatars.map(a => (
+              <AvatarCard key={a.id} avatar={a} onDelete={() => remove(a.id, a.name)} />
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+function AvatarCard({ avatar, onDelete }) {
+  const sourceBadge = avatar.face_avatar_id
+    ? { label: '📸 Face Photo', color: '#0EA5E9' }
+    : { label: 'Unknown', color: t.muted }
+  const linkHref = avatar.face_avatar_id
+    ? `${API}/avatar-svc/${avatar.face_avatar_id}/photo`
+    : null
+  const linkLabel = 'View photo ↗'
+
+  return (
+    <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, padding: 14, background: '#fff', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: t.sidebar, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {avatar.name || avatar.id.slice(0, 8)}
+          </div>
+          <div style={{ fontSize: 11, color: t.muted, marginTop: 2, fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
+            {avatar.id.slice(0, 12)}…
+          </div>
+        </div>
+        <Badge color={sourceBadge.color}>{sourceBadge.label}</Badge>
+      </div>
+
+      <div style={{ fontSize: 11, color: t.muted }}>
+        Added {new Date(avatar.created_at).toLocaleString()}
+      </div>
+
+      {linkHref && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+          <a href={linkHref} target="_blank" rel="noreferrer" className="source-link"
+             style={{ fontSize: 11, fontWeight: 600, color: t.info }}>{linkLabel}</a>
+        </div>
+      )}
+
+      <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: `1px solid ${t.border}`, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button size="sm" variant="ghost" color={t.danger} onClick={onDelete}>Delete</Button>
+      </div>
+    </div>
+  )
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────
 const NAV = [
   { section: 'KNOWLEDGE BASE' },
   { id: 'documents', icon: '📚', label: 'Documents' },
   { id: 'test',      icon: '🔍', label: 'Test Retrieval' },
   { id: 'audit',     icon: '📋', label: 'Audit Log' },
+  { section: 'AVATAR' },
+  { id: 'avatars',   icon: '🧑', label: 'Avatars' },
+  { section: 'PROMPT CONFIG' },
+  { id: 'prompts',   icon: '🎭', label: 'All Prompts' },
 ]
 
 function Sidebar({ active, onNav, flavor, setFlavor, docCount }) {
@@ -725,10 +1084,12 @@ export default function App() {
           {page === 'documents' && <DocumentsView flavor={flavor} docs={docs} loading={loading} onDelete={handleDelete} />}
           {page === 'test'      && <TestQueryView flavor={flavor} />}
           {page === 'audit'     && <AuditLogView />}
+          {page === 'prompts'   && <PromptsView />}
+          {page === 'avatars'   && <AvatarsView flavor={flavor} />}
         </main>
 
-        {/* Floating Add Content button */}
-        <AddFab onClick={() => setShowAdd(true)} />
+        {/* Floating Add Content button — only on document-management pages */}
+        {page !== 'prompts' && page !== 'avatars' && <AddFab onClick={() => setShowAdd(true)} />}
 
         {/* Add Content modal */}
         {showAdd && (

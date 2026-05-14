@@ -1,0 +1,22 @@
+# Runtime deps (mock implementation — works on any CPU)
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+numpy
+pillow
+
+# When you swap mock → real LivePortrait + audio2motion on a GPU box,
+# uncomment and pin these versions:
+#
+# torch==2.2.2+cu118    --extra-index-url https://download.pytorch.org/whl/cu118
+# torchvision==0.17.2+cu118
+# torchaudio==2.2.2+cu118
+# opencv-python-headless
+# imageio[ffmpeg]
+# onnxruntime-gpu
+#
+# Plus LivePortrait itself — clone https://github.com/KwaiVGI/LivePortrait
+# into ./LivePortrait/ and `pip install -e ./LivePortrait`.
+#
+# Audio-to-motion model — `pip install` your chosen audio2face/MakeItTalk fork.

@@ -1,8 +1,17 @@
 import os
+from pathlib import Path
 import psycopg2
 import psycopg2.extras
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+# Defensive .env load — db.py can be imported before agent.py in some entry
+# paths (alembic, scripts, the gateway). Absolute path keeps this robust to
+# whatever cwd uvicorn ends up using.
+_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+if _ENV_PATH.exists():
+    load_dotenv(_ENV_PATH)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -107,6 +116,126 @@ def init_db() -> None:
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_created
                 ON audit_logs(created_at DESC);
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS prompts (
+                    key         TEXT PRIMARY KEY,
+                    content     TEXT NOT NULL,
+                    category    TEXT NOT NULL DEFAULT 'misc',
+                    label       TEXT NOT NULL DEFAULT '',
+                    description TEXT NOT NULL DEFAULT '',
+                    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_prompts_category
+                ON prompts(category);
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS avatars (
+                    id              TEXT PRIMARY KEY,
+                    flavor_id       TEXT,
+                    name            TEXT NOT NULL DEFAULT '',
+                    face_avatar_id  TEXT,
+                    piper_voice_id  TEXT,
+                    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            # Migration: drop legacy columns from earlier avatar paths
+            # (Sketchfab embed, D-ID, RPM GLB, photo→GLB placeholder). Existing
+            # rows lose their data here, which is intended — those paths are
+            # gone. Wrapped in DO blocks so it's idempotent.
+            for col in ("photo_filename", "source_url", "embed_url",
+                        "did_source_url", "did_voice_id", "needs_regeneration"):
+                cur.execute(f"ALTER TABLE avatars DROP COLUMN IF EXISTS {col};")
+            # Ensure the kept columns exist (covers upgrades from the cleanup-
+            # era schema where face_avatar_id / piper_voice_id were ADDs).
+            cur.execute("ALTER TABLE avatars ADD COLUMN IF NOT EXISTS face_avatar_id TEXT;")
+            cur.execute("ALTER TABLE avatars ADD COLUMN IF NOT EXISTS piper_voice_id TEXT;")
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_avatars_flavor
+                ON avatars(flavor_id, created_at DESC);
+            """)
+    _seed_prompts_if_empty()
+
+
+def _seed_prompts_if_empty() -> None:
+    """Seed the prompts table on first run using the bundled factory defaults.
+
+    Each row is inserted with ON CONFLICT DO NOTHING — once a key exists the
+    admin UI owns it, and subsequent startups never overwrite admin edits.
+    Label/description are kept in sync with the seed file via the UPDATE so
+    that UI metadata stays current even after admins edit the content.
+    """
+    from seed_prompts import SEED_PROMPTS
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            for key, spec in SEED_PROMPTS.items():
+                cur.execute(
+                    """
+                    INSERT INTO prompts (key, content, category, label, description)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (key) DO UPDATE
+                        SET category    = EXCLUDED.category,
+                            label       = EXCLUDED.label,
+                            description = EXCLUDED.description
+                    """,
+                    (key, spec["content"], spec["category"], spec["label"], spec["description"]),
+                )
+
+
+def get_prompt_content(key: str) -> str | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT content FROM prompts WHERE key = %s", (key,))
+            row = cur.fetchone()
+            return row[0] if row else None
+
+
+def upsert_prompt(key: str, content: str) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE prompts SET content = %s, updated_at = now()
+                WHERE key = %s
+                """,
+                (content, key),
+            )
+            if cur.rowcount == 0:
+                cur.execute(
+                    """
+                    INSERT INTO prompts (key, content, category, label, description)
+                    VALUES (%s, %s, 'misc', %s, '')
+                    """,
+                    (key, content, key),
+                )
+
+
+def list_prompts() -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT key, content, category, label, description, updated_at
+                FROM prompts ORDER BY category ASC, key ASC
+            """)
+            return [
+                {
+                    "key":         row["key"],
+                    "content":     row["content"],
+                    "category":    row["category"],
+                    "label":       row["label"],
+                    "description": row["description"],
+                    "updated_at":  row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
+                }
+                for row in cur.fetchall()
+            ]
+
+
+def delete_prompt(key: str) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM prompts WHERE key = %s", (key,))
+            return cur.rowcount > 0
 
 
 def ensure_session(session_id: str, persona: str, flavor_id: str | None = None, user_id: str | None = None) -> bool:
@@ -323,6 +452,64 @@ def audit(action: str, entity_type: str | None = None, entity_id: str | None = N
                 )
     except Exception:
         pass  # Never let audit logging break the main flow
+
+
+# ── Avatar functions ──────────────────────────────────────────────────────────
+
+def register_avatar(avatar_id: str, name: str, flavor_id: str | None,
+                    face_avatar_id: str | None = None,
+                    piper_voice_id: str | None = None) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO avatars (id, flavor_id, name, face_avatar_id, piper_voice_id)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (avatar_id, flavor_id, name, face_avatar_id, piper_voice_id),
+            )
+
+
+_AVATAR_COLS = "id, flavor_id, name, face_avatar_id, piper_voice_id, created_at"
+
+
+def list_avatars(flavor_id: str | None = None) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if flavor_id:
+                cur.execute(
+                    f"SELECT {_AVATAR_COLS} FROM avatars WHERE flavor_id = %s ORDER BY created_at DESC",
+                    (flavor_id,),
+                )
+            else:
+                cur.execute(f"SELECT {_AVATAR_COLS} FROM avatars ORDER BY created_at DESC")
+            return [_avatar_row_to_dict(row) for row in cur.fetchall()]
+
+
+def get_avatar(avatar_id: str) -> dict | None:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(f"SELECT {_AVATAR_COLS} FROM avatars WHERE id = %s", (avatar_id,))
+            row = cur.fetchone()
+            return _avatar_row_to_dict(row) if row else None
+
+
+def _avatar_row_to_dict(row) -> dict:
+    return {
+        **dict(row),
+        "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+    }
+
+
+def delete_avatar(avatar_id: str) -> dict | None:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "DELETE FROM avatars WHERE id = %s RETURNING id",
+                (avatar_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
 
 
 def list_audit_logs(limit: int = 100) -> list[dict]:

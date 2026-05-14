@@ -1,12 +1,15 @@
-fastapi==0.115.0
-uvicorn==0.30.6
-httpx==0.27.2
-python-dotenv==1.0.1
-pydantic==2.9.2
-psycopg2-binary==2.9.9
-python-multipart==0.0.9
-pypdf==4.3.1
-beautifulsoup4==4.12.3
-lxml==5.2.2
-youtube-transcript-api==1.2.4
-firebase-admin==6.5.0
+fastapi
+uvicorn
+httpx
+python-dotenv
+pydantic
+psycopg2-binary
+python-multipart
+pypdf
+beautifulsoup4
+lxml
+youtube-transcript-api
+firebase-admin
+edge-tts
+websockets
+# gateway/run.py uses fastapi+uvicorn+httpx (already above) plus websockets

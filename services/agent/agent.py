@@ -1,7 +1,18 @@
 import httpx
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+
+# Load .env from the project root. Absolute path — survives whatever cwd
+# uvicorn's reloader subprocess decides to use (the relative form
+# "../../.env" silently no-ops when cwd shifts, which is what was making
+# DATABASE_URL fall back to its hardcoded default).
+_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+if _ENV_PATH.exists():
+    load_dotenv(_ENV_PATH)
+
 from persona import get_persona
+from prompts import get_prompt
 from rag import retrieve_context
 from guard import check_injection, role_anchor
 from db import (
@@ -13,8 +24,6 @@ from db import (
     list_sessions,
     set_session_title_if_default,
 )
-
-load_dotenv("../../.env")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 LLM_MODEL  = os.getenv("LLM_MODEL", "llama3.2")
@@ -46,6 +55,14 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
         for item in get_session_messages(session_id, include_system=True)
     ]
 
+    # Always use the latest persona from the admin DB — override the stored
+    # system message so edits in the admin UI take effect on the next turn
+    # without users needing to start a new session.
+    if messages and messages[0]["role"] == "system":
+        messages[0]["content"] = persona
+    else:
+        messages.insert(0, {"role": "system", "content": persona})
+
     # Layer 2 — Role anchor: inserted BEFORE the last user message.
     # Passes user_message so the anchor includes an explicit language instruction
     # based on the script the user typed in (Tamil / Hindi / English).
@@ -54,17 +71,14 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
         "content": role_anchor(flavor_id, user_message),
     })
 
-    # RAG: find relevant policy/scheme chunks and inject right after the persona
+    # RAG: find relevant policy/scheme chunks and inject right after the persona.
+    # The wrapper text is admin-editable (key: rag:context_prefix).
     if flavor_id:
         context = retrieve_context(user_message, flavor_id)
         if context:
             messages.insert(1, {
                 "role": "system",
-                "content": (
-                    "RELEVANT CONTEXT — use the information below to answer accurately. "
-                    "Do not make up facts. If the context covers the question, use it:\n\n"
-                    + context
-                ),
+                "content": get_prompt("rag:context_prefix") + context,
             })
 
     response = httpx.post(
