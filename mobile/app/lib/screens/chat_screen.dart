@@ -33,8 +33,15 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _voiceMode = false;
 
   bool _recording  = false;
-  bool _processing = false;
+  bool _processing = false;        // STT or LLM call in flight (blocks mic)
+  bool _speaking   = false;        // TTS audio playing (does NOT block mic — user can interrupt)
   bool _replayingLast = false;     // briefly true while we re-synth the last reply
+
+  // What's currently happening, shown as a status pill. The mic stays
+  // tappable in all states; tapping it during 'speaking' interrupts the
+  // playback and starts a new recording.
+  // 'idle' | 'listening' | 'transcribing' | 'thinking' | 'speaking'
+  String _stage = 'idle';
 
   // Monotonic counter for TTS requests. Each call to _speak() captures the
   // current value and only proceeds to play if it's still the latest. This
@@ -75,6 +82,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _toggleMic() async {
+    // STT / LLM still block mic — those need their result before next turn.
+    // TTS playback does NOT — tapping mic interrupts the speaker and starts
+    // a fresh recording. This is the "I can interrupt the AI mid-sentence
+    // like a real conversation" behaviour.
     if (_processing) return;
     if (_recording) {
       await _stopAndProcess();
@@ -83,8 +94,19 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _interruptPlayback() async {
+    _speakGen++;                                // invalidate in-flight TTS
+    try { await _player.stop(); } catch (_) {}
+    if (mounted) setState(() => _speaking = false);
+  }
+
   Future<void> _startRecording() async {
     if (!await _ensureMicPermission()) return;
+    // If Vijay is currently speaking, the user just tapped the mic to
+    // interrupt. Cut the audio off and start listening.
+    if (_speaking || _player.playing) {
+      await _interruptPlayback();
+    }
     try {
       final dir = await getTemporaryDirectory();
       final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
@@ -99,6 +121,7 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _recording = true;
         _voiceMode = true;
+        _stage = 'listening';
       });
     } catch (e) {
       _showError('Could not start recording: $e');
@@ -106,65 +129,125 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _stopAndProcess() async {
-    setState(() => _recording = false);
+    setState(() { _recording = false; _stage = 'transcribing'; });
     final path = await _recorder.stop();
-    if (path == null) return;
+    if (path == null) {
+      setState(() => _stage = 'idle');
+      return;
+    }
 
     setState(() => _processing = true);
     try {
       // Force STT language for Tamil-flavor sessions. Whisper auto-detect
       // sometimes confuses Tamil speech with Hindi on short utterances and
       // returns Devanagari text — the LLM then replies in Hindi.
-      // Hardcode the script per flavor so this can't happen.
       final sttLang = AppConfig.flavorName == 'tn-tvk' ? 'ta' : null;
       final transcribed = await AgentService.transcribe(File(path), language: sttLang);
-      if (transcribed.isEmpty) return;
+      if (transcribed.isEmpty) {
+        setState(() => _stage = 'idle');
+        return;
+      }
 
       final userMsg = ChatMessage(role: 'user', content: transcribed, timestamp: DateTime.now());
-      setState(() { _messages.add(userMsg); _thinking = true; });
+      setState(() {
+        _messages.add(userMsg);
+        _thinking = true;
+        _stage = 'thinking';
+      });
       _scrollToBottom();
 
       final reply = await AgentService.sendMessage(widget.session.id, transcribed);
       final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
-      setState(() { _messages.add(aiMsg); _thinking = false; });
+
+      // Release the mic immediately when the text reply is ready — _speak
+      // runs on its own and the user must be able to interrupt it. This is
+      // the fix for "STT is slow even after chat response came" — what they
+      // saw was actually 'mic blocked during long TTS playback'.
+      setState(() {
+        _messages.add(aiMsg);
+        _thinking = false;
+        _processing = false;
+        _stage = _voiceMode ? 'speaking' : 'idle';
+      });
       _scrollToBottom();
 
-      if (_voiceMode) await _speak(reply);
+      if (_voiceMode) {
+        await _speak(reply);
+        if (mounted) setState(() {
+          if (_stage == 'speaking') _stage = 'idle';
+        });
+      }
     } catch (e) {
       _showError('$e');
-      setState(() => _thinking = false);
+      if (mounted) setState(() {
+        _thinking = false;
+        _processing = false;
+        _stage = 'idle';
+      });
     } finally {
-      if (mounted) setState(() => _processing = false);
       try { await File(path).delete(); } catch (_) {}
     }
   }
 
+  // Split a reply into sentences so each can be synthesised + cached
+  // separately. The gap between sentences gives natural "live person"
+  // pacing instead of a wall of monotone audio. Punctuation set covers
+  // English, Tamil/Hindi danda (।), and ellipsis.
+  static const _sentenceGapMs = 400;
+  static final _sentenceSplit = RegExp(r'[^.!?।]+(?:[.!?।]+|$)');
+
+  List<String> _splitSentences(String text) {
+    final out = <String>[];
+    for (final m in _sentenceSplit.allMatches(text)) {
+      final s = m.group(0)?.trim();
+      if (s != null && s.isNotEmpty) out.add(s);
+    }
+    return out.isEmpty ? [text.trim()] : out;
+  }
+
+  // Synthesise each sentence, play them in order with a short gap. Honours
+  // _speakGen so a newer mic turn interrupts the queue mid-sentence.
   Future<void> _speak(String text) async {
     final myGen = ++_speakGen;
+    final sentences = _splitSentences(text);
+    if (mounted) setState(() => _speaking = true);
+
     try {
-      final mp3Bytes = await AgentService.synthesizeSpeech(text);
+      for (var i = 0; i < sentences.length; i++) {
+        if (myGen != _speakGen) return;
 
-      // If the user sent another mic turn while we were waiting on Fish,
-      // there's a newer _speak in flight. Discard this one — playing it
-      // now would be "old voice telling latest reply" which is exactly
-      // the bug the user reported.
-      if (myGen != _speakGen) return;
+        try {
+          final mp3Bytes = await AgentService.synthesizeSpeech(sentences[i]);
+          if (myGen != _speakGen) return;
 
-      final dir = await getTemporaryDirectory();
-      final out = File('${dir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
-      await out.writeAsBytes(mp3Bytes, flush: true);
+          final dir = await getTemporaryDirectory();
+          final out = File(
+            '${dir.path}/tts_${DateTime.now().millisecondsSinceEpoch}_$i.mp3',
+          );
+          await out.writeAsBytes(mp3Bytes, flush: true);
 
-      // Stop any currently playing audio so the new reply takes over.
-      try { await _player.stop(); } catch (_) {}
+          try { await _player.stop(); } catch (_) {}
+          if (myGen != _speakGen) return;
 
-      // Last-chance check before play — a newer reply may have arrived
-      // while we were writing the file to disk.
-      if (myGen != _speakGen) return;
+          await _player.setFilePath(out.path);
+          await _player.play();
 
-      await _player.setFilePath(out.path);
-      await _player.play();
-    } catch (e) {
-      if (myGen == _speakGen) _showError('Playback failed: $e');
+          // Wait for this sentence to finish before starting the next.
+          await _player.playerStateStream.firstWhere(
+            (s) => s.processingState == ProcessingState.completed,
+          );
+        } catch (e) {
+          if (myGen == _speakGen) _showError('Playback failed: $e');
+          return;
+        }
+
+        // Natural pause before the next sentence (skip after the last).
+        if (i < sentences.length - 1) {
+          await Future.delayed(const Duration(milliseconds: _sentenceGapMs));
+        }
+      }
+    } finally {
+      if (mounted && myGen == _speakGen) setState(() => _speaking = false);
     }
   }
 
@@ -199,16 +282,27 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
     final userMsg = ChatMessage(role: 'user', content: text, timestamp: DateTime.now());
-    setState(() { _messages.add(userMsg); _thinking = true; });
+    setState(() {
+      _messages.add(userMsg);
+      _thinking = true;
+      _stage = 'thinking';
+    });
     _scrollToBottom();
 
     try {
       final reply = await AgentService.sendMessage(widget.session.id, text);
       final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
-      setState(() { _messages.add(aiMsg); _thinking = false; });
+      setState(() {
+        _messages.add(aiMsg);
+        _thinking = false;
+        _stage = 'idle';
+      });
       _scrollToBottom();
     } catch (e) {
-      setState(() => _thinking = false);
+      setState(() {
+        _thinking = false;
+        _stage = 'idle';
+      });
       _showError('$e');
     }
   }
@@ -277,14 +371,17 @@ class _ChatScreenState extends State<ChatScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            // Status pill — what's happening right now (only visible when
+            // not idle). Lets the user know what's blocking, instead of
+            // just seeing a generic spinner.
+            if (_stage != 'idle') _StatusPill(stage: _stage, color: color),
             // Replay / voice-mode button — always visible.
             //   Tap            → replay the last AI reply with the cloned voice
             //                    AND auto-engage voice mode for future replies.
             //   Long-press     → silence voice mode.
-            //   Color reflects state: filled red when voice mode on, gray outline off.
             _ReplayButton(
               voiceModeOn: _voiceMode,
-              busy: _processing || _replayingLast,
+              busy: _processing || _replayingLast || _speaking,
               activeColor: color,
               onTap: _onReplayTap,
               onLongPress: () => setState(() => _voiceMode = false),
@@ -368,31 +465,63 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(ChatMessage msg, Color color) {
     final isUser = msg.role == 'user';
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isUser ? color : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 16),
-          ),
-          border: isUser ? null : Border.all(color: const Color(0xFFE8E8E8)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
+
+    final bubble = Container(
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isUser ? color : Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(isUser ? 16 : 4),
+          bottomRight: Radius.circular(isUser ? 4 : 16),
         ),
-        child: Text(
-          msg.content,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: isUser ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.5,
-          ),
+        border: isUser ? null : Border.all(color: const Color(0xFFE8E8E8)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
+      ),
+      child: Text(
+        msg.content,
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          color: isUser ? Colors.white : const Color(0xFF1A1A1A),
+          height: 1.5,
         ),
+      ),
+    );
+
+    if (isUser) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Align(alignment: Alignment.centerRight, child: bubble),
+      );
+    }
+
+    // AI message — small speaker icon to the left of the bubble.
+    // Tap = replay THIS message with the cloned voice (and engage voice mode).
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () {
+              setState(() => _voiceMode = true);
+              _speak(msg.content);
+            },
+            child: Container(
+              width: 30, height: 30,
+              margin: const EdgeInsets.only(top: 4, right: 8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+              ),
+              child: Icon(Icons.volume_up_rounded, color: color, size: 16),
+            ),
+          ),
+          Flexible(child: bubble),
+        ],
       ),
     );
   }
@@ -524,6 +653,55 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Icon(icon, color: iconColor, size: 20),
     );
     return GestureDetector(onTap: onTap, child: btn);
+  }
+}
+
+
+/// Tiny status pill next to the AppBar replay button.
+/// Shows "Listening / Transcribing / Thinking / Speaking" so the user knows
+/// which stage is currently running — the mic stays tappable in all of
+/// them except STT and LLM (those need their result first).
+class _StatusPill extends StatelessWidget {
+  final String stage;
+  final Color color;
+  const _StatusPill({required this.stage, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = {
+      'listening':    ('Listening',    Icons.mic_rounded),
+      'transcribing': ('Transcribing', Icons.hearing_rounded),
+      'thinking':     ('Thinking',     Icons.psychology_alt_rounded),
+      'speaking':     ('Speaking',     Icons.graphic_eq_rounded),
+    };
+    final entry = labels[stage] ?? ('', Icons.circle_outlined);
+    if (entry.$1.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(entry.$2, color: color, size: 12),
+            const SizedBox(width: 5),
+            Text(
+              entry.$1,
+              style: TextStyle(
+                color: color, fontSize: 11, fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
