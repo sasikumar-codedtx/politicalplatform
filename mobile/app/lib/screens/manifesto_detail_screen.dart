@@ -4,167 +4,96 @@ import '../models/manifesto_plan.dart';
 
 class ManifestoDetailScreen extends StatelessWidget {
   final ManifestoPlan plan;
-  final String imagePath;
-  const ManifestoDetailScreen({super.key, required this.plan, required this.imagePath});
+  const ManifestoDetailScreen({super.key, required this.plan});
 
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Hero image ──────────────────────────────────────────
+            _Hero(imagePath: plan.imageAsset, topPad: topPad),
+
+            // ── White content panel ─────────────────────────────────
+            // Title + ministry header (grey bg)
+            Container(
+              color: const Color(0xFFEAEBEC),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Hero image
-                  _Hero(imagePath: imagePath, topPad: topPad),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Category + year badge row
-                        Row(
-                          children: [
-                            _Badge(label: plan.category, color: const Color(0xFFE40101)),
-                            const SizedBox(width: 8),
-                            _Badge(label: plan.year, color: const Color(0xFFF0F0F0), textColor: Colors.black54),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        // Title
                         Text(
                           plan.title,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A), height: 1.4, letterSpacing: 0.2),
-                        ),
-                        const SizedBox(height: 20),
-                        // Timeline + Budget chips
-                        Row(
-                          children: [
-                            Expanded(child: _MetaChip(label: 'Timeline', value: plan.timeline)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _MetaChip(label: 'Budget', value: plan.budget)),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        // Overview
-                        Text('Overview', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-                        const SizedBox(height: 10),
-                        Text(
-                          plan.description,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black54, height: 1.7),
-                        ),
-                        const SizedBox(height: 20),
-                        // Progress bar
-                        _ProgressSection(plan: plan),
-                        const SizedBox(height: 20),
-                        // Key goals
-                        Text('Key Goals', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-                        const SizedBox(height: 12),
-                        ..._goalsFor(plan).map((goal) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _GoalItem(text: goal),
-                        )),
-                        const SizedBox(height: 20),
-                        // Impact section
-                        Text('Expected Impact', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-                        const SizedBox(height: 12),
-                        ..._impactFor(plan).map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
-                              boxShadow: [
-                                BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 36, height: 36,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE40101).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.trending_up_rounded, color: Color(0xFFE40101), size: 18),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(item, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54, height: 1.5)),
-                                ),
-                              ],
-                            ),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18, fontWeight: FontWeight.w600,
+                            color: const Color(0xFF242424), height: 1.3,
                           ),
-                        )),
-                        const SizedBox(height: 24),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          plan.ministry,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14, color: const Color(0xFF242424), height: 1.3,
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.ios_share_rounded, size: 18, color: Color(0xFF242424)),
                 ],
               ),
             ),
-          ),
-          // Bottom action bar
-          Container(
-            padding: EdgeInsets.only(left: 16, right: 16, bottom: 16 + MediaQuery.of(context).padding.bottom, top: 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFEEEEEE), width: 1)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE40101),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text('Support This Plan', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                  ),
+
+            // ── Description ─────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Text(
+                plan.description,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF242424).withValues(alpha: 0.8),
+                  height: 1.71,
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.ios_share_rounded, color: Color(0xFF1A1A1A), size: 20),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+
+            // ── Milestones section ──────────────────────────────────
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 24, 16, 14),
+              child: _MilestonesHeader(),
+            ),
+
+            if (plan.milestones.isNotEmpty)
+              _MilestoneTimeline(milestones: plan.milestones)
+            else
+              _MilestoneTimeline(milestones: _defaultMilestones),
+
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }
 
-  List<String> _goalsFor(ManifestoPlan plan) => plan.bullets.isNotEmpty
-      ? plan.bullets
-      : [
-          'Benefit at least 5 lakh citizens across Tamil Nadu directly.',
-          'Complete implementation within the stated timeline with quarterly reviews.',
-          'Establish district-level monitoring committees for transparent tracking.',
-          'Create sustainable local employment during implementation phase.',
-          'Publish monthly progress reports accessible to all citizens.',
-        ];
-
-  List<String> _impactFor(ManifestoPlan plan) => [
-    'Direct improvement in quality of life for rural communities.',
-    'Reduction in government expenditure through efficient resource use.',
-    'Increased citizen participation in governance and policy feedback.',
+  static const _defaultMilestones = [
+    ManifestoMilestone(date: 'Phase 1', title: 'Planning & Setup', description: 'Project team formed, objectives defined, initial resource allocation completed.'),
+    ManifestoMilestone(date: 'Phase 2', title: 'Implementation Begins', description: 'Field work starts across priority districts with monitoring committees established.'),
+    ManifestoMilestone(date: 'Phase 3', title: 'Mid-term Review', description: 'Progress evaluated against targets, adjustments made based on ground feedback.'),
+    ManifestoMilestone(date: 'Phase 4', title: 'Completion & Handover', description: 'Project delivered to local bodies with long-term maintenance plans in place.'),
   ];
 }
+
+// ─── Hero image with back button ──────────────────────────────────────────────
 
 class _Hero extends StatelessWidget {
   final String imagePath;
@@ -174,24 +103,30 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 260 + topPad,
+      height: 300 + topPad,
       child: Stack(
         children: [
-          Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
           Positioned.fill(
+            child: Image.asset(imagePath, fit: BoxFit.cover),
+          ),
+          // Top dark gradient for status bar
+          Positioned(
+            top: 0, left: 0, right: 0,
             child: Container(
+              height: 82,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0.0, 0.5, 1.0],
-                  colors: [Colors.transparent, Colors.transparent, Colors.black],
+                  stops: [0.30, 0.92],
+                  colors: [Colors.black, Colors.transparent],
                 ),
               ),
             ),
           ),
+          // Back button
           Positioned(
-            top: 16 + topPad,
+            top: topPad + 24,
             left: 16,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
@@ -212,115 +147,134 @@ class _Hero extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color textColor;
-  const _Badge({required this.label, required this.color, this.textColor = const Color(0xFFE40101)});
+// ─── Milestones section header (Timeline + Budget chips) ─────────────────────
+
+class _MilestonesHeader extends StatelessWidget {
+  const _MilestonesHeader();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color == const Color(0xFFE40101) ? color.withValues(alpha: 0.15) : color,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: textColor)),
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  final String label;
-  final String value;
-  const _MetaChip({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
-          const SizedBox(height: 4),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressSection extends StatelessWidget {
-  final ManifestoPlan plan;
-  const _ProgressSection({required this.plan});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Implementation Progress', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A))),
-              Text('34%', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFFE40101))),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.34,
-              minHeight: 6,
-              backgroundColor: const Color(0xFFEEEEEE),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFFE40101)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text('Phase 1 of 3 complete — on track', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
-        ],
-      ),
-    );
-  }
-}
-
-class _GoalItem extends StatelessWidget {
-  final String text;
-  const _GoalItem({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: const EdgeInsets.only(top: 6),
-          width: 6, height: 6,
-          decoration: const BoxDecoration(color: Color(0xFFE40101), shape: BoxShape.circle),
+        Text('Milestones',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF242424),
+          ),
         ),
-        const SizedBox(width: 10),
-        Expanded(child: Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54, height: 1.5))),
       ],
+    );
+  }
+}
+
+// ─── Milestone vertical timeline ──────────────────────────────────────────────
+
+class _MilestoneTimeline extends StatelessWidget {
+  final List<ManifestoMilestone> milestones;
+  const _MilestoneTimeline({required this.milestones});
+
+  @override
+  Widget build(BuildContext context) {
+    // Fixed 2-column layout with red vertical line in center
+    // Left col (28..~170px): date + BebasNeue title (right-aligned)
+    // Center (~186px): vertical red gradient line with dot marker
+    // Right col (~221..358px): description text
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: List.generate(milestones.length, (i) {
+          final m = milestones[i];
+          final isLast = i == milestones.length - 1;
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left: date + title
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12, top: 2, bottom: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFFFFAF36)),
+                            const SizedBox(width: 2),
+                            Flexible(
+                              child: Text(m.date,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12, fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFFFAF36),
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          m.title.toUpperCase(),
+                          style: GoogleFonts.bebasNeue(
+                            fontSize: 22,
+                            color: const Color(0xFF242424),
+                            letterSpacing: 0.2,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Center line with dot
+                Column(
+                  children: [
+                    // Top fill before dot
+                    Container(
+                      width: 3,
+                      height: 10,
+                      color: i == 0
+                          ? const Color(0xFFCA3527).withValues(alpha: 0.0)
+                          : const Color(0xFFCA3527),
+                    ),
+                    // Dot
+                    Container(
+                      width: 11, height: 11,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFCA3527), width: 2),
+                        color: i == 0 ? const Color(0xFFCA3527) : Colors.white,
+                      ),
+                    ),
+                    // Line below dot (or transparent if last)
+                    Expanded(
+                      child: Container(
+                        width: 3,
+                        color: isLast ? Colors.transparent : const Color(0xFFCA3527),
+                      ),
+                    ),
+                  ],
+                ),
+                // Right: description
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12, top: 2, bottom: 24),
+                    child: Text(
+                      m.description,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: const Color(0xFF242424).withValues(alpha: 0.8),
+                        height: 1.42,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 }

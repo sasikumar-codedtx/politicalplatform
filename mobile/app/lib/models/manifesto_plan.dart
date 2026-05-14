@@ -8,6 +8,8 @@ class ManifestoPlan {
   final String category;
   final String imageAsset;
   final List<String> bullets;
+  final String ministry;
+  final List<ManifestoMilestone> milestones;
 
   const ManifestoPlan({
     required this.id,
@@ -19,6 +21,20 @@ class ManifestoPlan {
     required this.category,
     this.imageAsset = 'assets/images/plan_water.png',
     this.bullets = const [],
+    this.ministry = 'Ministry of Rural Development',
+    this.milestones = const [],
+  });
+}
+
+class ManifestoMilestone {
+  final String date;
+  final String title;
+  final String description;
+
+  const ManifestoMilestone({
+    required this.date,
+    required this.title,
+    required this.description,
   });
 }
 

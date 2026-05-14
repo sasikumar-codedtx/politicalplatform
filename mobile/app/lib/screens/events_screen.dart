@@ -103,6 +103,26 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
+          // Back button
+          Positioned(
+            top: topPad + 14,
+            left: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25)),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white, size: 16),
+              ),
+            ),
+          ),
           // Title + location row at bottom
           Positioned(
             bottom: 0,

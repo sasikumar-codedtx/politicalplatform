@@ -12,7 +12,7 @@ import '../services/youtube_service.dart';
 import 'news_screen.dart';
 import 'news_detail_screen.dart';
 import 'manifesto_screen.dart';
-import 'chat_list_screen.dart';
+// chat_list_screen.dart kept for other nav paths — remove if truly unused
 import 'events_screen.dart';
 import 'polls_screen.dart';
 import 'video_player_screen.dart';
@@ -20,6 +20,9 @@ import 'youtube_hub_screen.dart';
 import 'fan_page_screen.dart';
 import 'policy_leaders_screen.dart';
 import 'policy_leader_detail_screen.dart';
+import 'vijay_detail_screen.dart';
+import 'campaign_toolkit_detail_screen.dart';
+import 'join_screen.dart';
 // TvkFamilyScreen is defined in policy_leaders_screen.dart
 // ─── Hardcoded campaign song ──────────────────────────────────────────────────
 const _kCampaignSongVideoId = 'JHJmFbLeK-Y';
@@ -133,7 +136,7 @@ class _HomeViewState extends State<_HomeView> {
                     MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
               ),
               const SizedBox(height: 12),
-              const _TvkShortsRow(),
+              _TvkShortsRow(shorts: vm.recentShorts),
               const SizedBox(height: 20),
 
               // ── 7. TVK Television ─────────────────────────────────
@@ -406,12 +409,12 @@ class _HeroSection extends StatelessWidget {
           Positioned(
             left: 245,
             top: 424 + dy,
-            width: 92,
-            height: 27,
+            width: 110,
+            height: 32,
             child: GestureDetector(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ChatListScreen()),
+                MaterialPageRoute(builder: (_) => const JoinScreen()),
               ),
               child: Container(
                 padding:
@@ -823,12 +826,20 @@ class _CampaignSongCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Left text content
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 220, 16),
+              // Left text content — constrained to left half to avoid overlap
+              Positioned(
+                left: 0, top: 0, bottom: 0,
+                right: 190,
+                child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                     // New pill
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -855,7 +866,7 @@ class _CampaignSongCard extends StatelessWidget {
                     RichText(
                       text: TextSpan(
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                           height: 1.3,
                         ),
@@ -878,7 +889,8 @@ class _CampaignSongCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Spacer(),
+                      ],
+                    ),
                     // Watch Now button
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -903,6 +915,7 @@ class _CampaignSongCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
               ),
             ],
           ),
@@ -1549,20 +1562,19 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // ── Row 1: Vijay + N. Anand ──────────────────────────────────────
+        // ── Vijay — full width ────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _VijayFullCard(leaderData: kTvkLeaders[0]),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ── Row: N. Anand + K. G. Arunraj ────────────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Expanded(
-                child: _LeaderMiniCard(
-                  name: 'Vijay',
-                  role: 'President',
-                  imagePath: 'assets/images/leader_vijay.png',
-                  leaderData: kTvkLeaders[0],
-                ),
-              ),
-              const SizedBox(width: 16),
               Expanded(
                 child: _LeaderMiniCard(
                   name: 'N. Anand',
@@ -1571,32 +1583,13 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
                   leaderData: kTvkLeaders[1],
                 ),
               ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // ── Row 2: K. G. Arunraj + Aadhav Arjuna ─────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
+              const SizedBox(width: 12),
               Expanded(
                 child: _LeaderMiniCard(
                   name: 'K. G. Arunraj',
-                  role: 'Propaganda & Policy\nGeneral Secretary',
+                  role: 'Propaganda Secretary',
                   imagePath: 'assets/images/leader_arunraj.png',
                   leaderData: kTvkLeaders[2],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _LeaderMiniCard(
-                  name: 'Aadhav Arjuna',
-                  role: 'E.C.M\nGeneral Secretary',
-                  imagePath: 'assets/images/leader_aadhav.png',
-                  leaderData: kTvkLeaders[3],
                 ),
               ),
             ],
@@ -1615,8 +1608,148 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
   }
 }
 
-// ─── Leader mini card (Figma 1328:9160) ──────────────────────────────────────
-// 2-column grid, 160px tall, white→transparent gradient, red glow, portrait
+// ─── Vijay full-width card ────────────────────────────────────────────────────
+// Vijay always gets a dedicated full-width card — never shares a row
+
+class _VijayFullCard extends StatelessWidget {
+  final PolicyLeaderData leaderData;
+  const _VijayFullCard({required this.leaderData});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const VijayDetailScreen())),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          height: 200,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Dark base
+              Container(color: const Color(0xFF0A0A0A)),
+
+              // TVK flag — visible but blurred / semi-transparent
+              Opacity(
+                opacity: 0.18,
+                child: Image.asset(
+                  'assets/images/tvk_flag.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, e, s) => const SizedBox.shrink(),
+                ),
+              ),
+
+              // Dark red radial glow — center-right
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0.3, 0.2),
+                      radius: 0.85,
+                      colors: [Color(0xFF5A0000), Color(0x003D0000)],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Vijay portrait — right half, fills height
+              Positioned(
+                right: -10,
+                top: 0,
+                bottom: 0,
+                width: 220,
+                child: Image.asset(
+                  'assets/images/leader_vijay.png',
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomRight,
+                  errorBuilder: (_, e, s) => const SizedBox.shrink(),
+                ),
+              ),
+
+              // Left-side fade so text stays readable over portrait
+              Positioned(
+                left: 0, top: 0, bottom: 0, width: 180,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xCC0A0A0A), Colors.transparent],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Text — left side
+              Positioned(
+                left: 16, bottom: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE40101).withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'PRESIDENT',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Vijay',
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 36,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                        height: 1.0,
+                      ),
+                    ),
+                    Text(
+                      'Tamilaga Vettri Kazhagam',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Arrow — top right
+              Positioned(
+                top: 14, right: 14,
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_outward_rounded,
+                      color: Colors.white, size: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Leader mini card ─────────────────────────────────────────────────────────
+// Dark background + dark-red radial glow — portrait fills bottom half
+// Text pinned to bottom so it never overlaps the portrait
 
 class _LeaderMiniCard extends StatelessWidget {
   final String name;
@@ -1633,124 +1766,120 @@ class _LeaderMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const double cardH = 170;
+
     return GestureDetector(
-      onTap: leaderData == null
-          ? null
-          : () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      PolicyLeaderDetailScreen(leader: leaderData!),
+      onTap: () {
+        if (leaderData != null) {
+          Navigator.push(context,
+              MaterialPageRoute(
+                  builder: (_) => PolicyLeaderDetailScreen(leader: leaderData!)));
+        }
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          height: cardH,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Dark base
+              Container(color: const Color(0xFF0D0D0D)),
+
+              // TVK flag subtle overlay
+              Opacity(
+                opacity: 0.12,
+                child: Image.asset(
+                  'assets/images/tvk_flag.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, e, s) => const SizedBox.shrink(),
                 ),
               ),
-      child: Container(
-        height: 160,
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 8,
-              offset: Offset(0, -5),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // White solid top (31.7%) → transparent — portrait shows through bottom
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: [0.0, 0.317, 1.0],
-                    colors: [Colors.white, Colors.white, Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
 
-            // Red/pink radial glow centred in the lower half
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 64,
-              height: 96,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment.center,
-                    radius: 0.9,
-                    colors: [Color(0x44E89090), Color(0x00E89090)],
-                  ),
-                ),
-              ),
-            ),
-
-            // Leader portrait — slightly over-sized so face fills bottom area
-            Positioned(
-              left: -8,
-              top: 44,
-              bottom: 0,
-              right: 20,
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomLeft,
-                errorBuilder: (_, e, s) => const SizedBox.shrink(),
-              ),
-            ),
-
-            // Name + role — top-left
-            Positioned(
-              left: 14,
-              top: 12,
-              right: 36,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    name,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF242424),
-                      height: 1.2,
+              // Dark red radial glow — centered
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.center,
+                      radius: 0.8,
+                      colors: [Color(0xFF4A0000), Color(0x003D0000)],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    role.replaceAll('\\n', '\n'),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF242424),
-                      height: 1.35,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
               ),
-            ),
 
-            // Arrow — bottom-right
-            const Positioned(
-              right: 10,
-              bottom: 12,
-              child: Icon(
-                Icons.arrow_outward_rounded,
-                color: Color(0xFFE40101),
-                size: 20,
+              // Portrait — fills upper portion, bottom-anchored
+              // Constrained to right half so text on left stays clear
+              Positioned(
+                right: -4,
+                left: 40,
+                top: 0,
+                bottom: 44, // leave 44px for text strip at bottom
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomCenter,
+                  errorBuilder: (_, e, s) => const SizedBox.shrink(),
+                ),
               ),
-            ),
-          ],
+
+              // Bottom text strip — dark gradient so text is always readable
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                height: 52,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Color(0xE6000000), Colors.transparent],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Name + role — bottom left
+              Positioned(
+                left: 12, right: 32, bottom: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      role,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white70,
+                        height: 1.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Arrow — bottom right
+              const Positioned(
+                right: 10, bottom: 12,
+                child: Icon(Icons.arrow_outward_rounded,
+                    color: Color(0xFFE40101), size: 18),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1768,51 +1897,34 @@ class _ManifestoCinematic extends StatelessWidget {
 
     return SizedBox(
       width: sw,
-      height: 420,
+      height: 380,
       child: Stack(
         clipBehavior: Clip.hardEdge,
         children: [
-          // Dark base
-          Positioned.fill(child: Container(color: const Color(0xFF0A0000))),
+          // White base
+          Positioned.fill(child: Container(color: Colors.white)),
 
-          // TN map — full bleed, earthy tones
+          // Combined image — full bleed, fills the card
           Positioned.fill(
             child: Image.asset(
-              'assets/images/constituency_map.png',
+              'assets/images/combined.png',
               fit: BoxFit.cover,
               alignment: Alignment.center,
-              errorBuilder: (_, e, s) => const SizedBox.shrink(),
+              errorBuilder: (_, e, s) => Container(color: const Color(0xFFF5F5F5)),
             ),
           ),
 
-          // Dark overlay to deepen the map
-          Positioned.fill(
+          // Subtle bottom gradient for text readability
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            height: 160,
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x66000000), Color(0xCC000000)],
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Color(0xCC000000), Colors.transparent],
                 ),
-              ),
-            ),
-          ),
-
-          // Vijay full-body — left side, standing tall
-          Positioned(
-            left: -sw * 0.08,
-            bottom: 0,
-            width: sw * 0.78,
-            height: 420,
-            child: Image.asset(
-              'assets/images/combined.png',
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomLeft,
-              errorBuilder: (_, e, s) => Image.asset(
-                'assets/images/vijay_manifesto.png',
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomLeft,
-                errorBuilder: (_, e2, s2) => const SizedBox.shrink(),
               ),
             ),
           ),
@@ -1826,7 +1938,7 @@ class _ManifestoCinematic extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Manifesto',
+                  'Projects',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
@@ -1868,26 +1980,31 @@ class _ManifestoCinematic extends StatelessWidget {
 // Figma 1328:9238 — horizontal scroll of 9:16 portrait cards (154×257)
 
 class _TvkShortsRow extends StatelessWidget {
-  const _TvkShortsRow();
+  final List<YouTubeVideo> shorts;
+  const _TvkShortsRow({required this.shorts});
 
-  // Hardcoded short thumbnails — will be replaced by live data later
-  static const _shorts = [
-    ('assets/images/social_justice_1.png', 'TVK Views'),
-    ('assets/images/social_justice_2.png', '1M Views'),
-    ('assets/images/social_justice_3.png', '2.3M Views'),
-    ('assets/images/news_update_1.png', '820K Views'),
+  // Fallback placeholder cards when YouTube data hasn't loaded yet
+  static const _placeholders = [
+    'assets/images/social_justice_1.png',
+    'assets/images/social_justice_2.png',
+    'assets/images/social_justice_3.png',
+    'assets/images/news_update_1.png',
   ];
 
   @override
   Widget build(BuildContext context) {
+    final count = shorts.isNotEmpty ? shorts.length : _placeholders.length;
+
     return SizedBox(
       height: 257,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _shorts.length,
+        itemCount: count,
         itemBuilder: (context, i) {
-          final (img, views) = _shorts[i];
+          final hasReal = shorts.isNotEmpty && i < shorts.length;
+          final video = hasReal ? shorts[i] : null;
+
           return GestureDetector(
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
@@ -1899,9 +2016,19 @@ class _TvkShortsRow extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(img, fit: BoxFit.cover,
-                        errorBuilder: (_, e, s) => Container(
-                            color: const Color(0xFF2A0A0A))),
+                    // Thumbnail — network if real, asset if placeholder
+                    if (video?.thumbnailUrl != null)
+                      Image.network(
+                        video!.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, e, s) => Container(color: const Color(0xFF2A0A0A)),
+                      )
+                    else
+                      Image.asset(
+                        _placeholders[i % _placeholders.length],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, e, s) => Container(color: const Color(0xFF2A0A0A)),
+                      ),
                     // Bottom gradient
                     Positioned(
                       bottom: 0, left: 0, right: 0, height: 80,
@@ -1915,15 +2042,19 @@ class _TvkShortsRow extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // View count
+                    // View count / title snippet
                     Positioned(
-                      bottom: 10, left: 10,
-                      child: Text(views,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          )),
+                      bottom: 10, left: 10, right: 10,
+                      child: Text(
+                        video != null ? video.title : 'TVK Shorts',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     // Play icon
                     const Positioned(
@@ -1940,6 +2071,7 @@ class _TvkShortsRow extends StatelessWidget {
       ),
     );
   }
+
 }
 
 // ─── Polls Info Card ─────────────────────────────────────────────────────────
@@ -2190,47 +2322,30 @@ class _PollCard extends StatelessWidget {
 class _CampaignToolkitGrid extends StatelessWidget {
   const _CampaignToolkitGrid();
 
+  static const _items = [
+    ('Posters',  [Color(0xFF256CD0), Color(0xFF13376A)], 'assets/images/campaign1.png'),
+    ('Media',    [Color(0xFF8C25D0), Color(0xFF47136A)], 'assets/images/campaign2.png'),
+    ('Slogans',  [Color(0xFFD02555), Color(0xFF6A132C)], 'assets/images/campaign_2.png'),
+    ('Hashtags', [Color(0xFF25C5D0), Color(0xFF13646A)], 'assets/images/campaign1.png'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Row(
           children: [
-            Expanded(
-              child: _ToolkitCard(
-                label: 'Posters',
-                gradientColors: const [Color(0xFF256CD0), Color(0xFF13376A)],
-                thumbAsset: 'assets/images/tvk_vijay_thalaiva_1.png',
-              ),
-            ),
+            Expanded(child: _ToolkitCard(label: _items[0].$1, gradientColors: _items[0].$2, thumbAsset: _items[0].$3)),
             const SizedBox(width: 12),
-            Expanded(
-              child: _ToolkitCard(
-                label: 'Media',
-                gradientColors: const [Color(0xFF8C25D0), Color(0xFF47136A)],
-                thumbAsset: 'assets/images/tvk_vijay_thalaiva_2.png',
-              ),
-            ),
+            Expanded(child: _ToolkitCard(label: _items[1].$1, gradientColors: _items[1].$2, thumbAsset: _items[1].$3)),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _ToolkitCard(
-                label: 'Slogans',
-                gradientColors: const [Color(0xFFD02555), Color(0xFF6A132C)],
-                thumbAsset: 'assets/images/tvk_vijay_thalaiva_1.png',
-              ),
-            ),
+            Expanded(child: _ToolkitCard(label: _items[2].$1, gradientColors: _items[2].$2, thumbAsset: _items[2].$3)),
             const SizedBox(width: 12),
-            Expanded(
-              child: _ToolkitCard(
-                label: 'Hashtags',
-                gradientColors: const [Color(0xFF25C5D0), Color(0xFF13646A)],
-                thumbAsset: 'assets/images/tvk_vijay_thalaiva_2.png',
-              ),
-            ),
+            Expanded(child: _ToolkitCard(label: _items[3].$1, gradientColors: _items[3].$2, thumbAsset: _items[3].$3)),
           ],
         ),
       ],
@@ -2249,7 +2364,17 @@ class _ToolkitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CampaignToolkitDetailScreen(
+            type: label,
+            gradientColors: gradientColors,
+          ),
+        ),
+      ),
+      child: ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Container(
         height: 89,
@@ -2277,43 +2402,31 @@ class _ToolkitCard extends StatelessWidget {
                 ),
               ),
             ),
-            // 3 rotated poster cards — right side using real TVK artwork
+            // Grouped campaign image — bottom-right corner
             Positioned(
-              right: -16,
-              top: 10,
-              child: Row(
-                children: List.generate(3, (i) {
-                  return Transform.translate(
-                    offset: Offset(-i * 14.0, 0),
-                    child: Transform.rotate(
-                      angle: -0.60,
-                      child: Container(
-                        width: 40,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 6,
-                              offset: const Offset(-3, 1),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.asset(
-                            thumbAsset,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, e, s) => Container(
-                                color: Colors.white.withValues(alpha: 0.3)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).reversed.toList(),
+              right: 0,
+              bottom: 0,
+              width: 90,
+              height: 89,
+              child: Image.asset(
+                'assets/images/combined.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.bottomRight,
+                errorBuilder: (_, e, s) => const SizedBox.shrink(),
+              ),
+            ),
+            // Fade left so the image blends into the gradient
+            Positioned(
+              right: 50, bottom: 0, top: 0,
+              width: 50,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: [gradientColors.last.withValues(alpha: 0.0), gradientColors.last],
+                  ),
+                ),
               ),
             ),
             // Arrow icon — bottom-left
@@ -2326,6 +2439,7 @@ class _ToolkitCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }
@@ -2355,97 +2469,111 @@ class _EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Parse day + month from date string e.g. "May 15, 2026"
+    final parts = event.date.split(' ');
+    final month = parts.isNotEmpty ? parts[0].substring(0, 3).toUpperCase() : '';
+    final day = parts.length > 1 ? parts[1].replaceAll(',', '') : '';
+
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 100,
-        color: Colors.white,
-        child: Stack(
+        height: 112,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
+            // Left date block — red bg
             Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerRight,
-                  end: Alignment.centerLeft,
-                  colors: [
-                    const Color(0xFFE40101).withValues(alpha: 0.08),
-                    Colors.transparent
+              width: 72,
+              color: const Color(0xFFE40101),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(day,
+                      style: GoogleFonts.bebasNeue(
+                          fontSize: 36, color: Colors.white, height: 1)),
+                  Text(month,
+                      style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white70,
+                          letterSpacing: 1)),
+                ],
+              ),
+            ),
+            // Right content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      event.title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1A1A1A),
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 13, color: Color(0xFFE40101)),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            '${event.location} · ${event.time}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: Colors.black54,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE40101).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'UPCOMING',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFE40101),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE40101),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          event.date.split(',')[0].split(' ')[1],
-                          style: GoogleFonts.bebasNeue(
-                              fontSize: 22, color: Colors.white),
-                        ),
-                        Text(
-                          event.date
-                              .split(' ')[0]
-                              .substring(0, 3)
-                              .toUpperCase(),
-                          style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          event.title,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1A1A1A),
-                            height: 1.3,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on_outlined,
-                                size: 12, color: Colors.black38),
-                            const SizedBox(width: 2),
-                            Text(event.location,
-                                style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12, color: Colors.black54)),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.access_time_rounded,
-                                size: 12, color: Colors.black38),
-                            const SizedBox(width: 2),
-                            Text(event.time,
-                                style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12, color: Colors.black54)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // Right arrow
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: Icon(Icons.chevron_right_rounded,
+                  color: Color(0xFFCCCCCC), size: 20),
             ),
           ],
         ),
@@ -2732,54 +2860,22 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
           child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [
-              // Wooden table base (bottom-right)
+              // Single combined TV image — right side
               Positioned(
-                right: 60,
+                right: 0,
+                top: 0,
                 bottom: 0,
-                height: 36,
-                width: 180,
+                width: 200,
                 child: Image.asset(
-                  'assets/images/tv_wooden_table.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.bottomCenter,
+                  'assets/images/tv_flat_screen.png',
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerRight,
                   errorBuilder: (_, e, s) => const SizedBox.shrink(),
-                ),
-              ),
-              // Flat screen TV
-              Positioned(
-                right: 8,
-                top: 6,
-                bottom: 16,
-                width: 190,
-                child: Stack(
-                  children: [
-                    Image.asset(
-                      'assets/images/tv_flat_screen.png',
-                      fit: BoxFit.contain,
-                      alignment: Alignment.centerRight,
-                      errorBuilder: (_, e, s) => const SizedBox.shrink(),
-                    ),
-                    // Vijay on screen
-                    Positioned(
-                      left: 16,
-                      top: 6,
-                      right: 8,
-                      bottom: 20,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: Image.asset(
-                          'assets/images/vijay_tv_screenshot.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, e, s) => const SizedBox.shrink(),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
               // Text content (left)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 200, 16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 210, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
