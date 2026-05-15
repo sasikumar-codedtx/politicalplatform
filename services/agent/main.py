@@ -158,11 +158,10 @@ async def chat(req: ChatRequest, background_tasks: BackgroundTasks,
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Agent error: {str(e)}")
 
-    # Pre-synth the reply in the background so the TTS cache is warm by the
-    # time mobile calls /tts. Mobile's POST /tts arrives ~50-200 ms after
-    # this /chat returns — Fish's 1-3 s synth typically finishes during that
-    # window, so the next call sees an X-Cache: HIT instead of MISS.
-    background_tasks.add_task(_tts_warm, reply, None)
+    # Pre-synth the reply in the background, sentence by sentence, so each
+    # /tts call mobile makes (one per sentence) sees a cache HIT. Caching
+    # the whole reply as a single entry would miss the per-sentence calls.
+    background_tasks.add_task(_tts_warm_sentences, reply, None)
 
     history = get_session_history(req.session_id)
     return ChatResponse(session_id=req.session_id, reply=reply, message_count=len(history))
@@ -204,6 +203,22 @@ def _tts_cache_path(text: str, voice: str | None) -> _Path:
     return _TTS_CACHE_DIR / f"{h.hexdigest()[:24]}.mp3"
 
 
+import re as _re
+_TTS_SENTENCE_RE = _re.compile(r'[^.!?।]+(?:[.!?।]+|$)')
+
+
+def _tts_split_sentences(text: str) -> list[str]:
+    """Same split rule the mobile client uses, so per-sentence cache keys
+    match what mobile asks for. Without this, the per-sentence /tts calls
+    miss every entry the background prefetch created."""
+    out: list[str] = []
+    for m in _TTS_SENTENCE_RE.finditer(text or ""):
+        s = (m.group(0) or "").strip()
+        if s:
+            out.append(s)
+    return out or ([text.strip()] if text.strip() else [])
+
+
 async def _tts_warm(text: str, voice: str | None = None) -> bool:
     """Synth (text, voice) into the cache. Idempotent — returns True if a
     cache file exists after the call (whether from a prior request or a fresh
@@ -224,14 +239,31 @@ async def _tts_warm(text: str, voice: str | None = None) -> bool:
         return False
 
 
-@app.post("/tts")
-async def tts(req: TtsRequest):
-    """One-shot text-to-speech for voice mode on mobile. Returns MP3 bytes.
+async def _tts_warm_sentences(text: str, voice: str | None = None) -> int:
+    """Prefetch each sentence of `text` independently. Mobile splits the
+    reply into sentences and calls /tts per-sentence — we cache by the same
+    boundaries so those calls actually HIT. Returns the number of sentences
+    successfully cached."""
+    sentences = _tts_split_sentences(text)
+    cached = 0
+    for s in sentences:
+        if await _tts_warm(s, voice):
+            cached += 1
+    _tts_log.info(f"[TTS] prefetch  sentences  {cached}/{len(sentences)}  reply={text[:60]!r}")
+    return cached
 
-    Disk-cached. X-Cache: HIT (returned from local disk, ~5 ms) or MISS
-    (called Fish, ~1-3 s, then cached for next time). Both paths log a
-    single line so you can see in the gateway terminal whether the cache
-    is doing its job.
+
+@app.post("/tts")
+async def tts(req: TtsRequest, strict_cache: bool = False):
+    """One-shot text-to-speech. Returns MP3 bytes.
+
+    Disk-cached. X-Cache header is HIT (returned from local disk, ~5 ms) or
+    MISS (called Fish, ~1-3 s, then cached for next time).
+
+    `?strict_cache=true` makes the endpoint **cache-only**: 404 on miss
+    instead of calling Fish. Used by the per-message speaker button so that
+    replays come from our data, never the cloud, and stay silent if the
+    audio isn't already cached.
     """
     text = (req.text or "").strip()
     if not text:
@@ -246,6 +278,10 @@ async def tts(req: TtsRequest):
             media_type="audio/mpeg",
             headers={"Cache-Control": "no-store", "X-Cache": "HIT"},
         )
+
+    if strict_cache:
+        _tts_log.info(f"[TTS] MISS-STRICT  (no Fish call)  text={text[:40]!r}")
+        raise HTTPException(status_code=404, detail="not in cache")
 
     try:
         audio = await synthesize_sentence(text, voice=req.voice)

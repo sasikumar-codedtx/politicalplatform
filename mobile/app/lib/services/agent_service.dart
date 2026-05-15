@@ -143,9 +143,9 @@ class AgentService {
   }
 
   // ── Text-to-speech (returns MP3 bytes from the cloned voice) ──────────────
-  // Hits the agent's /tts endpoint if available; falls back to a synth via
-  // the WebSocket if /tts isn't implemented yet on the agent. For MVP we use
-  // a small dedicated REST endpoint we add to the agent.
+  // Hits /tts. On cache miss the server calls Fish (1-3 s), caches the
+  // result, then returns. Used by voice-mode auto-play after a fresh mic
+  // turn — fresh replies have to come from Fish the first time.
   static Future<List<int>> synthesizeSpeech(String text) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/tts'),
@@ -155,6 +155,24 @@ class AgentService {
 
     if (response.statusCode != 200) {
       throw Exception('TTS failed (${response.statusCode})');
+    }
+    return response.bodyBytes;
+  }
+
+  // ── Strict cache lookup — NEVER calls Fish ────────────────────────────────
+  // Returns MP3 bytes if the agent already has them on disk, or null if not.
+  // Used by the per-message speaker button so replays only ever come from
+  // our cached data — silent if a sentence wasn't pre-cached.
+  static Future<List<int>?> synthesizeSpeechCached(String text) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/tts?strict_cache=true'),
+      headers: await _headers(),
+      body: jsonEncode({'text': text}),
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 404) return null;            // not in cache
+    if (response.statusCode != 200) {
+      throw Exception('TTS cached failed (${response.statusCode})');
     }
     return response.bodyBytes;
   }

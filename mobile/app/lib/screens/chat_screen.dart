@@ -205,6 +205,61 @@ class _ChatScreenState extends State<ChatScreen> {
     return out.isEmpty ? [text.trim()] : out;
   }
 
+  // Per-message replay — STRICTLY from the server-side cache. Never calls
+  // Fish. Silent if any sentence isn't cached yet. Used by the speaker
+  // icon below each AI message.
+  Future<void> _speakCachedOnly(String text) async {
+    final myGen = ++_speakGen;
+    final sentences = _splitSentences(text);
+
+    // Pre-flight: fetch every sentence's bytes (or null) so we know up
+    // front whether the whole reply is replayable. If any sentence is
+    // missing, abort silently — partial playback of just some sentences
+    // would sound broken.
+    final allBytes = <List<int>>[];
+    for (final s in sentences) {
+      if (myGen != _speakGen) return;
+      try {
+        final bytes = await AgentService.synthesizeSpeechCached(s);
+        if (bytes == null) return;     // not cached → silent
+        allBytes.add(bytes);
+      } catch (_) {
+        return;                         // any error → silent
+      }
+    }
+
+    if (mounted) setState(() { _speaking = true; _stage = 'speaking'; });
+    try {
+      for (var i = 0; i < allBytes.length; i++) {
+        if (myGen != _speakGen) return;
+
+        final dir = await getTemporaryDirectory();
+        final out = File(
+          '${dir.path}/tts_cached_${DateTime.now().millisecondsSinceEpoch}_$i.mp3',
+        );
+        await out.writeAsBytes(allBytes[i], flush: true);
+
+        try { await _player.stop(); } catch (_) {}
+        if (myGen != _speakGen) return;
+
+        await _player.setFilePath(out.path);
+        await _player.play();
+        await _player.playerStateStream.firstWhere(
+          (s) => s.processingState == ProcessingState.completed,
+        );
+
+        if (i < allBytes.length - 1) {
+          await Future.delayed(const Duration(milliseconds: _sentenceGapMs));
+        }
+      }
+    } finally {
+      if (mounted && myGen == _speakGen) {
+        setState(() { _speaking = false; if (_stage == 'speaking') _stage = 'idle'; });
+      }
+    }
+  }
+
+
   // Synthesise each sentence, play them in order with a short gap. Honours
   // _speakGen so a newer mic turn interrupts the queue mid-sentence.
   Future<void> _speak(String text) async {
@@ -467,7 +522,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final isUser = msg.role == 'user';
 
     final bubble = Container(
-      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isUser ? color : Colors.white,
@@ -497,30 +552,29 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
-    // AI message — small speaker icon to the left of the bubble.
-    // Tap = replay THIS message with the cloned voice (and engage voice mode).
+    // AI message — bubble on top, small speaker icon BELOW it (right-aligned).
+    // Tap = strict cache replay (no Fish call). Silent if not cached.
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          bubble,
+          const SizedBox(height: 4),
           GestureDetector(
-            onTap: () {
-              setState(() => _voiceMode = true);
-              _speak(msg.content);
-            },
+            onTap: () => _speakCachedOnly(msg.content),
             child: Container(
-              width: 30, height: 30,
-              margin: const EdgeInsets.only(top: 4, right: 8),
+              width: 28, height: 28,
+              margin: const EdgeInsets.only(left: 6),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+                border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 3, offset: const Offset(0, 1))],
               ),
-              child: Icon(Icons.volume_up_rounded, color: color, size: 16),
+              child: Icon(Icons.volume_up_rounded, color: color, size: 14),
             ),
           ),
-          Flexible(child: bubble),
         ],
       ),
     );
