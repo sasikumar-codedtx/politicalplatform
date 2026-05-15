@@ -301,6 +301,28 @@ async def tts(req: TtsRequest, strict_cache: bool = False):
     )
 
 
+@app.post("/tts/cached")
+def tts_cached_probe(req: TtsRequest):
+    """Lightweight cache probe — does NOT return audio bytes. Splits `text`
+    into the same sentences mobile uses, checks each one's cache file, and
+    reports whether the whole reply is replayable from disk. Used by the
+    mobile per-message speaker icon to decide whether to render itself."""
+    text = (req.text or "").strip()
+    if not text:
+        return {"cached": False, "total": 0, "found": 0}
+    sentences = _tts_split_sentences(text)
+    found = 0
+    for s in sentences:
+        f = _tts_cache_path(s, req.voice)
+        if f.exists() and f.stat().st_size > 0:
+            found += 1
+    return {
+        "cached": found == len(sentences) and len(sentences) > 0,
+        "total":  len(sentences),
+        "found":  found,
+    }
+
+
 @app.get("/tts/cache/stats")
 def tts_cache_stats():
     """How many entries are in the TTS cache and how big it is. Use this

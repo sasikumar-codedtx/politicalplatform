@@ -159,6 +159,26 @@ class AgentService {
     return response.bodyBytes;
   }
 
+  // ── Cache probe — does NOT download audio ────────────────────────────────
+  // Asks the agent "is the cloned-voice audio for this reply already on disk?"
+  // Returns true only when EVERY sentence is cached (otherwise replay would
+  // be partial and broken). Used by the per-message speaker icon to decide
+  // whether to render at all.
+  static Future<bool> isSpeechCached(String text) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/tts/cached'),
+        headers: await _headers(),
+        body: jsonEncode({'text': text}),
+      ).timeout(const Duration(seconds: 6));
+      if (response.statusCode != 200) return false;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return body['cached'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── Strict cache lookup — NEVER calls Fish ────────────────────────────────
   // Returns MP3 bytes if the agent already has them on disk, or null if not.
   // Used by the per-message speaker button so replays only ever come from

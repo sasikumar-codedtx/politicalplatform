@@ -49,6 +49,11 @@ class _ChatScreenState extends State<ChatScreen> {
   // newer reply — fixes "an old voice plays after I sent a new message".
   int _speakGen = 0;
 
+  // Which AI message contents are fully cached server-side. Drives whether
+  // we render the speaker icon below the bubble at all — no icon when not
+  // cached, instead of a silent icon that does nothing on tap.
+  final Set<String> _cachedReplies = {};
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +74,30 @@ class _ChatScreenState extends State<ChatScreen> {
       final messages = await AgentService.getHistory(widget.session.id);
       if (mounted) setState(() => _messages = messages);
       _scrollToBottom();
+      for (final m in messages) {
+        if (m.role == 'assistant') _probeCached(m.content);
+      }
     } catch (_) {}
+  }
+
+  // Ask the agent whether this exact reply text is fully cached on disk.
+  // If yes, add it to _cachedReplies so the bubble renders a speaker icon.
+  // `attempts` lets us retry a couple of times for fresh replies — the
+  // background prefetch on /chat typically lands within 1-3s.
+  Future<void> _probeCached(String text, {int attempts = 1}) async {
+    for (var i = 0; i < attempts; i++) {
+      if (!mounted) { return; }
+      if (_cachedReplies.contains(text)) { return; }
+      final ok = await AgentService.isSpeechCached(text);
+      if (!mounted) { return; }
+      if (ok) {
+        setState(() => _cachedReplies.add(text));
+        return;
+      }
+      if (i < attempts - 1) {
+        await Future.delayed(const Duration(milliseconds: 1500));
+      }
+    }
   }
 
   // ── Mic + voice mode ──────────────────────────────────────────────────────
@@ -171,19 +199,25 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       _scrollToBottom();
 
+      _probeCached(reply, attempts: 4);
+
       if (_voiceMode) {
         await _speak(reply);
-        if (mounted) setState(() {
-          if (_stage == 'speaking') _stage = 'idle';
-        });
+        if (mounted) {
+          setState(() {
+            if (_stage == 'speaking') _stage = 'idle';
+          });
+        }
       }
     } catch (e) {
       _showError('$e');
-      if (mounted) setState(() {
-        _thinking = false;
-        _processing = false;
-        _stage = 'idle';
-      });
+      if (mounted) {
+        setState(() {
+          _thinking = false;
+          _processing = false;
+          _stage = 'idle';
+        });
+      }
     } finally {
       try { await File(path).delete(); } catch (_) {}
     }
@@ -353,6 +387,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _stage = 'idle';
       });
       _scrollToBottom();
+      _probeCached(reply, attempts: 4);
     } catch (e) {
       setState(() {
         _thinking = false;
@@ -410,7 +445,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Image.asset(
                   'assets/images/tvk_flag.png',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     color: color.withValues(alpha: 0.1),
                     child: Icon(Icons.person_rounded, color: color, size: 18),
                   ),
@@ -494,7 +529,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Image.asset(
                 'assets/images/Media.jpg',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   color: color.withValues(alpha: 0.1),
                   child: Icon(Icons.auto_awesome, size: 56, color: color.withValues(alpha: 0.6)),
                 ),
@@ -552,29 +587,34 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
-    // AI message — bubble on top, small speaker icon BELOW it (right-aligned).
-    // Tap = strict cache replay (no Fish call). Silent if not cached.
+    // AI message — bubble on top, small speaker icon BELOW it (right-aligned)
+    // ONLY when the cloned-voice audio is already cached server-side. If not
+    // cached, no icon at all (instead of a silent icon that does nothing).
+    final hasCachedAudio = _cachedReplies.contains(msg.content);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           bubble,
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () => _speakCachedOnly(msg.content),
-            child: Container(
-              width: 28, height: 28,
-              margin: const EdgeInsets.only(left: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 3, offset: const Offset(0, 1))],
+          if (hasCachedAudio) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _speakCachedOnly(msg.content),
+              child: Container(
+                width: 28, height: 28,
+                margin: const EdgeInsets.only(left: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 3, offset: const Offset(0, 1))],
+                ),
+                child: Icon(Icons.volume_up_rounded, color: color, size: 14),
               ),
-              child: Icon(Icons.volume_up_rounded, color: color, size: 14),
             ),
-          ),
+          ],
         ],
       ),
     );
