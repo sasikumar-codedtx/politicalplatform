@@ -66,9 +66,19 @@ class Settings(BaseSettings):
     GPU_VRAM_SHED:    float = 95.0
 
     # ── Language ──────────────────────────────────────────────────────────────
-    SUPPORTED_LANGUAGES: set = {"ta", "en"}
+    # Comma-separated ISO codes from .env (e.g. "en,ta" or "en,ta,hi").
+    # `SUPPORTED_LANGUAGES` below parses this into a set at access time.
+    STT_LANGUAGES: str = "en,ta"
 
     # ── Derived (not from .env) ────────────────────────────────────────────────
+    @property
+    def SUPPORTED_LANGUAGES(self) -> set[str]:
+        return {
+            code.strip().lower()
+            for code in self.STT_LANGUAGES.split(",")
+            if code.strip()
+        }
+
     @property
     def DEVICE(self) -> str:
         return DEVICE

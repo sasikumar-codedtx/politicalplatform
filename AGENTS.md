@@ -73,7 +73,7 @@ political-platform/
 | Mobile | Flutter 3.x | iOS + Android, MVVM pattern |
 | Auth | Firebase Phone OTP | iOS 15.0 minimum |
 | Backend | FastAPI (Python 3.12) | Port 8001 |
-| AI | Ollama llama3.2 | Local, port 11434 |
+| AI | Ollama gpt-oss:20b-cloud | Local, port 11434 |
 | Storage (now) | SharedPreferences | Temporary, phone-local only |
 | Storage (next) | PostgreSQL + pgvector | For RAG + user profiles |
 | Cache (next) | Redis | Sessions, rate limiting |

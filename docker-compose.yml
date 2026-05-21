@@ -27,7 +27,7 @@ services:
     environment:
       DATABASE_URL: postgresql://app:${DB_PASSWORD:-devpassword123}@postgres:5432/political_platform
       OLLAMA_URL: http://host.docker.internal:11434
-      LLM_MODEL: ${LLM_MODEL:-llama3.2}
+      LLM_MODEL: ${LLM_MODEL:-gpt-oss:20b-cloud}
       APP_ENV: ${APP_ENV:-development}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
       FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-}

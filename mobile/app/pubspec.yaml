@@ -74,6 +74,10 @@ dependencies:
   # Image picker (camera + gallery for Join TVK face capture)
   image_picker: ^1.1.2
 
+  # Live streaming chat (WS /ws/chat) and per-device session IDs
+  web_socket_channel: ^3.0.1
+  uuid: ^4.5.1
+
 # Pin record's transitive interface so the Linux subplatform compiles.
 # `record_linux 0.7.2` (the version pub resolves) implements
 # record_platform_interface 1.2.x and is missing the newer `startStream`
@@ -118,6 +122,7 @@ flutter:
     - assets/flavors/india-pm/
     - assets/images/
     - assets/images/splashvideo.mov
+    - assets/audio/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

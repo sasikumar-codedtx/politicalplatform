@@ -1,14 +1,22 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
+import '../services/chat_stream_service.dart';
+import 'voice_chat_screen.dart';
+
+const _welcomeTa =
+    'வணக்கம், நான் உங்கள் விஜய்.\n'
+    'உங்களுடன் பேச ஆவலாக உள்ளேன்.\n'
+    'நீங்கள் எதைப் பற்றி பேச விரும்புகிறீர்கள்?';
+const _welcomeAsset = 'assets/audio/welcome_ta.mp3';
 
 class ChatScreen extends StatefulWidget {
   final ChatSession session;
@@ -22,378 +30,237 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final _recorder = AudioRecorder();
-  final _player   = AudioPlayer();
+  final _player = AudioPlayer();
 
   List<ChatMessage> _messages = [];
-  bool _thinking = false;
 
-  // Voice mode — engaged when user taps the mic at least once this session.
-  // Reset when the screen is disposed.
-  bool _voiceMode = false;
+  // The reply currently being streamed. While non-empty, we render a special
+  // "streaming" bubble at the end of the list (no replay icon on it — auto-
+  // plays sentence by sentence). When the stream completes we move the text
+  // into _messages and clear this.
+  String _streamingReply = '';
+  bool _streaming = false;
 
-  bool _recording  = false;
-  bool _processing = false;        // STT or LLM call in flight (blocks mic)
-  bool _speaking   = false;        // TTS audio playing (does NOT block mic — user can interrupt)
-  bool _replayingLast = false;     // briefly true while we re-synth the last reply
+  // Queue of audio sentences arriving from the WS. The playback loop drains
+  // this queue in order so even fast-arriving sentences play one at a time.
+  final List<_PendingAudio> _audioQueue = [];
+  bool _playbackPumping = false;
+  int _streamGen = 0;     // bumps on each new turn — cancels in-flight playback
 
-  // What's currently happening, shown as a status pill. The mic stays
-  // tappable in all states; tapping it during 'speaking' interrupts the
-  // playback and starts a new recording.
-  // 'idle' | 'listening' | 'transcribing' | 'thinking' | 'speaking'
-  String _stage = 'idle';
+  // Per-message replay state — kept separate from _streamGen so tapping the
+  // speaker icon doesn't interfere with WS streaming and vice versa. While a
+  // message is fetching its TTS bytes, its content sits in _replayingContent
+  // so the icon can render a spinner.
+  int _replayGen = 0;
+  String? _replayingContent;
 
-  // Monotonic counter for TTS requests. Each call to _speak() captures the
-  // current value and only proceeds to play if it's still the latest. This
-  // discards stale Fish responses when the user has already moved on to a
-  // newer reply — fixes "an old voice plays after I sent a new message".
-  int _speakGen = 0;
-
-  // Which AI message contents are fully cached server-side. Drives whether
-  // we render the speaker icon below the bubble at all — no icon when not
-  // cached, instead of a silent icon that does nothing on tap.
-  final Set<String> _cachedReplies = {};
+  StreamSubscription<ChatEvent>? _eventSub;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FirebaseAuth.instance.currentUser == null && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
+      _loadMessages();
+    });
   }
 
   @override
   void dispose() {
+    _eventSub?.cancel();
     _controller.dispose();
     _scrollController.dispose();
-    _recorder.dispose();
     _player.dispose();
     super.dispose();
   }
 
+  // ── History load ──────────────────────────────────────────────────────────
   Future<void> _loadMessages() async {
     try {
       final messages = await AgentService.getHistory(widget.session.id);
       if (mounted) setState(() => _messages = messages);
       _scrollToBottom();
-      for (final m in messages) {
-        if (m.role == 'assistant') _probeCached(m.content);
-      }
     } catch (_) {}
   }
 
-  // Ask the agent whether this exact reply text is fully cached on disk.
-  // If yes, add it to _cachedReplies so the bubble renders a speaker icon.
-  // `attempts` lets us retry a couple of times for fresh replies — the
-  // background prefetch on /chat typically lands within 1-3s.
-  Future<void> _probeCached(String text, {int attempts = 1}) async {
-    for (var i = 0; i < attempts; i++) {
-      if (!mounted) { return; }
-      if (_cachedReplies.contains(text)) { return; }
-      final ok = await AgentService.isSpeechCached(text);
-      if (!mounted) { return; }
-      if (ok) {
-        setState(() => _cachedReplies.add(text));
-        return;
-      }
-      if (i < attempts - 1) {
-        await Future.delayed(const Duration(milliseconds: 1500));
-      }
-    }
-  }
-
-  // ── Mic + voice mode ──────────────────────────────────────────────────────
-
-  Future<bool> _ensureMicPermission() async {
-    final status = await Permission.microphone.request();
-    if (status.isGranted) return true;
-    _showError('Microphone permission denied');
-    return false;
-  }
-
-  Future<void> _toggleMic() async {
-    // STT / LLM still block mic — those need their result before next turn.
-    // TTS playback does NOT — tapping mic interrupts the speaker and starts
-    // a fresh recording. This is the "I can interrupt the AI mid-sentence
-    // like a real conversation" behaviour.
-    if (_processing) return;
-    if (_recording) {
-      await _stopAndProcess();
-    } else {
-      await _startRecording();
-    }
-  }
-
-  Future<void> _interruptPlayback() async {
-    _speakGen++;                                // invalidate in-flight TTS
-    try { await _player.stop(); } catch (_) {}
-    if (mounted) setState(() => _speaking = false);
-  }
-
-  Future<void> _startRecording() async {
-    if (!await _ensureMicPermission()) return;
-    // If Vijay is currently speaking, the user just tapped the mic to
-    // interrupt. Cut the audio off and start listening.
-    if (_speaking || _player.playing) {
-      await _interruptPlayback();
-    }
+  // ── Welcome message audio ────────────────────────────────────────────────
+  // Priority: bundled asset → on-device cached MP3 → cache-first /tts call
+  // (cloud once, cached on the device + server forever).
+  Future<void> _playWelcomeAudio() async {
     try {
-      final dir = await getTemporaryDirectory();
-      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _recorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.aacLc,
-          sampleRate: 16000,
-          numChannels: 1,
-        ),
-        path: path,
-      );
-      setState(() {
-        _recording = true;
-        _voiceMode = true;
-        _stage = 'listening';
-      });
-    } catch (e) {
-      _showError('Could not start recording: $e');
-    }
-  }
-
-  Future<void> _stopAndProcess() async {
-    setState(() { _recording = false; _stage = 'transcribing'; });
-    final path = await _recorder.stop();
-    if (path == null) {
-      setState(() => _stage = 'idle');
-      return;
-    }
-
-    setState(() => _processing = true);
-    try {
-      // Force STT language for Tamil-flavor sessions. Whisper auto-detect
-      // sometimes confuses Tamil speech with Hindi on short utterances and
-      // returns Devanagari text — the LLM then replies in Hindi.
-      final sttLang = AppConfig.flavorName == 'tn-tvk' ? 'ta' : null;
-      final transcribed = await AgentService.transcribe(File(path), language: sttLang);
-      if (transcribed.isEmpty) {
-        setState(() => _stage = 'idle');
-        return;
-      }
-
-      final userMsg = ChatMessage(role: 'user', content: transcribed, timestamp: DateTime.now());
-      setState(() {
-        _messages.add(userMsg);
-        _thinking = true;
-        _stage = 'thinking';
-      });
-      _scrollToBottom();
-
-      final reply = await AgentService.sendMessage(widget.session.id, transcribed);
-      final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
-
-      // Release the mic immediately when the text reply is ready — _speak
-      // runs on its own and the user must be able to interrupt it. This is
-      // the fix for "STT is slow even after chat response came" — what they
-      // saw was actually 'mic blocked during long TTS playback'.
-      setState(() {
-        _messages.add(aiMsg);
-        _thinking = false;
-        _processing = false;
-        _stage = _voiceMode ? 'speaking' : 'idle';
-      });
-      _scrollToBottom();
-
-      _probeCached(reply, attempts: 4);
-
-      if (_voiceMode) {
-        await _speak(reply);
-        if (mounted) {
-          setState(() {
-            if (_stage == 'speaking') _stage = 'idle';
-          });
-        }
-      }
-    } catch (e) {
-      _showError('$e');
-      if (mounted) {
-        setState(() {
-          _thinking = false;
-          _processing = false;
-          _stage = 'idle';
-        });
-      }
-    } finally {
-      try { await File(path).delete(); } catch (_) {}
-    }
-  }
-
-  // Split a reply into sentences so each can be synthesised + cached
-  // separately. The gap between sentences gives natural "live person"
-  // pacing instead of a wall of monotone audio. Punctuation set covers
-  // English, Tamil/Hindi danda (।), and ellipsis.
-  static const _sentenceGapMs = 400;
-  static final _sentenceSplit = RegExp(r'[^.!?।]+(?:[.!?।]+|$)');
-
-  List<String> _splitSentences(String text) {
-    final out = <String>[];
-    for (final m in _sentenceSplit.allMatches(text)) {
-      final s = m.group(0)?.trim();
-      if (s != null && s.isNotEmpty) out.add(s);
-    }
-    return out.isEmpty ? [text.trim()] : out;
-  }
-
-  // Per-message replay — STRICTLY from the server-side cache. Never calls
-  // Fish. Silent if any sentence isn't cached yet. Used by the speaker
-  // icon below each AI message.
-  Future<void> _speakCachedOnly(String text) async {
-    final myGen = ++_speakGen;
-    final sentences = _splitSentences(text);
-
-    // Pre-flight: fetch every sentence's bytes (or null) so we know up
-    // front whether the whole reply is replayable. If any sentence is
-    // missing, abort silently — partial playback of just some sentences
-    // would sound broken.
-    final allBytes = <List<int>>[];
-    for (final s in sentences) {
-      if (myGen != _speakGen) return;
       try {
-        final bytes = await AgentService.synthesizeSpeechCached(s);
-        if (bytes == null) return;     // not cached → silent
-        allBytes.add(bytes);
-      } catch (_) {
-        return;                         // any error → silent
-      }
-    }
-
-    if (mounted) setState(() { _speaking = true; _stage = 'speaking'; });
-    try {
-      for (var i = 0; i < allBytes.length; i++) {
-        if (myGen != _speakGen) return;
-
-        final dir = await getTemporaryDirectory();
-        final out = File(
-          '${dir.path}/tts_cached_${DateTime.now().millisecondsSinceEpoch}_$i.mp3',
-        );
-        await out.writeAsBytes(allBytes[i], flush: true);
-
-        try { await _player.stop(); } catch (_) {}
-        if (myGen != _speakGen) return;
-
-        await _player.setFilePath(out.path);
+        await rootBundle.load(_welcomeAsset);
+        await _player.stop();
+        await _player.setAsset(_welcomeAsset);
         await _player.play();
-        await _player.playerStateStream.firstWhere(
-          (s) => s.processingState == ProcessingState.completed,
-        );
-
-        if (i < allBytes.length - 1) {
-          await Future.delayed(const Duration(milliseconds: _sentenceGapMs));
-        }
+        return;
+      } catch (_) {}
+      final dir = await getApplicationDocumentsDirectory();
+      final cached = File('${dir.path}/welcome_ta.mp3');
+      if (!await cached.exists()) {
+        final bytes = await AgentService.synthesizeSpeech(_welcomeTa);
+        await cached.writeAsBytes(bytes, flush: true);
       }
-    } finally {
-      if (mounted && myGen == _speakGen) {
-        setState(() { _speaking = false; if (_stage == 'speaking') _stage = 'idle'; });
-      }
-    }
-  }
-
-
-  // Synthesise each sentence, play them in order with a short gap. Honours
-  // _speakGen so a newer mic turn interrupts the queue mid-sentence.
-  Future<void> _speak(String text) async {
-    final myGen = ++_speakGen;
-    final sentences = _splitSentences(text);
-    if (mounted) setState(() => _speaking = true);
-
-    try {
-      for (var i = 0; i < sentences.length; i++) {
-        if (myGen != _speakGen) return;
-
-        try {
-          final mp3Bytes = await AgentService.synthesizeSpeech(sentences[i]);
-          if (myGen != _speakGen) return;
-
-          final dir = await getTemporaryDirectory();
-          final out = File(
-            '${dir.path}/tts_${DateTime.now().millisecondsSinceEpoch}_$i.mp3',
-          );
-          await out.writeAsBytes(mp3Bytes, flush: true);
-
-          try { await _player.stop(); } catch (_) {}
-          if (myGen != _speakGen) return;
-
-          await _player.setFilePath(out.path);
-          await _player.play();
-
-          // Wait for this sentence to finish before starting the next.
-          await _player.playerStateStream.firstWhere(
-            (s) => s.processingState == ProcessingState.completed,
-          );
-        } catch (e) {
-          if (myGen == _speakGen) _showError('Playback failed: $e');
-          return;
-        }
-
-        // Natural pause before the next sentence (skip after the last).
-        if (i < sentences.length - 1) {
-          await Future.delayed(const Duration(milliseconds: _sentenceGapMs));
-        }
-      }
-    } finally {
-      if (mounted && myGen == _speakGen) setState(() => _speaking = false);
-    }
-  }
-
-  // Replay the most recent assistant message with the cloned voice.
-  // Auto-engages voice mode so future replies play too. If there is no AI
-  // message yet, shows a hint and just turns voice mode on.
-  Future<void> _onReplayTap() async {
-    if (_replayingLast || _processing) return;
-    final lastAi = _messages.lastWhere(
-      (m) => m.role == 'assistant',
-      orElse: () => ChatMessage(role: '', content: '', timestamp: DateTime.now()),
-    );
-    setState(() => _voiceMode = true);     // engage for future turns either way
-    if (lastAi.content.isEmpty) {
-      _showError('Send a message first — there\'s nothing to replay.');
-      return;
-    }
-    setState(() => _replayingLast = true);
-    try {
-      // Stop anything currently playing so a tap restarts cleanly.
       await _player.stop();
-      await _speak(lastAi.content);
-    } finally {
-      if (mounted) setState(() => _replayingLast = false);
+      await _player.setFilePath(cached.path);
+      await _player.play();
+    } catch (e) {
+      _showError('Could not play welcome audio: $e');
     }
   }
 
-  // Text-mode send: typing is always silent (no TTS), regardless of voice mode.
+  // ── Mic — opens voice mode ───────────────────────────────────────────────
+  Future<void> _openVoiceMode() async {
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VoiceChatScreen(session: widget.session),
+      ),
+    );
+  }
+
+  // ── Streaming send via WebSocket ─────────────────────────────────────────
   Future<void> _sendText() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _thinking) return;
+    if (text.isEmpty || _streaming) return;
 
     _controller.clear();
-    final userMsg = ChatMessage(role: 'user', content: text, timestamp: DateTime.now());
+    final userMsg = ChatMessage(
+      role: 'user', content: text, timestamp: DateTime.now(),
+    );
+    final myGen = ++_streamGen;
     setState(() {
       _messages.add(userMsg);
-      _thinking = true;
-      _stage = 'thinking';
+      _streamingReply = '';
+      _streaming = true;
+      _audioQueue.clear();
     });
     _scrollToBottom();
 
     try {
-      final reply = await AgentService.sendMessage(widget.session.id, text);
-      final aiMsg = ChatMessage(role: 'assistant', content: reply, timestamp: DateTime.now());
-      setState(() {
-        _messages.add(aiMsg);
-        _thinking = false;
-        _stage = 'idle';
-      });
-      _scrollToBottom();
-      _probeCached(reply, attempts: 4);
+      final stream = await ChatStreamService.open(
+        sessionId: widget.session.id,
+        message: text,
+      );
+      _eventSub?.cancel();
+      _eventSub = stream.listen(
+        (evt) => _handleEvent(evt, myGen),
+        onError: (e) => _finishStream(error: '$e'),
+        onDone: () => _finishStream(),
+      );
     } catch (e) {
-      setState(() {
-        _thinking = false;
-        _stage = 'idle';
-      });
-      _showError('$e');
+      _finishStream(error: 'Could not connect: $e');
+    }
+  }
+
+  void _handleEvent(ChatEvent evt, int myGen) {
+    if (myGen != _streamGen) return;
+    if (evt is ChatToken) {
+      setState(() => _streamingReply += evt.text);
+      _scrollToBottom();
+    } else if (evt is ChatAudio) {
+      _audioQueue.add(_PendingAudio(myGen, evt));
+      _pumpAudio();
+    } else if (evt is ChatDone) {
+      // Commit the streamed text into the message list. The replay speaker
+      // icon renders on every AI bubble — no separate "spoken once" gate.
+      final reply = evt.reply.isNotEmpty ? evt.reply : _streamingReply;
+      if (reply.trim().isNotEmpty) {
+        setState(() {
+          _messages.add(ChatMessage(
+            role: 'assistant', content: reply, timestamp: DateTime.now(),
+          ));
+          _streamingReply = '';
+          _streaming = false;
+        });
+        _scrollToBottom();
+      } else {
+        setState(() {
+          _streamingReply = '';
+          _streaming = false;
+        });
+      }
+    } else if (evt is ChatStreamError) {
+      _finishStream(error: evt.detail);
+    }
+  }
+
+  void _finishStream({String? error}) {
+    if (!mounted) return;
+    // Promote any partial text into the final message so the user doesn't
+    // lose what was already shown.
+    final partial = _streamingReply.trim();
+    setState(() {
+      if (partial.isNotEmpty) {
+        _messages.add(ChatMessage(
+          role: 'assistant', content: partial, timestamp: DateTime.now(),
+        ));
+      }
+      _streamingReply = '';
+      _streaming = false;
+    });
+    if (error != null && error.isNotEmpty) _showError(error);
+  }
+
+  // Sequential audio player — drains _audioQueue one MP3 at a time.
+  Future<void> _pumpAudio() async {
+    if (_playbackPumping) return;
+    _playbackPumping = true;
+    try {
+      while (_audioQueue.isNotEmpty) {
+        final item = _audioQueue.removeAt(0);
+        if (item.gen != _streamGen) continue;
+        try {
+          final dir = await getTemporaryDirectory();
+          final f = File(
+            '${dir.path}/ws_${item.gen}_${item.audio.index}.mp3',
+          );
+          await f.writeAsBytes(item.audio.bytes, flush: true);
+          await _player.stop();
+          if (item.gen != _streamGen) continue;
+          await _player.setFilePath(f.path);
+          await _player.play();
+          await _player.playerStateStream
+              .firstWhere((s) => s.processingState == ProcessingState.completed);
+        } catch (_) {}
+      }
+    } finally {
+      _playbackPumping = false;
+    }
+  }
+
+  // Replay = cache-first. Server returns from tts_cache if cached; otherwise
+  // generates via cloud, stores in cache, returns bytes — so the next tap is
+  // a cache hit. Works for streamed messages AND history-loaded ones.
+  //
+  // Repeat taps of the SAME message while it's loading are ignored (no race,
+  // no flicker). Tapping a DIFFERENT message supersedes via _replayGen.
+  Future<void> _replayMessage(String content) async {
+    if (_replayingContent == content) return;
+    final myGen = ++_replayGen;
+    setState(() => _replayingContent = content);
+    try { await _player.stop(); } catch (_) {}
+    try {
+      final bytes = await AgentService.synthesizeSpeech(content);
+      if (myGen != _replayGen || !mounted) return;
+      final dir = await getTemporaryDirectory();
+      final f = File(
+        '${dir.path}/replay_${myGen}_${DateTime.now().millisecondsSinceEpoch}.mp3',
+      );
+      await f.writeAsBytes(bytes, flush: true);
+      if (myGen != _replayGen || !mounted) return;
+      await _player.setFilePath(f.path);
+      await _player.play();
+    } catch (e) {
+      if (mounted) _showError('Could not play audio: $e');
+    } finally {
+      if (mounted && myGen == _replayGen) {
+        setState(() => _replayingContent = null);
+      }
     }
   }
 
@@ -409,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 240),
           curve: Curves.easeOut,
         );
       }
@@ -417,84 +284,31 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ── Build ──────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final f = AppConfig.current;
     final color = Color(f.primaryColor);
     final bg = Color(f.backgroundColor);
-    final border = Color(f.borderColor);
 
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        title: Row(
-          children: [
-            // tvk_flag.png as the AppBar avatar
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/tvk_flag.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: color.withValues(alpha: 0.1),
-                    child: Icon(Icons.person_rounded, color: color, size: 18),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                widget.session.title,
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: const Color(0xFF1A1A1A)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // Status pill — what's happening right now (only visible when
-            // not idle). Lets the user know what's blocking, instead of
-            // just seeing a generic spinner.
-            if (_stage != 'idle') _StatusPill(stage: _stage, color: color),
-            // Replay / voice-mode button — always visible.
-            //   Tap            → replay the last AI reply with the cloned voice
-            //                    AND auto-engage voice mode for future replies.
-            //   Long-press     → silence voice mode.
-            _ReplayButton(
-              voiceModeOn: _voiceMode,
-              busy: _processing || _replayingLast || _speaking,
-              activeColor: color,
-              onTap: _onReplayTap,
-              onLongPress: () => setState(() => _voiceMode = false),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(color: border, height: 1),
-        ),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: _buildHeader(color),
       ),
       body: Column(
         children: [
           Expanded(
-            child: _messages.isEmpty
-                ? _buildEmpty(color)
+            child: _messages.isEmpty && !_streaming
+                ? _buildWelcome(color)
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length + (_thinking ? 1 : 0),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    itemCount: _messages.length + (_streaming ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (_thinking && index == _messages.length) {
-                        return _buildThinkingBubble(color);
+                      if (_streaming && index == _messages.length) {
+                        // The live streaming bubble — no replay icon.
+                        return _buildStreamingBubble(color);
                       }
                       return _buildMessageBubble(_messages[index], color);
                     },
@@ -506,50 +320,175 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildEmpty(Color color) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Media.jpg in the empty state, where the sparkle was
-          Container(
-            width: 140, height: 140,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: color, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.18),
-                  blurRadius: 22,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/Media.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: color.withValues(alpha: 0.1),
-                  child: Icon(Icons.auto_awesome, size: 56, color: color.withValues(alpha: 0.6)),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          Text("What's on your mind?",
-              style: GoogleFonts.inter(color: const Color(0xFF666666), fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              'Ask CM Vijay anything — type, or tap the mic',
-              style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
+  Widget _buildHeader(Color color) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color, Color.lerp(color, Colors.black, 0.35)!],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 12, 10),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                onPressed: () => Navigator.maybePop(context),
+              ),
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.18),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/tvk_flag.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.person_rounded, color: Colors.white, size: 22,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Vijay',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16, fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 7, height: 7,
+                          decoration: BoxDecoration(
+                            color: _streaming
+                                ? const Color(0xFFFFCA00)
+                                : const Color(0xFF35E08F),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _streaming ? 'Replying live...' : 'Online',
+                          style: GoogleFonts.inter(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 11, fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcome(Color color) {
+    return ListView(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE8E8E8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10, offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.4), width: 1.5,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/av1.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          color: color.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _welcomeTa,
+                      style: GoogleFonts.inter(
+                        fontSize: 14, height: 1.55,
+                        color: const Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.only(left: 50),
+                child: GestureDetector(
+                  onTap: _playWelcomeAudio,
+                  child: Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [color, Color.lerp(color, Colors.black, 0.25)!],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.35),
+                          blurRadius: 8, offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white, size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -557,18 +496,32 @@ class _ChatScreenState extends State<ChatScreen> {
     final isUser = msg.role == 'user';
 
     final bubble = Container(
-      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.78,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isUser ? color : Colors.white,
+        gradient: isUser
+            ? LinearGradient(
+                colors: [color, Color.lerp(color, Colors.black, 0.18)!],
+              )
+            : null,
+        color: isUser ? null : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(isUser ? 16 : 4),
-          bottomRight: Radius.circular(isUser ? 4 : 16),
+          topLeft: const Radius.circular(18),
+          topRight: const Radius.circular(18),
+          bottomLeft: Radius.circular(isUser ? 18 : 4),
+          bottomRight: Radius.circular(isUser ? 4 : 18),
         ),
         border: isUser ? null : Border.all(color: const Color(0xFFE8E8E8)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: isUser
+                ? color.withValues(alpha: 0.22)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8, offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         msg.content,
@@ -587,59 +540,121 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
-    // AI message — bubble on top, small speaker icon BELOW it (right-aligned)
-    // ONLY when the cloned-voice audio is already cached server-side. If not
-    // cached, no icon at all (instead of a silent icon that does nothing).
-    final hasCachedAudio = _cachedReplies.contains(msg.content);
-
+    // AI message — render the replay speaker on EVERY bubble. Tap calls
+    // /tts which serves from the disk cache when present (free, instant)
+    // and falls through to cloud + caches on a miss. Spins while loading
+    // so the user knows the tap registered.
+    final isLoading = _replayingContent == msg.content;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           bubble,
-          if (hasCachedAudio) ...[
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: () => _speakCachedOnly(msg.content),
-              child: Container(
-                width: 28, height: 28,
-                margin: const EdgeInsets.only(left: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 3, offset: const Offset(0, 1))],
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: () => _replayMessage(msg.content),
+            child: Container(
+              width: 28, height: 28,
+              margin: const EdgeInsets.only(left: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: color.withValues(alpha: 0.35), width: 1,
                 ),
-                child: Icon(Icons.volume_up_rounded, color: color, size: 14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 3, offset: const Offset(0, 1),
+                  ),
+                ],
               ),
+              child: isLoading
+                  ? Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                      ),
+                    )
+                  : Icon(Icons.volume_up_rounded, color: color, size: 14),
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildThinkingBubble(Color color) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-            bottomLeft: Radius.circular(4),
+  /// Live-streaming bubble — grows as tokens arrive. Shows a typing pulse
+  /// when empty, no replay icon (cardinal rule for chat mode), and an
+  /// inline live indicator while audio is streaming.
+  Widget _buildStreamingBubble(Color color) {
+    final empty = _streamingReply.isEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.82,
           ),
-          border: Border.all(color: const Color(0xFFE8E8E8)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [_dot(color, 0), const SizedBox(width: 4), _dot(color, 150), const SizedBox(width: 4), _dot(color, 300)],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(4),
+              bottomRight: Radius.circular(18),
+            ),
+            border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.12),
+                blurRadius: 12, offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: empty
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _dot(color, 0),
+                    const SizedBox(width: 4),
+                    _dot(color, 150),
+                    const SizedBox(width: 4),
+                    _dot(color, 300),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _streamingReply,
+                      style: GoogleFonts.inter(
+                        fontSize: 14, height: 1.5,
+                        color: const Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.graphic_eq_rounded, color: color, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          'live',
+                          style: GoogleFonts.inter(
+                            fontSize: 10, fontWeight: FontWeight.w600,
+                            color: color, letterSpacing: 0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -647,8 +662,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _dot(Color color, int delayMs) {
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.4, end: 1.0),
-      duration: const Duration(milliseconds: 600),
+      tween: Tween(begin: 0.35, end: 1.0),
+      duration: const Duration(milliseconds: 700),
       curve: Curves.easeInOut,
       builder: (_, value, child) => Opacity(opacity: value, child: child),
       child: Container(
@@ -661,7 +676,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputBar(Color color) {
     final f = AppConfig.current;
     final border = Color(f.borderColor);
-    final canSend = !_thinking && !_processing && _controller.text.trim().isNotEmpty;
+    final hasText = _controller.text.trim().isNotEmpty;
+    final canSend = !_streaming && hasText;
 
     return Container(
       padding: EdgeInsets.only(
@@ -671,20 +687,27 @@ class _ChatScreenState extends State<ChatScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: border)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8, offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
-              maxLines: 4,
-              minLines: 1,
+              maxLines: 4, minLines: 1,
               style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
               textCapitalization: TextCapitalization.sentences,
-              onChanged: (_) => setState(() {}),     // refresh send-button enabled state
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Type your message...',
-                hintStyle: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 14),
+                hintStyle: GoogleFonts.inter(
+                  color: const Color(0xFF999999), fontSize: 14,
+                ),
                 filled: true,
                 fillColor: const Color(0xFFF5F5F5),
                 border: OutlineInputBorder(
@@ -699,29 +722,27 @@ class _ChatScreenState extends State<ChatScreen> {
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide(color: color, width: 1.5),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18, vertical: 12,
+                ),
               ),
               onSubmitted: (_) => _sendText(),
             ),
           ),
-          const SizedBox(width: 6),
-          // Mic button — next to send, per the design
+          const SizedBox(width: 8),
           _circleButton(
-            color: _recording ? color : color.withValues(alpha: 0.12),
-            iconColor: _recording ? Colors.white : color,
-            icon: _processing
-                ? Icons.hourglass_top_rounded
-                : (_recording ? Icons.stop_rounded : Icons.mic_rounded),
-            onTap: _toggleMic,
-            pulsing: _recording,
+            color: color.withValues(alpha: 0.12),
+            iconColor: color,
+            icon: Icons.mic_rounded,
+            onTap: _openVoiceMode,
           ),
           const SizedBox(width: 6),
-          // Send button
           _circleButton(
             color: canSend ? color : const Color(0xFFE0E0E0),
             iconColor: canSend ? Colors.white : const Color(0xFF999999),
             icon: Icons.send_rounded,
             onTap: canSend ? _sendText : null,
+            gradient: canSend,
           ),
         ],
       ),
@@ -733,122 +754,37 @@ class _ChatScreenState extends State<ChatScreen> {
     required Color iconColor,
     required IconData icon,
     required VoidCallback? onTap,
-    bool pulsing = false,
+    bool gradient = false,
   }) {
-    final btn = Container(
-      width: 44, height: 44,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: pulsing
-            ? [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 18, spreadRadius: 2)]
-            : null,
-      ),
-      child: Icon(icon, color: iconColor, size: 20),
-    );
-    return GestureDetector(onTap: onTap, child: btn);
-  }
-}
-
-
-/// Tiny status pill next to the AppBar replay button.
-/// Shows "Listening / Transcribing / Thinking / Speaking" so the user knows
-/// which stage is currently running — the mic stays tappable in all of
-/// them except STT and LLM (those need their result first).
-class _StatusPill extends StatelessWidget {
-  final String stage;
-  final Color color;
-  const _StatusPill({required this.stage, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    const labels = {
-      'listening':    ('Listening',    Icons.mic_rounded),
-      'transcribing': ('Transcribing', Icons.hearing_rounded),
-      'thinking':     ('Thinking',     Icons.psychology_alt_rounded),
-      'speaking':     ('Speaking',     Icons.graphic_eq_rounded),
-    };
-    final entry = labels[stage] ?? ('', Icons.circle_outlined);
-    if (entry.$1.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        width: 44, height: 44,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+          gradient: gradient
+              ? LinearGradient(
+                  colors: [color, Color.lerp(color, Colors.black, 0.22)!],
+                )
+              : null,
+          color: gradient ? null : color,
+          shape: BoxShape.circle,
+          boxShadow: gradient
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 10, offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(entry.$2, color: color, size: 12),
-            const SizedBox(width: 5),
-            Text(
-              entry.$1,
-              style: TextStyle(
-                color: color, fontSize: 11, fontWeight: FontWeight.w600,
-                letterSpacing: 0.1,
-              ),
-            ),
-          ],
-        ),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
     );
   }
 }
 
-
-/// AppBar replay button — Hotstar-style.
-///   Tap        → replay the last AI reply with the cloned voice
-///   Long-press → silence (turn voice mode off)
-///   Filled red = voice mode on, gray outline = voice mode off,
-///   pulsing red = currently playing.
-class _ReplayButton extends StatelessWidget {
-  final bool voiceModeOn;
-  final bool busy;
-  final Color activeColor;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  const _ReplayButton({
-    required this.voiceModeOn,
-    required this.busy,
-    required this.activeColor,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = voiceModeOn ? activeColor : Colors.transparent;
-    final fg = voiceModeOn ? Colors.white : const Color(0xFF999999);
-    final border = voiceModeOn ? activeColor : const Color(0xFFCCCCCC);
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: 38, height: 38,
-          decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
-            border: Border.all(color: border, width: 1.5),
-            boxShadow: busy
-                ? [BoxShadow(color: activeColor.withValues(alpha: 0.55), blurRadius: 16, spreadRadius: 2)]
-                : null,
-          ),
-          child: Icon(
-            busy ? Icons.graphic_eq : Icons.volume_up_rounded,
-            color: fg,
-            size: 18,
-          ),
-        ),
-      ),
-    );
-  }
+class _PendingAudio {
+  final int gen;
+  final ChatAudio audio;
+  const _PendingAudio(this.gen, this.audio);
 }

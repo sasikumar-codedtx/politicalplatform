@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
+import '../services/device_session.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -19,7 +21,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSessions();
+    // Hard gate — must be logged in to enter chat list.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FirebaseAuth.instance.currentUser == null && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
+      _loadSessions();
+    });
   }
 
   Future<void> _loadSessions() async {
@@ -32,7 +41,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _startNewChat() async {
-    final sessionId = 'session_${DateTime.now().millisecondsSinceEpoch}';
+    final sessionId = await DeviceSession.rotate();
     final session = ChatSession(
       id: sessionId,
       title: 'New conversation',

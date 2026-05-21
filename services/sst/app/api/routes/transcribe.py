@@ -118,6 +118,19 @@ async def transcribe_audio(
                 "error": "No speech detected in audio.",
             }
 
+        # Allow-list enforcement — drop the result if the detected language
+        # isn't one we've enabled in .env (STT_LANGUAGES). Mobile shows the
+        # error so the user knows to switch to a supported language.
+        detected = (result.get("language") or "").lower()
+        if detected and detected not in settings.SUPPORTED_LANGUAGES:
+            allowed = ", ".join(sorted(settings.SUPPORTED_LANGUAGES))
+            logger.info(f"[REST-STT] rejected — detected={detected} not in allow-list [{allowed}]")
+            return JSONResponse(status_code=422, content={
+                "text": "",
+                "language": detected,
+                "error": f"Language '{detected}' is not supported. Allowed: {allowed}.",
+            })
+
         logger.info(f"[REST-STT] lang={result.get('language')} → \"{result['text'][:80]}\"")
         return {
             "text":                 result["text"],

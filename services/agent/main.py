@@ -5,7 +5,7 @@ import os
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from agent import get_reply, get_session_history, get_sessions, clear_session
+from agent import get_reply, get_session_history, get_sessions, clear_session, trim_history
 from auth import verify_token
 from embeddings import embed
 from rag import retrieve_context
@@ -15,6 +15,7 @@ from tts import synthesize_sentence
 import avatar_client as face_avatar_client
 from persona import get_persona
 from prompts import get_prompt
+from pypdf import PdfReader
 from guard import check_injection, role_anchor
 from db import (
     init_db,
@@ -180,15 +181,35 @@ class TtsRequest(BaseModel):
 # is usually warm by the time mobile asks for it.
 import hashlib as _hashlib
 import logging as _logging
+import sys as _sys
+import time as _time
 from pathlib import Path as _Path
 from fastapi.responses import Response as _Response
 
+# Uvicorn wires its own loggers, leaving the root logger unconfigured.
+# Without our own handler, _tts_log.info(...) gets swallowed and only the
+# bare access-log line ("POST /tts ... 200 OK") shows up. Attach a single
+# stdout handler so HIT/MISS lines are always visible.
 _tts_log = _logging.getLogger("agent.tts")
 _tts_log.setLevel(_logging.INFO)
+_tts_log.propagate = False
+if not _tts_log.handlers:
+    _h = _logging.StreamHandler(_sys.stdout)
+    _h.setLevel(_logging.INFO)
+    _h.setFormatter(_logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
+    _tts_log.addHandler(_h)
 
 _TTS_CACHE_DIR = _Path(__file__).parent / "data" / "tts_cache"
 _TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-_tts_log.info(f"[TTS] cache dir = {_TTS_CACHE_DIR}")
+
+
+def _tts_cache_summary() -> str:
+    files = list(_TTS_CACHE_DIR.glob("*.mp3"))
+    kb = sum(f.stat().st_size for f in files) / 1024
+    return f"{len(files)} entries, {kb:.1f} KB"
+
+
+_tts_log.info(f"[TTS] cache dir = {_TTS_CACHE_DIR}  ({_tts_cache_summary()})")
 
 
 def _tts_cache_path(text: str, voice: str | None) -> _Path:
@@ -240,16 +261,19 @@ async def _tts_warm(text: str, voice: str | None = None) -> bool:
 
 
 async def _tts_warm_sentences(text: str, voice: str | None = None) -> int:
-    """Prefetch each sentence of `text` independently. Mobile splits the
-    reply into sentences and calls /tts per-sentence — we cache by the same
-    boundaries so those calls actually HIT. Returns the number of sentences
-    successfully cached."""
+    """Prefetch each sentence of `text` IN PARALLEL. Fish handles concurrent
+    calls fine, so synth time drops from sum(sentences) to max(sentences) —
+    a 5-sentence reply goes from ~10s to ~2s. Mobile streams playback as
+    each sentence becomes cached, so first audio lands ASAP."""
     sentences = _tts_split_sentences(text)
-    cached = 0
-    for s in sentences:
-        if await _tts_warm(s, voice):
-            cached += 1
-    _tts_log.info(f"[TTS] prefetch  sentences  {cached}/{len(sentences)}  reply={text[:60]!r}")
+    if not sentences:
+        return 0
+    results = await asyncio.gather(
+        *[_tts_warm(s, voice) for s in sentences],
+        return_exceptions=True,
+    )
+    cached = sum(1 for r in results if r is True)
+    _tts_log.info(f"[TTS] prefetch  parallel  {cached}/{len(sentences)}  reply={text[:60]!r}")
     return cached
 
 
@@ -269,18 +293,31 @@ async def tts(req: TtsRequest, strict_cache: bool = False):
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
 
+    t0 = _time.perf_counter()
     cache_file = _tts_cache_path(text, req.voice)
     if cache_file.exists() and cache_file.stat().st_size > 0:
         data = cache_file.read_bytes()
-        _tts_log.info(f"[TTS] HIT   {len(data):>6} B  {cache_file.name}  text={text[:40]!r}")
+        elapsed_ms = (_time.perf_counter() - t0) * 1000
+        _tts_log.info(
+            f"[TTS] HIT   {len(data):>6} B  in {elapsed_ms:>6.1f} ms  "
+            f"cache={cache_file.name}  text={text[:40]!r}"
+        )
         return _Response(
             content=data,
             media_type="audio/mpeg",
-            headers={"Cache-Control": "no-store", "X-Cache": "HIT"},
+            headers={
+                "Cache-Control": "no-store",
+                "X-Cache": "HIT",
+                "X-Cache-Ms": f"{elapsed_ms:.1f}",
+            },
         )
 
     if strict_cache:
-        _tts_log.info(f"[TTS] MISS-STRICT  (no Fish call)  text={text[:40]!r}")
+        elapsed_ms = (_time.perf_counter() - t0) * 1000
+        _tts_log.info(
+            f"[TTS] MISS-STRICT  in {elapsed_ms:>6.1f} ms  (no Fish call)  "
+            f"text={text[:40]!r}"
+        )
         raise HTTPException(status_code=404, detail="not in cache")
 
     try:
@@ -290,14 +327,22 @@ async def tts(req: TtsRequest, strict_cache: bool = False):
 
     try:
         cache_file.write_bytes(audio)
-        _tts_log.info(f"[TTS] MISS  {len(audio):>6} B  {cache_file.name}  text={text[:40]!r}")
+        elapsed_ms = (_time.perf_counter() - t0) * 1000
+        _tts_log.info(
+            f"[TTS] MISS  {len(audio):>6} B  in {elapsed_ms:>6.1f} ms  "
+            f"(Fish call + write)  cache={cache_file.name}  text={text[:40]!r}"
+        )
     except Exception as e:
         _tts_log.warning(f"[TTS] MISS (write failed: {e})  text={text[:40]!r}")
 
     return _Response(
         content=audio,
         media_type="audio/mpeg",
-        headers={"Cache-Control": "no-store", "X-Cache": "MISS"},
+        headers={
+            "Cache-Control": "no-store",
+            "X-Cache": "MISS",
+            "X-Cache-Ms": f"{((_time.perf_counter() - t0) * 1000):.1f}",
+        },
     )
 
 
@@ -413,7 +458,7 @@ async def admin_upload_document(
 
     if filename.endswith(".pdf"):
         try:
-            from pypdf import PdfReader
+            
             reader = PdfReader(io.BytesIO(content_bytes))
             text = "\n".join(page.extract_text() or "" for page in reader.pages)
         except ImportError:
@@ -634,6 +679,7 @@ def _build_chat_messages(session_id: str, user_message: str,
         {"role": item["role"], "content": item["content"]}
         for item in get_session_messages(session_id, include_system=True)
     ]
+    messages = trim_history(messages)
     if messages and messages[0]["role"] == "system":
         messages[0]["content"] = persona
     else:
@@ -685,7 +731,21 @@ async def ws_chat(ws: WebSocket):
         if face_avatar_id:
             audio = await face_avatar_client.speak(face_avatar_id, text, voice_id=piper_voice_id)
             return audio, "audio/mpeg"      # avatar-service returns MP3 (edge-tts)
+
+        cache_file = _tts_cache_path(text, None)
+        if cache_file.exists() and cache_file.stat().st_size > 0:
+            data = cache_file.read_bytes()
+            _tts_log.info(f"[TTS] ws-HIT  {len(data):>6} B  cache={cache_file.name}  text={text[:40]!r}")
+            return data, "audio/mpeg"
+
+        t0 = _time.perf_counter()
         mp3 = await synthesize_sentence(text)
+        elapsed_ms = (_time.perf_counter() - t0) * 1000
+        try:
+            cache_file.write_bytes(mp3)
+        except Exception as e:
+            _tts_log.warning(f"[TTS] ws-write failed: {e}")
+        _tts_log.info(f"[TTS] ws-MISS {len(mp3):>6} B  in {elapsed_ms:>6.1f} ms  text={text[:40]!r}")
         return mp3, "audio/mpeg"
 
     if not session_id or not message:

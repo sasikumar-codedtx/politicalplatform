@@ -1,19 +1,19 @@
 """
 Voice-cloned TTS via Fish Audio (cloud API at api.fish.audio).
 
-Drop-in alongside edge-tts. Same async signature:
-  synthesize_cloned(text) → MP3 bytes
+Two surfaces, both async:
+  synthesize_cloned(text)         → bytes (full MP3, for /tts disk cache writes)
+  stream_cloned(text)             → async iterator of MP3 chunks (for WS first-audio)
 
-The cloned voice is created once on fish.audio by uploading a clean
-reference audio clip of the target speaker. Every TTS call uses the
-resulting reference_id to synthesise new speech in that voice.
+`stream_cloned` uses Fish's chunked-transfer streaming endpoint — first bytes
+arrive in ~250-400ms instead of waiting 1-3s for the full sentence. The WS
+layer can start sending audio to mobile the moment the first chunk lands.
 
-Env vars (set in .env):
-  FISH_AUDIO_URL      — API base URL (default: https://api.fish.audio)
-  FISH_AUDIO_API_KEY  — API key from fish.audio dashboard
-  FISH_AUDIO_VOICE_ID — reference_id of the cloned voice model
+A module-level httpx.AsyncClient is reused across calls so we don't pay the
+~150ms TCP+TLS handshake to api.fish.audio on every sentence.
 """
 import os
+from typing import AsyncIterator
 
 import httpx
 
@@ -29,29 +29,64 @@ def _headers() -> dict[str, str]:
     return h
 
 
-async def synthesize_cloned(text: str) -> bytes:
-    """One sentence in, MP3 bytes out. Concurrent-safe (no shared state)."""
+_client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=5.0),
+            http2=False,
+            limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=60.0),
+        )
+    return _client
+
+
+def _payload(text: str) -> dict:
     if not FISH_VOICE:
         raise RuntimeError(
             "FISH_AUDIO_VOICE_ID is not set. "
             "Clone a voice on fish.audio first, then add the model ID to .env."
         )
-
-    payload = {
+    return {
         "text": text,
         "reference_id": FISH_VOICE,
         "format": "mp3",
         "mp3_bitrate": 128,
+        "latency": "balanced",
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"{FISH_URL}/v1/tts",
-            json=payload,
-            headers=_headers(),
+
+async def synthesize_cloned(text: str) -> bytes:
+    """One sentence in, full MP3 bytes out. Concurrent-safe."""
+    client = _get_client()
+    resp = await client.post(
+        f"{FISH_URL}/v1/tts",
+        json=_payload(text),
+        headers=_headers(),
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Fish TTS failed: {resp.status_code} {resp.text[:300]}"
         )
+    return resp.content
+
+
+async def stream_cloned(text: str) -> AsyncIterator[bytes]:
+    """Stream MP3 chunks as Fish produces them. First chunk in ~300ms."""
+    client = _get_client()
+    async with client.stream(
+        "POST",
+        f"{FISH_URL}/v1/tts",
+        json=_payload(text),
+        headers=_headers(),
+    ) as resp:
         if resp.status_code != 200:
+            body = await resp.aread()
             raise RuntimeError(
-                f"Fish TTS failed: {resp.status_code} {resp.text[:300]}"
+                f"Fish TTS stream failed: {resp.status_code} {body[:300]!r}"
             )
-        return resp.content
+        async for chunk in resp.aiter_bytes():
+            if chunk:
+                yield chunk

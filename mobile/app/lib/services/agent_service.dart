@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
@@ -142,23 +143,6 @@ class AgentService {
     return text;
   }
 
-  // ── Text-to-speech (returns MP3 bytes from the cloned voice) ──────────────
-  // Hits /tts. On cache miss the server calls Fish (1-3 s), caches the
-  // result, then returns. Used by voice-mode auto-play after a fresh mic
-  // turn — fresh replies have to come from Fish the first time.
-  static Future<List<int>> synthesizeSpeech(String text) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/tts'),
-      headers: await _headers(),
-      body: jsonEncode({'text': text}),
-    ).timeout(const Duration(seconds: 30));
-
-    if (response.statusCode != 200) {
-      throw Exception('TTS failed (${response.statusCode})');
-    }
-    return response.bodyBytes;
-  }
-
   // ── Cache probe — does NOT download audio ────────────────────────────────
   // Asks the agent "is the cloned-voice audio for this reply already on disk?"
   // Returns true only when EVERY sentence is cached (otherwise replay would
@@ -184,16 +168,64 @@ class AgentService {
   // Used by the per-message speaker button so replays only ever come from
   // our cached data — silent if a sentence wasn't pre-cached.
   static Future<List<int>?> synthesizeSpeechCached(String text) async {
+    final sw = Stopwatch()..start();
     final response = await http.post(
       Uri.parse('$_baseUrl/tts?strict_cache=true'),
       headers: await _headers(),
       body: jsonEncode({'text': text}),
     ).timeout(const Duration(seconds: 10));
+    sw.stop();
 
-    if (response.statusCode == 404) return null;            // not in cache
+    if (response.statusCode == 404) {
+      developer.log(
+        '[TTS] strict MISS  in ${sw.elapsedMilliseconds} ms  text=${_preview(text)}',
+        name: 'tts',
+      );
+      return null;
+    }
     if (response.statusCode != 200) {
       throw Exception('TTS cached failed (${response.statusCode})');
     }
+    _logCacheHeader(response, sw.elapsedMilliseconds, text);
     return response.bodyBytes;
+  }
+
+  // ── Cache-first TTS (cache → cloud fallback) ──────────────────────────────
+  // Calls /tts WITHOUT strict_cache. Server logic:
+  //   1. If MP3 already on disk under sha256(text|voice|engine) → return HIT (cheap).
+  //   2. Else synthesise via Fish, store on disk, return MISS (one-time cost).
+  // Used by the per-message speaker icon so EVERY AI reply can be replayed:
+  // first tap may hit Fish once and bank the cache; every subsequent tap
+  // anywhere on the device, or any other device sharing this server, is free.
+  static Future<List<int>> synthesizeSpeech(String text) async {
+    final sw = Stopwatch()..start();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/tts'),
+      headers: await _headers(),
+      body: jsonEncode({'text': text}),
+    ).timeout(const Duration(seconds: 30));
+    sw.stop();
+
+    if (response.statusCode != 200) {
+      throw Exception('TTS failed (${response.statusCode})');
+    }
+    _logCacheHeader(response, sw.elapsedMilliseconds, text);
+    return response.bodyBytes;
+  }
+
+  // Surface the X-Cache header in the Flutter console so the client side
+  // matches what the server prints. HIT means free, MISS means a Fish call.
+  static void _logCacheHeader(http.Response r, int totalMs, String text) {
+    final cache = r.headers['x-cache'] ?? '??';
+    final serverMs = r.headers['x-cache-ms'] ?? '?';
+    developer.log(
+      '[TTS] $cache  ${r.bodyBytes.length}B  net=${totalMs}ms server=${serverMs}ms  text=${_preview(text)}',
+      name: 'tts',
+    );
+  }
+
+  static String _preview(String t) {
+    final s = t.replaceAll('\n', ' ');
+    return s.length <= 40 ? s : '${s.substring(0, 40)}...';
   }
 }

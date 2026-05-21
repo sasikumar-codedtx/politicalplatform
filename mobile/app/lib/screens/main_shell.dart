@@ -9,6 +9,7 @@ import 'profile_screen.dart';
 import 'chat_list_screen.dart';
 import 'phone_login_screen.dart';
 import 'join_screen.dart';
+import '../services/device_session.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -23,8 +24,11 @@ class _MainShellState extends State<MainShell> {
 
   void _onNavTap(int index) {
     if (index == 2) {
-      // Centre button — voice chat, requires login
-      _requireLoginThen(() {
+      // Centre button — chat/mic. STRICT login required (no skip path).
+      _requireLoginMandatory(() async {
+        // Fresh session keyed to the freshly logged-in user.
+        await DeviceSession.rotate();
+        if (!mounted) return;
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const ChatListScreen()));
       });
@@ -39,6 +43,36 @@ class _MainShellState extends State<MainShell> {
       }
     }
     setState(() => _selectedIndex = index);
+  }
+
+  /// Strict login — no skip. Used for chat / mic where unauthenticated
+  /// access is not allowed at all. Bottom sheet shows only Login + Cancel.
+  /// On successful login the [onSuccess] callback runs.
+  void _requireLoginMandatory(Future<void> Function() onSuccess) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      onSuccess();
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _MandatoryLoginSheet(
+        onLogin: () async {
+          Navigator.pop(context);
+          await Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+          if (FirebaseAuth.instance.currentUser != null && mounted) {
+            await onSuccess();
+            _promptJoinTvk();
+          }
+        },
+      ),
+    );
   }
 
   /// Shows a login bottom sheet. If the user skips, calls [onSkip].
@@ -341,6 +375,99 @@ class _LoginGateSheet extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF555555),
+                  )),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Mandatory login sheet (chat / mic — no skip option) ─────────────────────
+
+class _MandatoryLoginSheet extends StatelessWidget {
+  final VoidCallback onLogin;
+  const _MandatoryLoginSheet({required this.onLogin});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE40101).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.lock_outline_rounded,
+                color: Color(0xFFE40101), size: 32),
+          ),
+          const SizedBox(height: 16),
+          Text('Login Required',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1A1A),
+              )),
+          const SizedBox(height: 8),
+          Text(
+            'Sign in with your mobile number to chat\nor talk with Vijay. Your messages are private.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: Colors.black54,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: onLogin,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE40101),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE40101).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text('Login with Mobile',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  )),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              height: 48,
+              alignment: Alignment.center,
+              child: Text('Cancel',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF999999),
                   )),
             ),
           ),

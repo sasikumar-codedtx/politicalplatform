@@ -8,7 +8,7 @@ class AppConfig {
   // like /stt/transcribe and /avatar-svc/* reach the right backend.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://192.168.1.32:9000',
+    defaultValue: 'http://192.168.29.66:9000',
   );
 
   static const Map<String, FlavorConfig> _flavors = {

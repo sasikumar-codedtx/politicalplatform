@@ -50,7 +50,7 @@ A multi-client political AI agent platform. Citizens talk to their political lea
         ▼
 ┌─────────────────┐     ┌──────────────────┐
 │  REDIS (cache)  │     │  OLLAMA / LLM    │
-│  Sessions       │     │  llama3.2 local  │
+│  Sessions       │     │  gpt-oss:20b-cloud local  │
 │  Rate limits    │     │  OR AWS Bedrock  │
 │  OTP cache      │     │  on prod         │
 └─────────────────┘     └──────────────────┘
@@ -61,6 +61,7 @@ A multi-client political AI agent platform. Citizens talk to their political lea
 ## Where Things Run
 
 ### Now (Local Development)
+
 | Service | Where | URL |
 |---|---|---|
 | Flutter app | Your Mac, Xcode simulator or physical device | — |
@@ -69,6 +70,7 @@ A multi-client political AI agent platform. Citizens talk to their political lea
 | Database | None yet — in-memory + SharedPreferences | — |
 
 ### Next (Staging — single server)
+
 | Service | Where | URL |
 |---|---|---|
 | Flutter app | TestFlight (iOS) / APK sideload (Android) | — |
@@ -78,6 +80,7 @@ A multi-client political AI agent platform. Citizens talk to their political lea
 | Ollama / LLM | Same EC2 or AWS Bedrock Claude Haiku | Internal |
 
 ### Production (Scale — ECS Fargate)
+
 | Service | Where | Config |
 |---|---|---|
 | Flutter app | App Store + Google Play | — |
@@ -261,7 +264,7 @@ User: "What is TVK's policy on drinking water?"
    USER: What is TVK's policy on drinking water?
         │
         ▼
-4. Send to llama3.2 → reply
+4. Send to gpt-oss:20b-cloud → reply
         │
         ▼
 5. Return reply to app
@@ -288,9 +291,10 @@ User: "What is TVK's policy on drinking water?"
 ## Phase-by-Phase Build Plan
 
 ### ✅ Phase 0 — Done
+
 - Flutter app (13+ screens, all tabs, MVVM)
 - Firebase Phone OTP auth
-- FastAPI chat agent with Ollama llama3.2
+- FastAPI chat agent with Ollama gpt-oss:20b-cloud
 - In-memory session store
 - Local SharedPreferences persistence
 - YouTube integration (live + shorts)
@@ -300,9 +304,11 @@ User: "What is TVK's policy on drinking water?"
 ---
 
 ### 🔲 Phase 1 — Backend Foundation (1–2 weeks)
+
 **Goal:** Replace in-memory + SharedPreferences with real DB
 
 Tasks:
+
 1. Add PostgreSQL + pgvector to `docker-compose.yml`
 2. Add Redis to `docker-compose.yml`
 3. Create all Phase 1 DB tables (`users`, `chat_sessions`, `chat_messages`)
@@ -316,9 +322,11 @@ Tasks:
 ---
 
 ### 🔲 Phase 2 — RAG (1 week)
+
 **Goal:** AI answers from real TVK documents, not generic knowledge
 
 Tasks:
+
 1. Create `documents` table with pgvector
 2. Write `ingest.py` — embed documents using `nomic-embed-text` via Ollama
 3. Add TVK manifesto + speeches to `data/` folder
@@ -331,9 +339,11 @@ Tasks:
 ---
 
 ### 🔲 Phase 3 — App Content Backend (1 week)
+
 **Goal:** News, events, polls served from DB instead of hardcoded mock data
 
 Tasks:
+
 1. Create `content_service/` — FastAPI :8002
 2. Create `content_items`, `polls`, `poll_votes`, `complaints` tables
 3. Admin endpoint to create/update news + events (simple JSON POST, no CMS yet)
@@ -345,9 +355,11 @@ Tasks:
 ---
 
 ### 🔲 Phase 4 — User Profiles + KYC (1 week)
+
 **Goal:** Know who each user is, their constituency, their history
 
 Tasks:
+
 1. Create `user_service/` — FastAPI :8003
 2. On first login: create user record linked to Firebase UID
 3. Profile screen "Edit" → saves name, constituency, ward to DB
@@ -359,9 +371,11 @@ Tasks:
 ---
 
 ### 🔲 Phase 5 — Staging Deploy (1 week)
+
 **Goal:** App running on real server, not LAN IP
 
 Tasks:
+
 1. Provision 1× EC2 t3.medium in ap-south-1
 2. Install Docker + Docker Compose on EC2
 3. Write `docker-compose.prod.yml` with all services
@@ -377,9 +391,11 @@ Tasks:
 ---
 
 ### 🔲 Phase 6 — Production on ECS Fargate (2 weeks)
+
 **Goal:** Scalable production, ready for 5 crore users
 
 Tasks:
+
 1. Write Terraform for ECS cluster, task definitions, ALB
 2. Migrate from EC2 to ECS Fargate
 3. Switch LLM from Ollama to AWS Bedrock (Claude Haiku — cheaper, no GPU needed)
@@ -393,9 +409,11 @@ Tasks:
 ---
 
 ### 🔲 Phase 7 — Voice (Tamil speech)
+
 **Goal:** Citizen can speak in Tamil, leader replies in voice
 
 Tasks:
+
 1. Integrate Sarvam AI STT — Tamil speech → text
 2. Integrate Coqui XTTS — text → Vijay voice clone
 3. Flutter: add mic button to chat screen
@@ -434,7 +452,7 @@ services:
       DATABASE_URL: postgresql://app:${DB_PASSWORD}@postgres:5432/political_platform
       REDIS_URL: redis://redis:6379
       OLLAMA_URL: http://host.docker.internal:11434
-      LLM_MODEL: llama3.2
+      LLM_MODEL: gpt-oss:20b-cloud
       FIREBASE_PROJECT_ID: political-platform-19d77
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
@@ -456,7 +474,7 @@ DB_PASSWORD=<strong-random-password>
 JWT_SECRET=<64-char-random-secret>
 FIREBASE_PROJECT_ID=political-platform-19d77
 OLLAMA_URL=http://localhost:11434
-LLM_MODEL=llama3.2
+LLM_MODEL=gpt-oss:20b-cloud
 AWS_ACCESS_KEY_ID=<key>
 AWS_SECRET_ACCESS_KEY=<secret>
 AWS_REGION=ap-south-1
@@ -484,12 +502,14 @@ YOUTUBE_API_KEY=<key>
 ## Instructions for AI Agents Working on This Repo
 
 ### Before touching any file
+
 1. Read `CLAUDE.md` (or `AGENTS.md` for Codex) — project rules, changelog
 2. Read `TEAM_WORKFLOW.md` — workflow, handoff log
 3. Read this file (`ROADMAP.md`) — understand where we are in the plan
 4. Check current phase — only build what the current phase requires
 
 ### Rules that never change
+
 - Flutter: **MVVM strictly** — screens = UI only, ViewModels = logic, Services = API/DB
 - **Never break** chat, auth, navigation, or video — test before and after
 - **No black backgrounds** on light-theme screens — use brand gradients or white
@@ -498,6 +518,7 @@ YOUTUBE_API_KEY=<key>
 - One change at a time — small, reviewable, reversible
 
 ### After finishing any task
+
 1. Run `flutter analyze` — must show **0 issues**
 2. Add a row to the **Completed Phases** table below
 3. Add a row to the changelog in `AGENTS.md` and `CLAUDE.md`
@@ -509,5 +530,5 @@ YOUTUBE_API_KEY=<key>
 
 | Date | Phase | What Was Done | Files Touched |
 |---|---|---|---|
-| 2026-05-07 to 2026-05-11 | Phase 0 | Full Flutter app (13+ screens), Firebase OTP, FastAPI agent, Ollama llama3.2, YouTube integration, Fan Page, Polls, all Figma-exact screens | All mobile + services files |
+| 2026-05-07 to 2026-05-11 | Phase 0 | Full Flutter app (13+ screens), Firebase OTP, FastAPI agent, Ollama gpt-oss:20b-cloud, YouTube integration, Fan Page, Polls, all Figma-exact screens | All mobile + services files |
 | 2026-05-11 | Arch doc | Created ROADMAP.md — full architecture from monorepo to prod, RAG plan, DB schema, phase plan, AI agent instructions | ROADMAP.md |
