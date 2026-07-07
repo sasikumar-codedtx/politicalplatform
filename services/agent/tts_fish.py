@@ -20,10 +20,14 @@ import httpx
 FISH_URL = os.getenv("FISH_AUDIO_URL", "https://api.fish.audio").rstrip("/")
 FISH_KEY = os.getenv("FISH_AUDIO_API_KEY", "")
 FISH_VOICE = os.getenv("FISH_AUDIO_VOICE_ID", "")
+FISH_MODEL = os.getenv("FISH_AUDIO_MODEL", "s2.1-pro")
 
 
 def _headers() -> dict[str, str]:
-    h: dict[str, str] = {"Content-Type": "application/json"}
+    h: dict[str, str] = {
+        "Content-Type": "application/json",
+        "model": FISH_MODEL,
+    }
     if FISH_KEY:
         h["Authorization"] = f"Bearer {FISH_KEY}"
     return h

@@ -368,7 +368,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Vijay',
+                      'Respected Thiru Vijay',
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 16, fontWeight: FontWeight.w700,

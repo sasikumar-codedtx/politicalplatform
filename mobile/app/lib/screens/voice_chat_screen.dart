@@ -447,7 +447,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               ),
               const SizedBox(height: 2),
               Text(
-                'Vijay!',
+                'Respected Vijay Sir',
                 style: GoogleFonts.inter(
                   color: color, fontSize: 28, fontWeight: FontWeight.w800,
                   height: 1.1,
@@ -694,10 +694,10 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   String _statusText() {
     switch (_state) {
       case _VoiceState.idle:          return 'Tap the mic to speak';
-      case _VoiceState.recording:     return 'Vijay is listening...';
+      case _VoiceState.recording:     return 'Respected Chief Minister Vijay Sir is listening...';
       case _VoiceState.transcribing:  return 'Understanding...';
-      case _VoiceState.thinking:      return 'Vijay is thinking...';
-      case _VoiceState.speaking:      return 'Vijay is speaking...';
+      case _VoiceState.thinking:      return 'Honorable CM is thinking...';
+      case _VoiceState.speaking:      return 'Respected Thiru Vijay sir is speaking...';
     }
   }
 

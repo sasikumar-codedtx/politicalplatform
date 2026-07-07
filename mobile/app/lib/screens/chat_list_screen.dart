@@ -87,7 +87,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         elevation: 0,
         scrolledUnderElevation: 1,
         automaticallyImplyLeading: false,
-        title: Text('Ask CM Vijay', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF1A1A1A))),
+        title: Text('Ask Honorable CM Sir', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF1A1A1A))),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(color: border, height: 1),
@@ -145,7 +145,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-        label: Text('Ask ${flavor.leaderName.split(' ')[0]}', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        label: Text('Ask ${flavor.leaderName}', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
       ),
     );
   }
