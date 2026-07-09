@@ -33,8 +33,5 @@ def retrieve_context(query: str, flavor_id: str, top_k: int = 3) -> str | None:
     if not relevant:
         return None
 
-    lines = []
-    for r in relevant:
-        lines.append(f"[{r['title']}]\n{r['content']}")
-
+    lines = [f"[{r['title']}]\n{r['content']}" for r in relevant]
     return "\n\n---\n\n".join(lines)

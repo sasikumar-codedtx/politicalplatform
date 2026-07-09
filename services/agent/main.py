@@ -1,6 +1,5 @@
 import asyncio
 import io
-import json
 import os
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,6 +47,23 @@ def _chunk_text(text: str, max_words: int = 350) -> list[str]:
     if len(words) <= max_words:
         return [text]
     return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
+
+
+def _embed_and_store(flavor_id: str, title: str, text: str, source: str | None) -> list[int]:
+    """Chunk text, embed each chunk, and store it. Returns the new document ids."""
+    chunks = _chunk_text(text)
+    ids = []
+    for i, chunk in enumerate(chunks):
+        chunk_title = title if len(chunks) == 1 else f"{title} (part {i+1})"
+        doc_id = upsert_document(
+            flavor_id=flavor_id,
+            title=chunk_title,
+            content=chunk,
+            embedding=embed(chunk),
+            source=source,
+        )
+        ids.append(doc_id)
+    return ids
 
 
 app = FastAPI(
@@ -428,22 +444,10 @@ def admin_list_documents(flavor_id: str | None = None):
 
 @app.post("/admin/documents")
 def admin_add_document(req: AddDocumentRequest):
-    chunks = _chunk_text(req.content)
-    ids = []
-    for i, chunk in enumerate(chunks):
-        title = req.title if len(chunks) == 1 else f"{req.title} (part {i+1})"
-        vector = embed(chunk)
-        doc_id = upsert_document(
-            flavor_id=req.flavor_id,
-            title=title,
-            content=chunk,
-            embedding=vector,
-            source=req.source,
-        )
-        ids.append(doc_id)
+    ids = _embed_and_store(req.flavor_id, req.title, req.content, req.source)
     audit("document_added", entity_type="document", entity_id=str(ids[0]) if ids else None,
-          metadata={"title": req.title, "flavor_id": req.flavor_id, "chunks": len(chunks), "source": req.source})
-    return {"status": "ok", "chunks": len(chunks), "ids": ids}
+          metadata={"title": req.title, "flavor_id": req.flavor_id, "chunks": len(ids), "source": req.source})
+    return {"status": "ok", "chunks": len(ids), "ids": ids}
 
 
 @app.post("/admin/documents/upload")
@@ -458,7 +462,6 @@ async def admin_upload_document(
 
     if filename.endswith(".pdf"):
         try:
-            
             reader = PdfReader(io.BytesIO(content_bytes))
             text = "\n".join(page.extract_text() or "" for page in reader.pages)
         except ImportError:
@@ -472,23 +475,10 @@ async def admin_upload_document(
     if not text:
         raise HTTPException(status_code=400, detail="File appears to be empty or unreadable")
 
-    chunks = _chunk_text(text)
-    ids = []
-    for i, chunk in enumerate(chunks):
-        chunk_title = title if len(chunks) == 1 else f"{title} (part {i+1})"
-        vector = embed(chunk)
-        doc_id = upsert_document(
-            flavor_id=flavor_id,
-            title=chunk_title,
-            content=chunk,
-            embedding=vector,
-            source=source or filename,
-        )
-        ids.append(doc_id)
-
+    ids = _embed_and_store(flavor_id, title, text, source or filename)
     audit("file_uploaded", entity_type="document", entity_id=str(ids[0]) if ids else None,
-          metadata={"title": title, "flavor_id": flavor_id, "filename": filename, "chunks": len(chunks)})
-    return {"status": "ok", "filename": filename, "chunks": len(chunks), "ids": ids}
+          metadata={"title": title, "flavor_id": flavor_id, "filename": filename, "chunks": len(ids)})
+    return {"status": "ok", "filename": filename, "chunks": len(ids), "ids": ids}
 
 
 @app.post("/admin/ingest/url")
@@ -503,18 +493,10 @@ def admin_ingest_url(req: IngestUrlRequest):
         raise HTTPException(status_code=422, detail="Page returned no readable text")
 
     title = req.source or page_title
-    chunks = _chunk_text(text)
-    ids = []
-    for i, chunk in enumerate(chunks):
-        chunk_title = title if len(chunks) == 1 else f"{title} (part {i+1})"
-        vector = embed(chunk)
-        doc_id = upsert_document(flavor_id=req.flavor_id, title=chunk_title,
-                                  content=chunk, embedding=vector, source=req.url)
-        ids.append(doc_id)
-
+    ids = _embed_and_store(req.flavor_id, title, text, req.url)
     audit("url_scraped", entity_type="document", entity_id=str(ids[0]) if ids else None,
-          metadata={"url": req.url, "title": title, "flavor_id": req.flavor_id, "chunks": len(chunks)})
-    return {"status": "ok", "title": title, "url": req.url, "chunks": len(chunks), "ids": ids}
+          metadata={"url": req.url, "title": title, "flavor_id": req.flavor_id, "chunks": len(ids)})
+    return {"status": "ok", "title": title, "url": req.url, "chunks": len(ids), "ids": ids}
 
 
 @app.post("/admin/ingest/youtube")
@@ -528,18 +510,10 @@ def admin_ingest_youtube(req: IngestYouTubeRequest):
     if not transcript.strip():
         raise HTTPException(status_code=422, detail="No transcript content found")
 
-    chunks = _chunk_text(transcript)
-    ids = []
-    for i, chunk in enumerate(chunks):
-        chunk_title = video_title if len(chunks) == 1 else f"{video_title} (part {i+1})"
-        vector = embed(chunk)
-        doc_id = upsert_document(flavor_id=req.flavor_id, title=chunk_title,
-                                  content=chunk, embedding=vector, source=req.url)
-        ids.append(doc_id)
-
+    ids = _embed_and_store(req.flavor_id, video_title, transcript, req.url)
     audit("youtube_ingested", entity_type="document", entity_id=str(ids[0]) if ids else None,
-          metadata={"url": req.url, "title": video_title, "flavor_id": req.flavor_id, "chunks": len(chunks)})
-    return {"status": "ok", "title": video_title, "url": req.url, "chunks": len(chunks), "ids": ids}
+          metadata={"url": req.url, "title": video_title, "flavor_id": req.flavor_id, "chunks": len(ids)})
+    return {"status": "ok", "title": video_title, "url": req.url, "chunks": len(ids), "ids": ids}
 
 
 @app.delete("/admin/documents/{doc_id}")

@@ -9,8 +9,6 @@ the browser via its existing audio pipeline. The browser separately fetches
 MVP2 will add WebRTC video tracks + 2D mouth animation. The route surface
 won't change — only the implementation behind /session/speak.
 """
-import io
-import os
 import uuid
 from pathlib import Path
 

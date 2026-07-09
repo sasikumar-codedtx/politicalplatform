@@ -23,11 +23,15 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _iso(value) -> str:
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
 def _connect():
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
     return conn
-    
+
 
 @contextmanager
 def get_conn():
@@ -225,7 +229,7 @@ def list_prompts() -> list[dict]:
                     "category":    row["category"],
                     "label":       row["label"],
                     "description": row["description"],
-                    "updated_at":  row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
+                    "updated_at":  _iso(row["updated_at"]),
                 }
                 for row in cur.fetchall()
             ]
@@ -319,7 +323,7 @@ def get_session_messages(session_id: str, include_system: bool = True) -> list[d
                 {
                     "role": row["role"],
                     "content": row["content"],
-                    "timestamp": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                    "timestamp": _iso(row["created_at"]),
                 }
                 for row in cur.fetchall()
             ]
@@ -345,8 +349,8 @@ def list_sessions(user_id: str | None = None) -> list[dict]:
                 {
                     "id": row["id"],
                     "title": row["title"],
-                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
-                    "last_active_at": row["last_active_at"].isoformat() if hasattr(row["last_active_at"], "isoformat") else str(row["last_active_at"]),
+                    "created_at": _iso(row["created_at"]),
+                    "last_active_at": _iso(row["last_active_at"]),
                     "last_message": row["last_message"],
                     "user_id": row["user_id"],
                 }
@@ -396,7 +400,7 @@ def list_documents(flavor_id: str | None = None) -> list[dict]:
             return [
                 {
                     **dict(row),
-                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                    "created_at": _iso(row["created_at"]),
                 }
                 for row in cur.fetchall()
             ]
@@ -497,7 +501,7 @@ def get_avatar(avatar_id: str) -> dict | None:
 def _avatar_row_to_dict(row) -> dict:
     return {
         **dict(row),
-        "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+        "created_at": _iso(row["created_at"]),
     }
 
 
@@ -523,7 +527,7 @@ def list_audit_logs(limit: int = 100) -> list[dict]:
                 {
                     **dict(row),
                     "metadata": row["metadata"] if isinstance(row["metadata"], dict) else (_json.loads(row["metadata"]) if row["metadata"] else None),
-                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                    "created_at": _iso(row["created_at"]),
                 }
                 for row in cur.fetchall()
             ]

@@ -86,19 +86,9 @@ def _strip_noise(soup) -> None:
 
 
 def _clean(text: str) -> str:
-    """Remove excessive blank lines and whitespace."""
+    """Remove blank lines and surrounding whitespace."""
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    # Collapse runs of 3+ blank lines into 2
-    result, prev_blank = [], 0
-    for line in lines:
-        if not line:
-            prev_blank += 1
-            if prev_blank <= 2:
-                result.append(line)
-        else:
-            prev_blank = 0
-            result.append(line)
-    return "\n".join(result)
+    return "\n".join(lines)
 
 
 # ── YouTube transcript ────────────────────────────────────────────────────────

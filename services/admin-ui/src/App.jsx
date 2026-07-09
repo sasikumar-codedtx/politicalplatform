@@ -319,10 +319,10 @@ function YouTubeForm({ flavor, onAdded }) {
 
 // ── Add Content Modal ─────────────────────────────────────────────────────
 const ADD_TABS = [
-  { id: 'text',    icon: '✏️', label: 'Paste Text' },
-  { id: 'file',    icon: '📁', label: 'Upload File' },
-  { id: 'url',     icon: '🌐', label: 'Scrape URL' },
-  { id: 'youtube', icon: '▶',  label: 'YouTube' },
+  { id: 'text', icon: '✏️', label: 'Paste Text' },
+  { id: 'file', icon: '📁', label: 'Upload File' },
+  { id: 'url', icon: '🌐', label: 'Scrape URL' },
+  { id: 'youtube', icon: '▶', label: 'YouTube' },
 ]
 
 function AddContentModal({ flavor, onClose, onAdded }) {
@@ -378,10 +378,10 @@ function AddContentModal({ flavor, onClose, onAdded }) {
 
         {/* Form body */}
         <div style={{ padding: 24, maxHeight: '65vh', overflowY: 'auto' }}>
-          {tab === 'text'    && <AddTextForm    flavor={flavor} onAdded={handleAdded} />}
-          {tab === 'file'    && <UploadFileForm  flavor={flavor} onAdded={handleAdded} />}
-          {tab === 'url'     && <ScrapeUrlForm   flavor={flavor} onAdded={handleAdded} />}
-          {tab === 'youtube' && <YouTubeForm     flavor={flavor} onAdded={handleAdded} />}
+          {tab === 'text' && <AddTextForm flavor={flavor} onAdded={handleAdded} />}
+          {tab === 'file' && <UploadFileForm flavor={flavor} onAdded={handleAdded} />}
+          {tab === 'url' && <ScrapeUrlForm flavor={flavor} onAdded={handleAdded} />}
+          {tab === 'youtube' && <YouTubeForm flavor={flavor} onAdded={handleAdded} />}
         </div>
       </div>
     </div>
@@ -526,18 +526,18 @@ function TestQueryView({ flavor }) {
 
 // ── Audit Log ─────────────────────────────────────────────────────────────
 const ACTION_META = {
-  document_added:        { icon: '📝', color: t.success,  label: 'Added' },
-  file_uploaded:         { icon: '📁', color: '#8B5CF6',  label: 'File' },
-  url_scraped:           { icon: '🌐', color: t.info,     label: 'URL' },
-  youtube_ingested:      { icon: '▶',  color: t.danger,   label: 'YouTube' },
-  document_deleted:      { icon: '🗑', color: t.warning,  label: 'Deleted' },
-  session_deleted:       { icon: '💬', color: t.muted,    label: 'Session' },
-  chat_message:          { icon: '💬', color: '#94A3B8',  label: 'Chat' },
-  injection_blocked:     { icon: '🚨', color: t.danger,   label: 'Blocked' },
-  url_scrape_failed:     { icon: '⚠️', color: t.warning,  label: 'URL Fail' },
-  youtube_ingest_failed: { icon: '⚠️', color: t.warning,  label: 'YT Fail' },
-  prompt_updated:        { icon: '🎭', color: t.primary,  label: 'Prompt' },
-  prompt_reset:          { icon: '↺',  color: t.muted,    label: 'Reset' },
+  document_added: { icon: '📝', color: t.success, label: 'Added' },
+  file_uploaded: { icon: '📁', color: '#8B5CF6', label: 'File' },
+  url_scraped: { icon: '🌐', color: t.info, label: 'URL' },
+  youtube_ingested: { icon: '▶', color: t.danger, label: 'YouTube' },
+  document_deleted: { icon: '🗑', color: t.warning, label: 'Deleted' },
+  session_deleted: { icon: '💬', color: t.muted, label: 'Session' },
+  chat_message: { icon: '💬', color: '#94A3B8', label: 'Chat' },
+  injection_blocked: { icon: '🚨', color: t.danger, label: 'Blocked' },
+  url_scrape_failed: { icon: '⚠️', color: t.warning, label: 'URL Fail' },
+  youtube_ingest_failed: { icon: '⚠️', color: t.warning, label: 'YT Fail' },
+  prompt_updated: { icon: '🎭', color: t.primary, label: 'Prompt' },
+  prompt_reset: { icon: '↺', color: t.muted, label: 'Reset' },
 }
 
 function AuditLogView() {
@@ -615,12 +615,12 @@ function AuditLogView() {
 
 // ── Prompts view ──────────────────────────────────────────────────────────
 const CATEGORY_ICON = {
-  persona:     '🎭',
+  persona: '🎭',
   role_anchor: '⚓',
-  language:    '🌐',
-  refusal:     '🛡',
-  rag:         '📎',
-  misc:        '•',
+  language: '🌐',
+  refusal: '🛡',
+  rag: '📎',
+  misc: '•',
 }
 
 function PromptEditor({ prompt, onSaved }) {
@@ -838,7 +838,7 @@ function AvatarsView({ flavor }) {
   const submit = async (e) => {
     e.preventDefault()
     if (!name.trim()) { setToast({ ok: false, text: 'Name is required' }); return }
-    if (!file)        { setToast({ ok: false, text: 'Photo is required' }); return }
+    if (!file) { setToast({ ok: false, text: 'Photo is required' }); return }
     setBusy(true)
     try {
       const fd = new FormData()
@@ -880,7 +880,7 @@ function AvatarsView({ flavor }) {
         <div style={{ padding: 16 }}>
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Input label="Display name" value={name} onChange={e => setName(e.target.value)}
-                   placeholder="e.g. Vijay" required />
+              placeholder="e.g. Vijay" required />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: t.muted }}>
                 Face photo <span style={{ color: t.danger }}>*</span>
@@ -894,8 +894,8 @@ function AvatarsView({ flavor }) {
               </span>
             </div>
             <Input label="Voice id" value={piperVoiceId} onChange={e => setPiperVoiceId(e.target.value)}
-                   placeholder="en_US-amy-medium"
-                   hint="Any edge-tts voice. Indian English: en-IN-NeerjaNeural. Tamil: ta-IN-PallaviNeural. Hindi: hi-IN-SwaraNeural. Aliases like en_US-amy-medium also work." />
+              placeholder="en_US-amy-medium"
+              hint="Any edge-tts voice. Indian English: en-IN-NeerjaNeural. Tamil: ta-IN-PallaviNeural. Hindi: hi-IN-SwaraNeural. Aliases like en_US-amy-medium also work." />
 
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <Button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add avatar'}</Button>
@@ -955,7 +955,7 @@ function AvatarCard({ avatar, onDelete }) {
       {linkHref && (
         <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
           <a href={linkHref} target="_blank" rel="noreferrer" className="source-link"
-             style={{ fontSize: 11, fontWeight: 600, color: t.info }}>{linkLabel}</a>
+            style={{ fontSize: 11, fontWeight: 600, color: t.info }}>{linkLabel}</a>
         </div>
       )}
 
@@ -970,12 +970,12 @@ function AvatarCard({ avatar, onDelete }) {
 const NAV = [
   { section: 'KNOWLEDGE BASE' },
   { id: 'documents', icon: '📚', label: 'Documents' },
-  { id: 'test',      icon: '🔍', label: 'Test Retrieval' },
-  { id: 'audit',     icon: '📋', label: 'Audit Log' },
+  { id: 'test', icon: '🔍', label: 'Test Retrieval' },
+  { id: 'audit', icon: '📋', label: 'Audit Log' },
   { section: 'AVATAR' },
-  { id: 'avatars',   icon: '🧑', label: 'Avatars' },
+  { id: 'avatars', icon: '🧑', label: 'Avatars' },
   { section: 'PROMPT CONFIG' },
-  { id: 'prompts',   icon: '🎭', label: 'All Prompts' },
+  { id: 'prompts', icon: '🎭', label: 'All Prompts' },
 ]
 
 function Sidebar({ active, onNav, flavor, setFlavor, docCount }) {
@@ -1023,7 +1023,7 @@ function Sidebar({ active, onNav, flavor, setFlavor, docCount }) {
       {/* Footer */}
       <div style={{ padding: '12px 16px', borderTop: `1px solid ${t.sidebarBorder}` }}>
         <div style={{ fontSize: 11, color: t.sidebarText }}>{docCount} documents indexed</div>
-        <div style={{ fontSize: 10, color: 'rgba(148,163,184,0.4)', marginTop: 2 }}>localhost:8001</div>
+        <div style={{ fontSize: 10, color: 'rgba(148,163,184,0.4)', marginTop: 2 }}></div>
       </div>
     </div>
   )
@@ -1075,17 +1075,17 @@ export default function App() {
           {(page === 'documents' || page === 'test') && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
               <StatCard label="Total Documents" value={docs.length} icon="📚" color={t.primary} />
-              <StatCard label="Manual / File"   value={typeCount('Manual') + typeCount('File')} icon="📝" color="#8B5CF6" />
-              <StatCard label="From URLs"        value={typeCount('URL')}     icon="🌐" color={t.info} />
-              <StatCard label="YouTube"          value={typeCount('YouTube')} icon="▶" color={t.danger} />
+              <StatCard label="Manual / File" value={typeCount('Manual') + typeCount('File')} icon="📝" color="#8B5CF6" />
+              <StatCard label="From URLs" value={typeCount('URL')} icon="🌐" color={t.info} />
+              <StatCard label="YouTube" value={typeCount('YouTube')} icon="▶" color={t.danger} />
             </div>
           )}
 
           {page === 'documents' && <DocumentsView flavor={flavor} docs={docs} loading={loading} onDelete={handleDelete} />}
-          {page === 'test'      && <TestQueryView flavor={flavor} />}
-          {page === 'audit'     && <AuditLogView />}
-          {page === 'prompts'   && <PromptsView />}
-          {page === 'avatars'   && <AvatarsView flavor={flavor} />}
+          {page === 'test' && <TestQueryView flavor={flavor} />}
+          {page === 'audit' && <AuditLogView />}
+          {page === 'prompts' && <PromptsView />}
+          {page === 'avatars' && <AvatarsView flavor={flavor} />}
         </main>
 
         {/* Floating Add Content button — only on document-management pages */}

@@ -6,7 +6,6 @@ stays open and each new boundary part replaces the previous frame in-place
 — no JavaScript decoder needed. Perfect for streaming face-animation frames
 from a Python service to the browser.
 """
-import asyncio
 from typing import AsyncIterator
 
 from starlette.responses import StreamingResponse
