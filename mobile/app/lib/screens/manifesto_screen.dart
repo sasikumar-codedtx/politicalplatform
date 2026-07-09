@@ -128,6 +128,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: 216 + topPad,
       child: Stack(
         children: [
@@ -386,7 +387,7 @@ class _PlanCard extends StatelessWidget {
           // Timeline + Budget chips
           Row(
             children: [
-              _InfoChip(label: 'Timeline', value: plan.timeline),
+              Flexible(child: _InfoChip(label: 'Timeline', value: plan.timeline)),
               const SizedBox(width: 16),
               Expanded(child: _InfoChip(label: 'Budget', value: plan.budget, expand: true)),
             ],
@@ -440,7 +441,12 @@ class _InfoChip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF242424).withValues(alpha: 0.8), height: 1.4)),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF242424), height: 1.4)),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF242424), height: 1.4),
+          ),
         ],
       ),
     );
@@ -683,13 +689,14 @@ class _GoalsTab extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               // Chips
-              Row(
+              Wrap(
+                spacing: 14,
+                runSpacing: 8,
                 children: [
                   _GoalChip(
                     icon: Icons.access_time_rounded,
                     label: 'Jan 2026 – Sep 2026',
                   ),
-                  const SizedBox(width: 14),
                   _GoalChip(
                     icon: Icons.currency_rupee_rounded,
                     label: '50 Crore',

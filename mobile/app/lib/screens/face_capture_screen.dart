@@ -19,20 +19,13 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   bool _flashOn = false;
   final _picker = ImagePicker();
 
-  Future<void> _captureFromCamera() async {
+  Future<void> _pickImage(
+    ImageSource source, [
+    CameraDevice camera = CameraDevice.rear,
+  ]) async {
     final xFile = await _picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 90,
-    );
-    if (xFile != null && mounted) {
-      setState(() => _capturedImage = File(xFile.path));
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final xFile = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
+      preferredCameraDevice: camera,
       imageQuality: 90,
     );
     if (xFile != null && mounted) {
@@ -190,8 +183,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                 ),
                 child: _capturedImage == null
                     ? _CaptureActions(
-                        onGallery: _pickFromGallery,
-                        onCapture: _captureFromCamera,
+                        onGallery: () => _pickImage(ImageSource.gallery),
+                        onCapture: () =>
+                            _pickImage(ImageSource.camera, CameraDevice.front),
                         onFlash: () => setState(() => _flashOn = !_flashOn),
                         flashOn: _flashOn,
                       )

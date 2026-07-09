@@ -106,7 +106,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
+        // Scrollable so the form never overflows when the keyboard opens;
+        // minHeight + IntrinsicHeight keep the Spacer-centred layout otherwise.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,6 +207,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
               ],
               const Spacer(flex: 2),
             ],
+          ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -145,7 +145,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-        label: Text('Ask ${flavor.leaderName}', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        label: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Text(
+            'Ask ${flavor.leaderName}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+        ),
       ),
     );
   }

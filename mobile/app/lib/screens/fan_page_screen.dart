@@ -104,6 +104,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: 234 + topPad,
       child: Stack(
         children: [

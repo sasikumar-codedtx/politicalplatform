@@ -23,7 +23,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle: 'Justice',
       description:
           'We promote social justice principles to ensure equality for all social groups and to create equal opportunities for all without discrimination.',
-      contentTop: 576.0,
     ),
     _SlideData(
       image: 'assets/images/onboard_2_technology.jpg',
@@ -31,7 +30,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle: 'development',
       description:
           'We want to use modern technologies in public welfare work, simplify political processes, and improve public service.',
-      contentTop: 576.0,
     ),
     _SlideData(
       image: 'assets/images/onboard_3_opportunity.jpg',
@@ -39,7 +37,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle: 'for the younger generation',
       description:
           'We want to use modern technologies in public welfare work, simplify political processes, and improve public service.',
-      contentTop: 488.0,
       hasCta: true,
     ),
   ];
@@ -272,9 +269,9 @@ class _TvkCollageSlide extends StatelessWidget {
             child: Container(color: Colors.black),
           ),
 
-          // ── Text + dots  (Figma top:562)
+          // ── Text + dots anchored to the bottom
           Positioned(
-            top: 562,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
             left: 16,
             width: sw - 32,
             child: Column(
@@ -318,7 +315,6 @@ class _SlideData {
   final String title;
   final String subtitle;
   final String description;
-  final double contentTop;
   final bool hasCta;
 
   const _SlideData({
@@ -326,7 +322,6 @@ class _SlideData {
     required this.title,
     required this.subtitle,
     required this.description,
-    required this.contentTop,
     this.hasCta = false,
   });
 }
@@ -398,9 +393,9 @@ class _OnboardSlide extends StatelessWidget {
             top: 570, left: 0, right: 0, bottom: 0,
             child: Container(color: Colors.black),
           ),
-          // Content
+          // Content anchored to the bottom so dots + CTA always stay on screen
           Positioned(
-            top: data.contentTop,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
             left: 16,
             width: sw - 32,
             child: Column(

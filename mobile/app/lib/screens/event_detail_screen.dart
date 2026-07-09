@@ -104,15 +104,22 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             children: [
                               const Icon(Icons.location_on_outlined, color: Color(0xFFE40101), size: 20),
                               const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Location', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
-                                  const SizedBox(height: 2),
-                                  Text(event.location, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-                                ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Location', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      event.location,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
@@ -315,13 +322,20 @@ class _InfoCard extends StatelessWidget {
           children: [
             Icon(icon, color: const Color(0xFFE40101), size: 18),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.black38)),
-                const SizedBox(height: 2),
-                Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.black38)),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -82,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                   // ── About TVK ─────────────────────────────────────
                   _SectionTitle(title: 'About TVK'),
                   const SizedBox(height: 12),
-                  _AboutTvkCard(context: context),
+                  const _AboutTvkCard(),
                 ],
               ),
             ),
@@ -158,10 +158,11 @@ class _ProfileCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Status pills
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _StatusPill(label: 'Volunteer since 2024', color: const Color(0xFF4CAE4F)),
-              const SizedBox(width: 8),
               _StatusPill(
                 label: 'Earned 20 TVK Badges',
                 color: const Color(0xFF093492),
@@ -171,29 +172,32 @@ class _ProfileCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Stats row
-          Row(
-            children: [
-              Expanded(
-                child: _StatBox(
-                  value: '26',
-                  label: 'Polls\nparticipated',
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _StatBox(
+                    value: '26',
+                    label: 'Polls\nparticipated',
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _StatBox(
-                  value: '02',
-                  label: 'Complaints\nsubmitted',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatBox(
+                    value: '02',
+                    label: 'Complaints\nsubmitted',
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _StatBox(
-                  value: '₹150',
-                  label: 'Total Amount\nDonated',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatBox(
+                    value: '₹150',
+                    label: 'Total Amount\nDonated',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           // Join as member button
@@ -259,7 +263,7 @@ class _StatBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 93,
+      constraints: const BoxConstraints(minHeight: 93),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -268,6 +272,7 @@ class _StatBox extends StatelessWidget {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             value,
@@ -343,12 +348,14 @@ class _AreaPulseCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.campaign_rounded, size: 36, color: Color(0xFF09416D)),
                       const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('03', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF09416D))),
-                          Text('Events\nconducted', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF09416D))),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('03', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF09416D))),
+                            Text('Events\nconducted', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF09416D))),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -366,12 +373,14 @@ class _AreaPulseCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.how_to_vote_rounded, size: 36, color: Color(0xFF09416D)),
                       const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('1,148', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF09416D))),
-                          Text('Polls turnout\nvotes in May', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF09416D))),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('1,148', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF09416D))),
+                            Text('Polls turnout\nvotes in May', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF09416D))),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -498,11 +507,10 @@ class _MemberCard extends StatelessWidget {
 // ─── About TVK Card ───────────────────────────────────────────────────────────
 
 class _AboutTvkCard extends StatelessWidget {
-  final BuildContext context;
-  const _AboutTvkCard({required this.context});
+  const _AboutTvkCard();
 
   @override
-  Widget build(BuildContext outerCtx) {
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

@@ -273,7 +273,14 @@ class _ShortComment extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(author, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                    Flexible(
+                      child: Text(
+                        author,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
+                    ),
                     const SizedBox(width: 6),
                     Text('· $time', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white38)),
                   ],

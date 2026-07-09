@@ -481,47 +481,36 @@ class _MediaContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const cardW = 171.0;
-    const cardH = 264.0;
     const gap = 16.0;
     final rows = (videos.length / 2).ceil();
+
+    Widget card() => AspectRatio(
+      aspectRatio: 171 / 264,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          color: const Color(0xFFEEEEEE),
+          child: const Center(
+            child: _PlayButton(),
+          ),
+        ),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: List.generate(rows, (row) {
-          final leftIdx = row * 2;
-          final rightIdx = leftIdx + 1;
+          final rightIdx = row * 2 + 1;
           return Padding(
             padding: EdgeInsets.only(bottom: row < rows - 1 ? gap : 0),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: cardW,
-                    height: cardH,
-                    color: const Color(0xFFEEEEEE),
-                    child: const Center(
-                      child: _PlayButton(),
-                    ),
-                  ),
-                ),
+                Expanded(child: card()),
                 const SizedBox(width: gap),
-                if (rightIdx < videos.length)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      width: cardW,
-                      height: cardH,
-                      color: const Color(0xFFEEEEEE),
-                      child: const Center(
-                        child: _PlayButton(),
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(width: cardW, height: cardH),
+                Expanded(
+                  child: rightIdx < videos.length ? card() : const SizedBox(),
+                ),
               ],
             ),
           );

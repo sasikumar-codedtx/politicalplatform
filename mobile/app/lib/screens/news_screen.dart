@@ -244,31 +244,27 @@ class _NewsScreenState extends State<NewsScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            // ── Hero banner ──────────────────────────────────────────
-            _NewsBanner(topPad: topPad),
-
-            // ── Search + filter + list ────────────────────────────────
-            Expanded(
-              child: _loading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xFFE40101)))
-                  : _NewsBody(
-                      news: _filtered,
-                      categories: _kCategories,
-                      activeCategory: _activeCategory,
-                      searchQuery: _searchQuery,
-                      hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
-                      onCategoryChanged: (c) =>
-                          setState(() => _activeCategory = c),
-                      onSearchChanged: (q) =>
-                          setState(() => _searchQuery = q),
-                      onOpenFilters: _openFilterSheet,
-                    ),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
+              child: _NewsBanner(topPad: topPad),
             ),
           ],
+          body: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFE40101)))
+              : _NewsBody(
+                  news: _filtered,
+                  categories: _kCategories,
+                  activeCategory: _activeCategory,
+                  searchQuery: _searchQuery,
+                  hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
+                  onCategoryChanged: (c) =>
+                      setState(() => _activeCategory = c),
+                  onSearchChanged: (q) =>
+                      setState(() => _searchQuery = q),
+                  onOpenFilters: _openFilterSheet,
+                ),
         ),
       ),
     );
@@ -284,6 +280,7 @@ class _NewsBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: topPad + 160,
       child: Stack(
         children: [
@@ -528,16 +525,20 @@ class _NewsBody extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            cat,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: isActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              color: isActive
-                                  ? Colors.white
-                                  : const Color(0xFF242424),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              cat,
+                              maxLines: 1,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: isActive
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                color: isActive
+                                    ? Colors.white
+                                    : const Color(0xFF242424),
+                              ),
                             ),
                           ),
                         ),
@@ -804,12 +805,16 @@ class _NewsCard extends StatelessWidget {
                     const Icon(Icons.calendar_today_outlined,
                         size: 12, color: Color(0xFF888888)),
                     const SizedBox(width: 4),
-                    Text(
-                      item.date,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF242424).withValues(alpha: 0.8),
+                    Flexible(
+                      child: Text(
+                        item.date,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF242424).withValues(alpha: 0.8),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),

@@ -176,6 +176,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     children: [
                       Text(
                         widget.video.title,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -205,15 +207,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            widget.video.channelTitle,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70,
+                          Expanded(
+                            child: Text(
+                              widget.video.channelTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white70,
+                              ),
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 8),
                           if (widget.video.formattedDate.isNotEmpty)
                             Text(
                               widget.video.formattedDate,

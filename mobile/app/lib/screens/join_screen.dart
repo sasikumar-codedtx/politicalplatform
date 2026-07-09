@@ -325,12 +325,16 @@ class _JoinScreenState extends State<JoinScreen> {
                             const Icon(Icons.badge_rounded,
                                 color: Colors.white, size: 18),
                             const SizedBox(width: 8),
-                            Text(
-                              'Submit & Get ID Card',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                            Flexible(
+                              child: Text(
+                                'Submit & Get ID Card',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ],
@@ -406,6 +410,7 @@ class _JoinHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: topPad + 220,
       child: Stack(
         clipBehavior: Clip.hardEdge,

@@ -285,6 +285,45 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+// ─── Shared bottom-sheet pieces ──────────────────────────────────────────────
+
+Widget _sheetHandle() {
+  return Container(
+    width: 40, height: 4,
+    decoration: BoxDecoration(
+      color: Colors.black12,
+      borderRadius: BorderRadius.circular(2),
+    ),
+  );
+}
+
+Widget _sheetLoginButton(VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE40101),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE40101).withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text('Login with Mobile',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          )),
+    ),
+  );
+}
+
 // ─── Login gate bottom sheet ──────────────────────────────────────────────────
 
 class _LoginGateSheet extends StatelessWidget {
@@ -300,13 +339,7 @@ class _LoginGateSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: Colors.black12,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          _sheetHandle(),
           const SizedBox(height: 20),
           Container(
             width: 60, height: 60,
@@ -335,30 +368,7 @@ class _LoginGateSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: onLogin,
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE40101),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFE40101).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text('Login with Mobile',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  )),
-            ),
-          ),
+          _sheetLoginButton(onLogin),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: onSkip,
@@ -398,13 +408,7 @@ class _MandatoryLoginSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: Colors.black12,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          _sheetHandle(),
           const SizedBox(height: 20),
           Container(
             width: 64, height: 64,
@@ -433,30 +437,7 @@ class _MandatoryLoginSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: onLogin,
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE40101),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFE40101).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text('Login with Mobile',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  )),
-            ),
-          ),
+          _sheetLoginButton(onLogin),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => Navigator.pop(context),
@@ -492,13 +473,7 @@ class _JoinTvkPromptSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: Colors.black12,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          _sheetHandle(),
           const SizedBox(height: 20),
           // TVK yellow-red badge
           Container(

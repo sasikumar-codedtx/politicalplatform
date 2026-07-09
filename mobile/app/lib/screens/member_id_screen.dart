@@ -211,16 +211,13 @@ class _TvkIdCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Scale card relative to screen width while keeping Figma proportions
+    // Card width follows the screen; height is content-driven so large
+    // system font sizes grow the card instead of overflowing it
     final sw = MediaQuery.of(context).size.width;
     final cardW = sw - 40.0;
-    // Figma: 194×276 → aspect ratio ~0.703
-    // Make the card a bit taller to fit all info
-    final cardH = cardW * 0.85;
 
     return Container(
       width: cardW,
-      height: cardH,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
@@ -416,7 +413,7 @@ class _TvkIdCard extends StatelessWidget {
                     ],
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 16),
 
                   // ── Footer strip ──────────────────────────────────
                   Container(
@@ -444,12 +441,17 @@ class _TvkIdCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      Text(
-                        'tvkvijay.com',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 9,
-                          color: Colors.white38,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'tvkvijay.com',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9,
+                            color: Colors.white38,
+                          ),
                         ),
                       ),
                     ],

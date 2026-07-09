@@ -58,14 +58,17 @@ class _PollsScreenState extends State<PollsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Filter chips
-                  Row(
-                    children: [
-                      _FilterChip(label: 'Polls', active: _tab == 0, onTap: () => setState(() => _tab = 0)),
-                      const SizedBox(width: 8),
-                      _FilterChip(label: 'Complaints', active: _tab == 1, onTap: () => setState(() => _tab = 1)),
-                      const SizedBox(width: 8),
-                      _FilterChip(label: 'Donation', active: _tab == 2, onTap: () => setState(() => _tab = 2)),
-                    ],
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _FilterChip(label: 'Polls', active: _tab == 0, onTap: () => setState(() => _tab = 0)),
+                        const SizedBox(width: 8),
+                        _FilterChip(label: 'Complaints', active: _tab == 1, onTap: () => setState(() => _tab = 1)),
+                        const SizedBox(width: 8),
+                        _FilterChip(label: 'Donation', active: _tab == 2, onTap: () => setState(() => _tab = 2)),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   if (_tab == 0) ...[
@@ -273,21 +276,26 @@ class _PollCard extends StatelessWidget {
           const SizedBox(height: 12),
           // Footer: responses + badge
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.plusJakartaSans(fontSize: 14),
-                  children: [
-                    TextSpan(text: '${poll.responses} responses ', style: const TextStyle(color: Colors.black)),
-                    const TextSpan(text: '| ', style: TextStyle(color: Color(0xFF888686))),
-                    TextSpan(
-                      text: ' ${poll.daysLeft} Days left',
-                      style: const TextStyle(color: Color(0xFFDD2D2D)),
-                    ),
-                  ],
+              Flexible(
+                child: RichText(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                    style: GoogleFonts.plusJakartaSans(fontSize: 14),
+                    children: [
+                      TextSpan(text: '${poll.responses} responses ', style: const TextStyle(color: Colors.black)),
+                      const TextSpan(text: '| ', style: TextStyle(color: Color(0xFF888686))),
+                      TextSpan(
+                        text: ' ${poll.daysLeft} Days left',
+                        style: const TextStyle(color: Color(0xFFDD2D2D)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(

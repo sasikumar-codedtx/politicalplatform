@@ -293,7 +293,9 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: bg,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
+        // PreferredSize does not add the status-bar inset the way AppBar does,
+        // so it must be included here or the header's SafeArea eats the 64px.
+        preferredSize: Size.fromHeight(64 + MediaQuery.of(context).padding.top),
         child: _buildHeader(color),
       ),
       body: Column(
@@ -369,6 +371,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Text(
                       'Respected Thiru Vijay',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 16, fontWeight: FontWeight.w700,
@@ -386,11 +390,15 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          _streaming ? 'Replying live...' : 'Online',
-                          style: GoogleFonts.inter(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 11, fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            _streaming ? 'Replying live...' : 'Online',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 11, fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],

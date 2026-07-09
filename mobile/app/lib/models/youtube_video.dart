@@ -25,12 +25,8 @@ class YouTubeVideo {
 
     // Search results have `id` as a Map; playlist items may have it as a String.
     final idField = json['id'];
-    final String videoId;
-    if (idField is Map) {
-      videoId = idField['videoId'] as String;
-    } else {
-      videoId = idField as String;
-    }
+    final videoId =
+        idField is Map ? idField['videoId'] as String : idField as String;
 
     final thumbnails = snippet['thumbnails'] as Map<String, dynamic>;
     final thumb =
