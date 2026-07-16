@@ -294,17 +294,18 @@ class _MediaTabBtn extends StatelessWidget {
 class _PostersBody extends StatelessWidget {
   const _PostersBody();
 
-  static const _leftAssets = [
-    'assets/images/campaign1.png',
-    'assets/images/campaign_2.png',
-    'assets/images/campaign1.png',
-    'assets/images/campaign_2.png',
+  // Left column: 3 cards, all 264px tall (matches Figma Thalapathy5/1/7)
+  static const _leftItems = [
+    ('assets/images/campaign1.png',   264.0),
+    ('assets/images/campaign_2.png',  264.0),
+    ('assets/images/campaign2.png',   264.0),
   ];
-  static const _rightAssets = [
-    'assets/images/campaign2.png',
-    'assets/images/campaign1.png',
-    'assets/images/campaign2.png',
-    'assets/images/campaign_2.png',
+  // Right column: 4 cards, alternating shorter/taller (Figma Thalapathy2/4/6/8)
+  static const _rightItems = [
+    ('assets/images/campaign2.png',   169.0),
+    ('assets/images/campaign1.png',   264.0),
+    ('assets/images/campaign_2.png',  169.0),
+    ('assets/images/campaign2.png',   174.0),
   ];
 
   @override
@@ -315,27 +316,31 @@ class _PostersBody extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left column — tall cards
+            // Left column — all 264px (Figma: Thalapathy5/1/7)
             Expanded(
               child: Column(
-                children: List.generate(_leftAssets.length, (i) => Padding(
-                  padding: EdgeInsets.only(bottom: i < _leftAssets.length - 1 ? 10 : 0),
-                  child: _PosterCard(asset: _leftAssets[i], height: 264),
+                children: List.generate(_leftItems.length, (i) => Padding(
+                  padding: EdgeInsets.only(
+                    bottom: i < _leftItems.length - 1 ? 10 : 0,
+                  ),
+                  child: _PosterCard(
+                    asset: _leftItems[i].$1,
+                    height: _leftItems[i].$2,
+                  ),
                 )),
               ),
             ),
             const SizedBox(width: 10),
-            // Right column — alternating shorter/taller
+            // Right column — staggered heights, no vertical offset (Figma: Thalapathy2/4/6/8)
             Expanded(
               child: Column(
-                children: List.generate(_rightAssets.length, (i) => Padding(
+                children: List.generate(_rightItems.length, (i) => Padding(
                   padding: EdgeInsets.only(
-                    top: i == 0 ? 90 : 0,
-                    bottom: i < _rightAssets.length - 1 ? 10 : 0,
+                    bottom: i < _rightItems.length - 1 ? 10 : 0,
                   ),
                   child: _PosterCard(
-                    asset: _rightAssets[i],
-                    height: i % 2 == 0 ? 169 : 264,
+                    asset: _rightItems[i].$1,
+                    height: _rightItems[i].$2,
                   ),
                 )),
               ),
@@ -438,7 +443,8 @@ class _MediaBody extends StatelessWidget {
                   children: [
                     Text(
                       item.$1,
-                      style: GoogleFonts.plusJakartaSans(
+                      // Figma: Manrope Medium 14px
+                      style: GoogleFonts.manrope(
                         fontSize: 14, fontWeight: FontWeight.w500,
                         color: const Color(0xFF1B1409),
                       ),
@@ -448,8 +454,9 @@ class _MediaBody extends StatelessWidget {
                     Row(
                       children: [
                         Text(item.$2,
-                            style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12, color: const Color(0xFF525252))),
+                            style: GoogleFonts.manrope(
+                                fontSize: 12, fontWeight: FontWeight.w500,
+                                color: const Color(0xFF525252))),
                         const SizedBox(width: 6),
                         Container(
                           width: 4, height: 4,
@@ -457,13 +464,10 @@ class _MediaBody extends StatelessWidget {
                             color: Color(0xFF525252), shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(item.$3,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12, color: const Color(0xFF525252))),
-                        ),
+                        Text(item.$3,
+                            style: GoogleFonts.manrope(
+                                fontSize: 12, fontWeight: FontWeight.w500,
+                                color: const Color(0xFF525252))),
                       ],
                     ),
                   ],
@@ -535,16 +539,19 @@ class _VideoCard extends StatelessWidget {
                     color: Colors.white, size: 24),
               ),
             ),
-            // Title bottom-left
+            // Title bottom-left (Figma: Plus Jakarta Sans Regular 16px, bottom ~26px)
             Positioned(
-              left: 16, right: 16, bottom: 13,
+              left: 16, right: 16, bottom: 20,
               child: Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16, color: Colors.white,
+                  letterSpacing: 0.2,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

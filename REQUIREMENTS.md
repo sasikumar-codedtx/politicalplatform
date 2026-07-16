@@ -38,7 +38,7 @@
 - ✅ Navigates to YoutubeHubScreen
 
 ### TVK Television Section
-- ✅ Single combined `tv_flat_screen.png` image — old two-layer approach removed
+- ✅ Uses `tvfull.png` asset (right-aligned in red gradient card → YoutubeHubScreen)
 
 ### Join TVK Card (Hero)
 - ✅ "Join Now" button navigates to JoinScreen (was broken, pointed to ChatListScreen)
@@ -54,7 +54,7 @@
 - ✅ Users can skip login and browse freely
 
 ### Events Home Cards
-- ✅ Red 72px date block on left, title + location + UPCOMING badge on right
+- ✅ Figma 1328-4617 exact: 171px photo-background card, dark-red bottom gradient, white date box (red month top, BebasNeue day, day-of-week), white title 16px SemiBold + location — cycles event_1..4.png
 
 ### Vision Card (to add)
 - ❌ Animated TVK flag waving card for Vision section on home page
@@ -134,11 +134,11 @@
 ## CAMPAIGN TOOLKIT
 - ✅ Home cards: combined.png in bottom-right corner of each toolkit card
 - ✅ Detail pages rebuilt matching Figma exactly:
-  - Posters (1328-3063): staggered 2-col masonry grid with real campaign images
-  - Media (1328-3127/3084): Audios tab (list with thumbnail+title+views) + Videos tab (180px full-width cards)
-  - Slogans (1328-3206): "Best Slogans" list, each row copy button, rounded corners
-  - Hashtags (1328-3284): "Best Hashtags" with red Copy tab + bordered hashtag text blocks
-- ✅ Common header: TVK flag bg + black bottom gradient + BebasNeue title + search bar
+  - Posters (1328-3063): staggered 2-col masonry grid — left col 3×264px, right col [169,264,169,174]px, 10px gap, no offset — Figma-exact
+  - Media (1328-3127): Audios tab (Manrope font, 60×47 thumbnail + red play circle + title + views·time + more-vert icon) + Videos tab (180px full-width cards, red play circle, title bottom-left)
+  - Slogans (1328-3206): "Best Slogans" list, each row copy button, top-left square corner style
+  - Hashtags (1328-3284): "Best Hashtags" with red Copy tab (top-left) + bordered hashtag text blocks
+- ✅ Common header: TVK flag bg + black bottom gradient + BebasNeue gradient title + search bar
 
 ---
 
@@ -179,3 +179,4 @@
 |------|-------------|
 | 2026-05-14 | Created this file. Populated from all previous session requests. |
 | 2026-05-14 | Fixed all pending items: news filters → bottom sheet, campaign song overflow, events home card redesign, events back button, login gate (Profile+Chat FAB), post-login Join TVK prompt, hero Join Now nav, TVK TV single image, full Join flow (form→face capture→ID card). flutter analyze clean. |
+| 2026-05-14 | TV section uses tvfull.png. Campaign toolkit cards use toolkit.png. Event cards rebuilt to Figma 1328-4617: 171px photo-bg card, dark-red gradient overlay, white date box (red month strip, BebasNeue day, day-of-week), white title+location; cycles event_1..4.png; taps → EventDetailScreen. Zero analyzer issues. |
