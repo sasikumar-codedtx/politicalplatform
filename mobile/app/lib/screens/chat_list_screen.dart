@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
+import '../services/device_session.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -19,20 +21,39 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSessions();
+    // Hard gate — must be logged in to enter chat list.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FirebaseAuth.instance.currentUser == null && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
+      _loadSessions();
+    });
   }
 
   Future<void> _loadSessions() async {
+    // Cache-first: show the last-known list instantly (~5 ms), then refresh
+    // from the backend in the background.
+    final cached = await AgentService.getCachedSessions();
+    if (cached.isNotEmpty && mounted) {
+      setState(() { _sessions = cached; _loading = false; });
+    }
     try {
       final sessions = await AgentService.getSessions();
-      if (mounted) setState(() { _sessions = sessions; _loading = false; });
+      // Don't wipe a good cached list if the network returned nothing
+      // (transient failure); only replace on a real result or first load.
+      if (mounted && (sessions.isNotEmpty || cached.isEmpty)) {
+        setState(() { _sessions = sessions; _loading = false; });
+      } else if (mounted) {
+        setState(() => _loading = false);
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _startNewChat() async {
-    final sessionId = 'session_${DateTime.now().millisecondsSinceEpoch}';
+    final sessionId = await DeviceSession.rotate();
     final session = ChatSession(
       id: sessionId,
       title: 'New conversation',
@@ -78,7 +99,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         elevation: 0,
         scrolledUnderElevation: 1,
         automaticallyImplyLeading: false,
-        title: Text('Ask CM Vijay', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF1A1A1A))),
+        title: Text('Ask Honorable CM Sir', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF1A1A1A))),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(color: border, height: 1),
@@ -136,7 +157,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-        label: Text('Ask ${flavor.leaderName.split(' ')[0]}', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        label: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Text(
+            'Ask ${flavor.leaderName}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+        ),
       ),
     );
   }

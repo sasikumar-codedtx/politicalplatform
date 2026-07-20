@@ -26,7 +26,43 @@ from db import (
 )
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-LLM_MODEL  = os.getenv("LLM_MODEL", "llama3.2")
+LLM_MODEL  = os.getenv("LLM_MODEL", "gpt-oss:20b-cloud")
+
+# Latency knobs:
+# - KEEP_ALIVE keeps the model resident so consecutive turns skip the
+#   multi-second reload (default: never unload).
+# - THINK=false stops the reasoning model from emitting <think> tokens we
+#   only throw away — typically the single biggest latency win.
+# - MAX_TOKENS caps reply length so the model can't ramble past the persona's
+#   3-5 sentence target.
+def _keep_alive():
+    # Ollama accepts an int (seconds; -1 = never unload) or a duration string
+    # like "24h". A bare "-1" STRING is rejected ("missing unit"), so coerce
+    # numeric values to int.
+    v = os.getenv("OLLAMA_KEEP_ALIVE", "-1")
+    try:
+        return int(v)
+    except ValueError:
+        return v
+
+
+OLLAMA_KEEP_ALIVE = _keep_alive()
+LLM_THINK  = os.getenv("LLM_THINK", "false").lower() in ("1", "true", "yes", "on")
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "512"))
+
+# Keep at most this many user+assistant turns. The system message and any
+# transient role-anchor/RAG context messages are kept separately. Long
+# histories add 50-200ms per turn to Ollama Cloud's prompt-processing.
+HISTORY_TURNS = int(os.getenv("HISTORY_TURNS", "6"))
+
+
+def trim_history(messages: list[dict], turns: int = HISTORY_TURNS) -> list[dict]:
+    """Keep [system messages] + the last 2*turns user/assistant messages."""
+    system_msgs = [m for m in messages if m.get("role") == "system"]
+    chat_msgs   = [m for m in messages if m.get("role") != "system"]
+    if len(chat_msgs) > turns * 2:
+        chat_msgs = chat_msgs[-turns * 2:]
+    return system_msgs + chat_msgs
 
 
 def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, user_id: str | None = None) -> str:
@@ -49,11 +85,13 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
     if title:
         set_session_title_if_default(session_id, title)
 
-    # Fetch full conversation history from DB
+    # Fetch full conversation history from DB, then trim to last HISTORY_TURNS
+    # turns so prompt-processing stays fast on long sessions.
     messages = [
         {"role": item["role"], "content": item["content"]}
         for item in get_session_messages(session_id, include_system=True)
     ]
+    messages = trim_history(messages)
 
     # Always use the latest persona from the admin DB — override the stored
     # system message so edits in the admin UI take effect on the next turn
@@ -87,6 +125,9 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
             "model": LLM_MODEL,
             "messages": messages,
             "stream": False,
+            "think": LLM_THINK,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {"num_predict": LLM_MAX_TOKENS},
         },
         timeout=120.0,
     )

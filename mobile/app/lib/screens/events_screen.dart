@@ -79,6 +79,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: 234 + topPad,
       child: Stack(
         children: [
@@ -132,16 +133,20 @@ class _Header extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFFE40101), Color(0xFF7E0101)],
-                  ).createShader(bounds),
-                  child: Text(
-                    'Nearby Events',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
-                      color: Colors.white,
-                      letterSpacing: 0.2,
+                Flexible(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+                    ).createShader(bounds),
+                    child: Text(
+                      'Nearby Events',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 34,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                 ),
@@ -230,10 +235,10 @@ class _EventCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Content: date box + info at left:16, top:104
+            // Content: date box + info anchored to the card bottom
             Positioned(
               left: 16,
-              top: 104,
+              bottom: 12,
               right: 16,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,12 +270,16 @@ class _EventCard extends StatelessWidget {
                           children: [
                             const Icon(Icons.location_on_outlined, color: Colors.white, size: 14),
                             const SizedBox(width: 4),
-                            Text(
-                              event.location,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                color: Colors.white,
-                                letterSpacing: 0.2,
+                            Flexible(
+                              child: Text(
+                                event.location,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  letterSpacing: 0.2,
+                                ),
                               ),
                             ),
                           ],

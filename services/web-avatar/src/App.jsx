@@ -43,8 +43,11 @@ export default function App() {
 
   const transcriptRef = useRef(null)
   useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
+    const el = transcriptRef.current
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight
+      })
     }
   }, [messages])
 
@@ -68,6 +71,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Avatar fills the entire background */}
       <div className="stage">
         {facePhotoUrl
           ? <FacePhotoCanvas photoUrl={facePhotoUrl} player={player} />
@@ -88,6 +92,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* Chat panel — overlays on the right (desktop) or bottom (mobile) */}
       <aside className="panel">
         <div className="panel-header">
           <h1>Realtime Avatar</h1>

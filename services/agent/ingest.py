@@ -9,10 +9,9 @@ Usage:
     python ingest.py
 """
 
-import os
 from dotenv import load_dotenv
 from embeddings import embed
-from db import upsert_document, document_count
+from db import upsert_document
 
 load_dotenv("../../.env")
 

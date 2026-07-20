@@ -10,7 +10,7 @@ Everything you need to run the full stack locally.
 |---|---|---|
 | PostgreSQL + pgvector | Database | 5432 |
 | Agent API | FastAPI backend | 8001 |
-| Ollama | Local LLM (llama3.2) | 11434 |
+| Ollama | Local LLM (gpt-oss:20b-cloud) | 11434 |
 | Flutter app | iOS / Android mobile | — |
 
 ---
@@ -72,7 +72,7 @@ Runs on `http://localhost:11434`. Keep this terminal open or run it in the backg
 Make sure the model is pulled (one-time only):
 
 ```bash
-ollama pull llama3.2
+ollama pull gpt-oss:20b-cloud
 ```
 
 Verify Ollama is running:
@@ -168,7 +168,7 @@ All config lives in `.env` at the project root. Never commit this file.
 
 ```
 OLLAMA_URL=http://localhost:11434
-LLM_MODEL=llama3.2
+LLM_MODEL=gpt-oss:20b-cloud
 APP_ENV=development
 DB_PASSWORD=devpassword123
 DATABASE_URL=postgresql://app:devpassword123@localhost:5432/political_platform

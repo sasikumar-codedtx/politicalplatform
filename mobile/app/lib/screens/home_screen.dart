@@ -12,7 +12,6 @@ import '../services/youtube_service.dart';
 import 'news_screen.dart';
 import 'news_detail_screen.dart';
 import 'manifesto_screen.dart';
-// chat_list_screen.dart kept for other nav paths — remove if truly unused
 import 'events_screen.dart';
 import 'event_detail_screen.dart';
 import 'polls_screen.dart';
@@ -376,71 +375,71 @@ class _HeroSection extends StatelessWidget {
             ),
           ),
 
-          // 9. "Join TVK today!" — x=245, y=379, 180×34
+          // 9+10. "Join TVK today!" + "Join Now →" — right-anchored so they
+          // stay on screen on narrow phones (Figma coords assumed 430px width)
           Positioned(
-            left: 245,
+            right: 16,
             top: 379 + dy,
             width: 180,
-            height: 34,
-            child: RichText(
-              text: TextSpan(
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  height: 1.4,
-                  letterSpacing: 0.2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.4,
+                      letterSpacing: 0.2,
+                    ),
+                    children: const [
+                      TextSpan(text: 'Join '),
+                      TextSpan(
+                        text: 'TVK',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFFCA00),
+                        ),
+                      ),
+                      TextSpan(text: ' today!'),
+                    ],
+                  ),
                 ),
-                children: const [
-                  TextSpan(text: 'Join '),
-                  TextSpan(
-                    text: 'TVK',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFFFCA00),
+                const SizedBox(height: 11),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const JoinScreen()),
+                  ),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Join Now',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFE40101),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_rounded,
+                            color: Color(0xFFE40101), size: 14),
+                      ],
                     ),
                   ),
-                  TextSpan(text: ' today!'),
-                ],
-              ),
-            ),
-          ),
-
-          // 10. "Join Now →" button — x=245, y=424, 92×27
-          Positioned(
-            left: 245,
-            top: 424 + dy,
-            width: 110,
-            height: 32,
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const JoinScreen()),
-              ),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Join Now',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFE40101),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_rounded,
-                        color: Color(0xFFE40101), size: 14),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
 
@@ -830,14 +829,15 @@ class _CampaignSongCard extends StatelessWidget {
               // Left text content — constrained to left half to avoid overlap
               Positioned(
                 left: 0, top: 0, bottom: 0,
-                right: 190,
+                right: 160,
                 child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
+                    Flexible(
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -865,9 +865,11 @@ class _CampaignSongCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     RichText(
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                       text: TextSpan(
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
+                          fontSize: 17,
                           fontWeight: FontWeight.w800,
                           height: 1.3,
                         ),
@@ -891,6 +893,7 @@ class _CampaignSongCard extends StatelessWidget {
                       ),
                     ),
                       ],
+                      ),
                     ),
                     // Watch Now button
                     Container(
@@ -938,15 +941,18 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF1A1A1A),
-              letterSpacing: 0.2,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1A1A),
+                letterSpacing: 0.2,
+              ),
             ),
           ),
           if (onMore != null)
@@ -2939,13 +2945,15 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
               ),
               // Text content (left)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 210, 16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 150, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'TVK TELEVISION',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -2956,6 +2964,8 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
                     const SizedBox(height: 2),
                     Text(
                       "CLICK THE \"TV\" CHECK",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -2965,6 +2975,8 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
                     ),
                     const SizedBox(height: 4),
                     RichText(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       text: TextSpan(
                         children: [
                           TextSpan(

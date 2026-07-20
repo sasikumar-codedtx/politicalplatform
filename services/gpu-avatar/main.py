@@ -18,7 +18,6 @@ Frames are produced at 25 fps. Browser embeds the stream URL inside an
 `<img>` tag — no JavaScript decoder needed.
 """
 import io
-import os
 import time
 import uuid
 import wave

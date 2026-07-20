@@ -5,13 +5,21 @@ Engine: **edge-tts** (Python 3.13 compatible, CPU-only, free, multi-language
 incl. Tamil and Hindi). Output is MP3 bytes — the browser decodes natively
 via the existing <audio> element pipeline.
 
-Why not Piper as originally planned: `piper-phonemize~=1.1.0` doesn't ship
-Python 3.13 wheels yet (as of 2026-05). Functionally edge-tts gives the same
-shape (CPU, free, sub-second, multilingual). If you downgrade to Python 3.11
-later you can swap the implementation here without touching anything else.
+Set TTS_ENGINE=fish in .env to use Fish Audio voice cloning (Vijay's voice).
+Set TTS_ENGINE=edge (default) for generic Microsoft Neural voices.
 """
 import os
+import sys
+from pathlib import Path
+
 import edge_tts
+
+# Allow importing tts_fish from the agent directory
+_AGENT_DIR = str(Path(__file__).resolve().parents[1] / "agent")
+if _AGENT_DIR not in sys.path:
+    sys.path.insert(0, _AGENT_DIR)
+
+TTS_ENGINE = os.getenv("TTS_ENGINE", "edge")
 
 DEFAULT_VOICE = os.getenv("AVATAR_TTS_VOICE", "en-IN-NeerjaNeural")
 
@@ -50,6 +58,10 @@ def _resolve_voice(voice_id: str | None, text: str = "") -> str:
 
 async def synthesize(text: str, voice_id: str | None = None) -> bytes:
     """Returns MP3 bytes. Mime to advertise on the wire: audio/mpeg."""
+    if TTS_ENGINE == "fish":
+        from tts_fish import synthesize_cloned
+        return await synthesize_cloned(text)
+
     voice = _resolve_voice(voice_id, text)
     communicate = edge_tts.Communicate(text, voice)
     buf = bytearray()

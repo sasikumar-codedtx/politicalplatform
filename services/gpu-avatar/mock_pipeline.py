@@ -30,7 +30,6 @@ Wire is the same.
 """
 import asyncio
 import io
-import math
 from typing import AsyncIterator
 
 import numpy as np
@@ -56,7 +55,7 @@ def _amplitude_envelope(pcm: np.ndarray, sample_rate: int, fps: int = FRAME_RATE
     return np.clip(rms * 1.4, 0.0, 1.0)
 
 
-def _draw_frame(base: Image.Image, amplitude: float, frame_idx: int) -> bytes:
+def _draw_frame(base: Image.Image, amplitude: float) -> bytes:
     """Source photo + cartoon mouth scaled by amplitude → JPEG bytes."""
     img = base.copy()
     draw = ImageDraw.Draw(img)
@@ -92,14 +91,14 @@ async def render_frames(source_jpeg: bytes,
     if envelope.size == 0:
         # No audio — yield ~2 s of idle frames so the client sees the photo
         for _ in range(int(2 * FRAME_RATE)):
-            yield _draw_frame(base, 0.0, 0)
+            yield _draw_frame(base, 0.0)
             await asyncio.sleep(FRAME_INTERVAL)
         return
 
     smoothed = 0.0
-    for i, target_amp in enumerate(envelope):
+    for target_amp in envelope:
         smoothed += (target_amp - smoothed) * 0.45
-        yield _draw_frame(base, smoothed, i)
+        yield _draw_frame(base, smoothed)
         await asyncio.sleep(FRAME_INTERVAL)
 
 
@@ -110,5 +109,5 @@ async def render_idle_loop(source_jpeg: bytes) -> AsyncIterator[bytes]:
     base = Image.open(io.BytesIO(source_jpeg)).convert("RGB")
     base.thumbnail((720, 720))
     while True:
-        yield _draw_frame(base, 0.0, 0)
+        yield _draw_frame(base, 0.0)
         await asyncio.sleep(FRAME_INTERVAL)

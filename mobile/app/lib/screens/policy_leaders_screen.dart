@@ -563,6 +563,9 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: const Color(0xFFF6F6F6),
+        // The candidate list scrolls on its own; keep the fixed hero + search
+        // header from overflowing when the keyboard opens on short screens
+        resizeToAvoidBottomInset: false,
         body: Column(
           children: [
             // ── Hero banner ─────────────────────────────────────────────────
@@ -967,12 +970,16 @@ class _CandidateCard extends StatelessWidget {
                       const Icon(Icons.location_on_outlined,
                           size: 11, color: Color(0xFF888888)),
                       const SizedBox(width: 3),
-                      Text(
-                        '${candidate.constituencyNo}. ${candidate.constituency}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF555555),
+                      Flexible(
+                        child: Text(
+                          '${candidate.constituencyNo}. ${candidate.constituency}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF555555),
+                          ),
                         ),
                       ),
                     ],
@@ -1193,21 +1200,22 @@ class _PolicyLeaderCard extends StatelessWidget {
   final VoidCallback onTap;
   const _PolicyLeaderCard({required this.leader, required this.onTap});
 
-  // Portrait position per leader matching Figma exactly
+  // Portrait position per leader — right-anchored so the image stays inside
+  // the card on any screen width (Figma coords assumed a ~372px card)
   _PortraitSpec get _portrait {
     switch (leader.name) {
       case 'Kamarajar':
-        return const _PortraitSpec(left: 260, top: 12, width: 97, height: 101);
+        return const _PortraitSpec(right: 15, top: 12, width: 97, height: 101);
       case 'B. R. Ambedkar':
-        return const _PortraitSpec(left: 228, top: 0, width: 118, height: 113);
+        return const _PortraitSpec(right: 26, top: 0, width: 118, height: 113);
       case 'Periyar':
-        return const _PortraitSpec(left: 223, top: 8, width: 149, height: 112);
+        return const _PortraitSpec(right: 0, top: 8, width: 149, height: 112);
       case 'Anjalai Ammal':
-        return const _PortraitSpec(left: 220, top: 6, width: 134, height: 107);
+        return const _PortraitSpec(right: 18, top: 6, width: 134, height: 107);
       case 'Velu Nachiyar':
-        return const _PortraitSpec(left: 233, top: 16, width: 114, height: 97);
+        return const _PortraitSpec(right: 25, top: 16, width: 114, height: 97);
       default:
-        return const _PortraitSpec(left: 240, top: 6, width: 110, height: 107);
+        return const _PortraitSpec(right: 22, top: 6, width: 110, height: 107);
     }
   }
 
@@ -1250,7 +1258,7 @@ class _PolicyLeaderCard extends StatelessWidget {
 
             // Leader portrait — per-leader sizing, right side
             Positioned(
-              left: p.left, top: p.top,
+              right: p.right, top: p.top,
               width: p.width, height: p.height,
               child: Image.asset(
                 leader.imagePath,
@@ -1301,12 +1309,12 @@ class _PolicyLeaderCard extends StatelessWidget {
 }
 
 class _PortraitSpec {
-  final double left;
+  final double right;
   final double top;
   final double width;
   final double height;
   const _PortraitSpec({
-    required this.left,
+    required this.right,
     required this.top,
     required this.width,
     required this.height,

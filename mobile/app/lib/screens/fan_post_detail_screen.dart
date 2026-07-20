@@ -433,12 +433,16 @@ class _CommentItem extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        comment.userName,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1A1A1A),
+                      Flexible(
+                        child: Text(
+                          comment.userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1A1A1A),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),

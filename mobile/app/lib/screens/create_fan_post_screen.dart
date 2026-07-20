@@ -37,6 +37,11 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
     super.dispose();
   }
 
+  void _toggleMediaChip(int index) => setState(() {
+        _selectedMediaChip = _selectedMediaChip == index ? -1 : index;
+        _mediaUrlController.clear();
+      });
+
   Future<void> _submit() async {
     final text = _textController.text.trim();
     if (text.isEmpty || _submitting) return;
@@ -141,12 +146,16 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Text(
-                        'Posting as $_userName',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1A1A1A),
+                      Expanded(
+                        child: Text(
+                          'Posting as $_userName',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1A1A1A),
+                          ),
                         ),
                       ),
                     ],
@@ -186,19 +195,13 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                       _MediaChip(
                         label: 'Image URL',
                         selected: _selectedMediaChip == 0,
-                        onTap: () => setState(() {
-                          _selectedMediaChip = _selectedMediaChip == 0 ? -1 : 0;
-                          _mediaUrlController.clear();
-                        }),
+                        onTap: () => _toggleMediaChip(0),
                       ),
                       const SizedBox(width: 10),
                       _MediaChip(
                         label: 'Video URL',
                         selected: _selectedMediaChip == 1,
-                        onTap: () => setState(() {
-                          _selectedMediaChip = _selectedMediaChip == 1 ? -1 : 1;
-                          _mediaUrlController.clear();
-                        }),
+                        onTap: () => _toggleMediaChip(1),
                       ),
                     ],
                   ),

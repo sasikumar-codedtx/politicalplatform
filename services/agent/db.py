@@ -23,11 +23,15 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _iso(value) -> str:
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
 def _connect():
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
     return conn
-    
+
 
 @contextmanager
 def get_conn():
@@ -155,7 +159,234 @@ def init_db() -> None:
                 CREATE INDEX IF NOT EXISTS idx_avatars_flavor
                 ON avatars(flavor_id, created_at DESC);
             """)
+            # User profiles — keyed by Firebase uid. Photo bytes live here so
+            # the same login shows the same photo/name on every device.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    uid         TEXT PRIMARY KEY,
+                    name        TEXT NOT NULL DEFAULT '',
+                    city        TEXT NOT NULL DEFAULT '',
+                    avatar      BYTEA,
+                    avatar_mime TEXT,
+                    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            # Citizen complaints — per uid, with a status an admin can advance.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS complaints (
+                    id          BIGSERIAL PRIMARY KEY,
+                    uid         TEXT NOT NULL,
+                    title       TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    category    TEXT NOT NULL DEFAULT 'General',
+                    status      TEXT NOT NULL DEFAULT 'Pending',
+                    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_complaints_uid
+                ON complaints(uid, created_at DESC);
+            """)
+            # TVK membership — the Join form. serial drives the printed member id.
+            # One login can register several members (family / booth sign-ups),
+            # so uid is NOT unique — serial is the key.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS members (
+                    uid        TEXT NOT NULL,
+                    serial     BIGSERIAL,
+                    name       TEXT NOT NULL DEFAULT '',
+                    email      TEXT NOT NULL DEFAULT '',
+                    mobile     TEXT NOT NULL DEFAULT '',
+                    dob        TEXT NOT NULL DEFAULT '',
+                    gender     TEXT NOT NULL DEFAULT '',
+                    district   TEXT NOT NULL DEFAULT '',
+                    pin        TEXT NOT NULL DEFAULT '',
+                    booth      TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            # Migrate the old one-member-per-login shape (uid was the PK).
+            cur.execute("ALTER TABLE members DROP CONSTRAINT IF EXISTS members_pkey;")
+            cur.execute("""
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conrelid = 'members'::regclass AND contype = 'p'
+                    ) THEN
+                        ALTER TABLE members ADD PRIMARY KEY (serial);
+                    END IF;
+                END $$;
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_members_uid ON members(uid);")
     _seed_prompts_if_empty()
+
+
+# ── User profile ──────────────────────────────────────────────────────────────
+
+def get_profile(uid: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT name, city, (avatar IS NOT NULL) AS has_avatar, updated_at "
+                "FROM user_profiles WHERE uid = %s",
+                (uid,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return {"name": "", "city": "", "has_avatar": False, "updated_at": None}
+            return {
+                "name": row["name"],
+                "city": row["city"],
+                "has_avatar": row["has_avatar"],
+                "updated_at": _iso(row["updated_at"]) if row["updated_at"] else None,
+            }
+
+
+def upsert_profile(uid: str, name: str | None, city: str | None) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            # INSERT coalesces NULL→'' to satisfy NOT NULL on first write. The
+            # UPDATE uses the RAW params (NULL when a field was omitted) so a
+            # partial update keeps the other field instead of blanking it.
+            cur.execute(
+                """
+                INSERT INTO user_profiles (uid, name, city, updated_at)
+                VALUES (%s, COALESCE(%s, ''), COALESCE(%s, ''), now())
+                ON CONFLICT (uid) DO UPDATE SET
+                    name = COALESCE(%s, user_profiles.name),
+                    city = COALESCE(%s, user_profiles.city),
+                    updated_at = now()
+                """,
+                (uid, name, city, name, city),
+            )
+
+
+def set_profile_avatar(uid: str, data: bytes, mime: str) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO user_profiles (uid, avatar, avatar_mime, updated_at)
+                VALUES (%s, %s, %s, now())
+                ON CONFLICT (uid) DO UPDATE SET
+                    avatar = EXCLUDED.avatar,
+                    avatar_mime = EXCLUDED.avatar_mime,
+                    updated_at = now()
+                """,
+                (uid, psycopg2.Binary(data), mime),
+            )
+
+
+def get_profile_avatar(uid: str) -> tuple[bytes, str] | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT avatar, avatar_mime FROM user_profiles WHERE uid = %s", (uid,))
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                return None
+            return bytes(row[0]), (row[1] or "image/jpeg")
+
+
+# ── Complaints ──────────────────────────────────────────────────────────────
+
+def add_complaint(uid: str, title: str, description: str, category: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO complaints (uid, title, description, category)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, title, description, category, status, created_at
+                """,
+                (uid, title, description, category),
+            )
+            row = cur.fetchone()
+            return {
+                "id": row["id"],
+                "title": row["title"],
+                "description": row["description"],
+                "category": row["category"],
+                "status": row["status"],
+                "created_at": _iso(row["created_at"]),
+            }
+
+
+def _member_row_to_dict(row: dict) -> dict:
+    return {
+        "member_id": f"TVK-2026-{str(row['serial']).zfill(8)}",
+        "name": row["name"],
+        "email": row["email"],
+        "mobile": row["mobile"],
+        "dob": row["dob"],
+        "gender": row["gender"],
+        "district": row["district"],
+        "booth": row["booth"],
+        "pin": row["pin"],
+        "created_at": _iso(row["created_at"]),
+    }
+
+
+_MEMBER_COLS = ("serial, name, email, mobile, dob, gender, district, pin, booth, created_at")
+
+
+def add_member(uid: str, name: str, email: str, mobile: str, dob: str,
+               gender: str, district: str, pin: str, booth: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"""
+                INSERT INTO members (uid, name, email, mobile, dob, gender, district, pin, booth)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING {_MEMBER_COLS}
+                """,
+                (uid, name, email, mobile, dob, gender, district, pin, booth),
+            )
+            return _member_row_to_dict(cur.fetchone())
+
+
+def list_members(uid: str) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"SELECT {_MEMBER_COLS} FROM members WHERE uid = %s ORDER BY serial",
+                (uid,),
+            )
+            return [_member_row_to_dict(r) for r in cur.fetchall()]
+
+
+def get_member(uid: str) -> dict | None:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"SELECT {_MEMBER_COLS} FROM members WHERE uid = %s "
+                "ORDER BY serial DESC LIMIT 1",
+                (uid,),
+            )
+            row = cur.fetchone()
+            return _member_row_to_dict(row) if row else None
+
+
+def list_complaints(uid: str) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, title, description, category, status, created_at
+                FROM complaints WHERE uid = %s ORDER BY created_at DESC
+                """,
+                (uid,),
+            )
+            return [
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "category": row["category"],
+                    "status": row["status"],
+                    "created_at": _iso(row["created_at"]),
+                }
+                for row in cur.fetchall()
+            ]
 
 
 def _seed_prompts_if_empty() -> None:
@@ -225,7 +456,7 @@ def list_prompts() -> list[dict]:
                     "category":    row["category"],
                     "label":       row["label"],
                     "description": row["description"],
-                    "updated_at":  row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
+                    "updated_at":  _iso(row["updated_at"]),
                 }
                 for row in cur.fetchall()
             ]
@@ -319,7 +550,7 @@ def get_session_messages(session_id: str, include_system: bool = True) -> list[d
                 {
                     "role": row["role"],
                     "content": row["content"],
-                    "timestamp": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                    "timestamp": _iso(row["created_at"]),
                 }
                 for row in cur.fetchall()
             ]
@@ -345,8 +576,8 @@ def list_sessions(user_id: str | None = None) -> list[dict]:
                 {
                     "id": row["id"],
                     "title": row["title"],
-                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
-                    "last_active_at": row["last_active_at"].isoformat() if hasattr(row["last_active_at"], "isoformat") else str(row["last_active_at"]),
+                    "created_at": _iso(row["created_at"]),
+                    "last_active_at": _iso(row["last_active_at"]),
                     "last_message": row["last_message"],
                     "user_id": row["user_id"],
                 }
@@ -396,7 +627,7 @@ def list_documents(flavor_id: str | None = None) -> list[dict]:
             return [
                 {
                     **dict(row),
-                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                    "created_at": _iso(row["created_at"]),
                 }
                 for row in cur.fetchall()
             ]
@@ -497,7 +728,7 @@ def get_avatar(avatar_id: str) -> dict | None:
 def _avatar_row_to_dict(row) -> dict:
     return {
         **dict(row),
-        "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+        "created_at": _iso(row["created_at"]),
     }
 
 
@@ -523,7 +754,7 @@ def list_audit_logs(limit: int = 100) -> list[dict]:
                 {
                     **dict(row),
                     "metadata": row["metadata"] if isinstance(row["metadata"], dict) else (_json.loads(row["metadata"]) if row["metadata"] else None),
-                    "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
+                    "created_at": _iso(row["created_at"]),
                 }
                 for row in cur.fetchall()
             ]

@@ -149,28 +149,27 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   // Poll duration
                   Text('Poll Duration', style: _labelStyle),
                   const SizedBox(height: 10),
-                  Row(
-                    children: _durations.map((d) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _durationDays = d),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _durationDays == d ? const Color(0xFFE40101).withValues(alpha: 0.15) : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _durationDays == d ? const Color(0xFFE40101) : const Color(0xFFEEEEEE),
-                              width: 1,
-                            ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _durations.map((d) => GestureDetector(
+                      onTap: () => setState(() => _durationDays = d),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _durationDays == d ? const Color(0xFFE40101).withValues(alpha: 0.15) : Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _durationDays == d ? const Color(0xFFE40101) : const Color(0xFFEEEEEE),
+                            width: 1,
                           ),
-                          child: Text(
-                            d == 1 ? '1 Day' : '$d Days',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: _durationDays == d ? const Color(0xFFE40101) : Colors.black54,
-                            ),
+                        ),
+                        child: Text(
+                          d == 1 ? '1 Day' : '$d Days',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _durationDays == d ? const Color(0xFFE40101) : Colors.black54,
                           ),
                         ),
                       ),

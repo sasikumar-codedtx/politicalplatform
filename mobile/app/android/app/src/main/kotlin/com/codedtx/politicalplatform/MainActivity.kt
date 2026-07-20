@@ -1,4 +1,4 @@
-package com.codedtx.political_platform
+package com.codedtx.politicalplatform
 
 import io.flutter.embedding.android.FlutterActivity
 

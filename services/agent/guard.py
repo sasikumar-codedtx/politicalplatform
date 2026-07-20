@@ -54,11 +54,22 @@ def check_injection(message: str) -> str | None:
     return None
 
 
-def _detect_script(text: str) -> str:
-    """Return 'tamil', 'hindi', or 'english' based on Unicode script."""
+def _detect_script(text: str, flavor_id: str | None = None) -> str:
+    """Return 'tamil', 'hindi', or 'english' based on Unicode script.
+
+    Flavor-aware: for the Tamil-state (`tn-tvk`) flavor, Devanagari (Hindi
+    script) is treated as Tamil. This handles the case where faster-whisper
+    mis-transcribes Tamil speech as Hindi on short utterances — the LLM
+    should still reply in Tamil because this is a Tamil-state platform.
+    """
+    flavor = flavor_id or DEFAULT_FLAVOR_ID
     if re.search(r'[஀-௿]', text):
         return 'tamil'
     if re.search(r'[ऀ-ॿ]', text):
+        # Tamil-flavor session sees Hindi-script text → STT misdetection.
+        # Override to Tamil so the LLM doesn't switch language mid-conversation.
+        if flavor == 'tn-tvk':
+            return 'tamil'
         return 'hindi'
     return 'english'
 
@@ -71,7 +82,7 @@ def role_anchor(flavor_id: str | None, user_message: str = "") -> str:
     """
     flavor = flavor_id or DEFAULT_FLAVOR_ID
     persona_line = get_prompt(f"role_anchor:{flavor}")
-    script = _detect_script(user_message) if user_message else "english"
+    script = _detect_script(user_message, flavor) if user_message else "english"
     lang_line = get_prompt(f"language:{script}")
 
     parts = [p for p in (persona_line, lang_line) if p]

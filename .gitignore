@@ -8,6 +8,11 @@ services/admin-ui/dist/
 # Python virtual env
 services/agent/venv/
 
+# Avatar runtime cache (GLBs + uploaded photos)
+services/agent/data/
+services/web-avatar/dist/
+services/web-avatar/node_modules/
+
 # Ignore all node_modules inside admin-ui
 services/admin-ui/node_modules/
 

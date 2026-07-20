@@ -23,14 +23,7 @@ class CampaignToolkitDetailScreen extends StatefulWidget {
 
 class _CampaignToolkitDetailScreenState
     extends State<CampaignToolkitDetailScreen> {
-  final TextEditingController _search = TextEditingController();
   int _mediaTab = 0; // 0=Audios 1=Videos
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +38,6 @@ class _CampaignToolkitDetailScreenState
             _Header(
               topPad: topPad,
               type: widget.type,
-              searchCtrl: _search,
               mediaTab: _mediaTab,
               onMediaTabChanged: (v) => setState(() => _mediaTab = v),
             ),
@@ -75,14 +67,12 @@ class _CampaignToolkitDetailScreenState
 class _Header extends StatelessWidget {
   final double topPad;
   final String type;
-  final TextEditingController searchCtrl;
   final int mediaTab;
   final ValueChanged<int> onMediaTabChanged;
 
   const _Header({
     required this.topPad,
     required this.type,
-    required this.searchCtrl,
     required this.mediaTab,
     required this.onMediaTabChanged,
   });
@@ -554,12 +544,12 @@ class _VideoCard extends StatelessWidget {
               left: 16, right: 16, bottom: 20,
               child: Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16, color: Colors.white,
                   letterSpacing: 0.2,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -614,7 +604,7 @@ class _SloganRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
