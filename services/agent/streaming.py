@@ -20,6 +20,22 @@ import httpx
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 LLM_MODEL  = os.getenv("LLM_MODEL", "gpt-oss:20b-cloud")
 
+# See agent.py for the rationale — keep the model resident, skip discarded
+# reasoning tokens (first content token arrives immediately), cap length.
+def _keep_alive():
+    # int (seconds; -1 = never unload) or duration string like "24h". A bare
+    # "-1" STRING is rejected by Ollama ("missing unit"), so coerce numerics.
+    v = os.getenv("OLLAMA_KEEP_ALIVE", "-1")
+    try:
+        return int(v)
+    except ValueError:
+        return v
+
+
+OLLAMA_KEEP_ALIVE = _keep_alive()
+LLM_THINK  = os.getenv("LLM_THINK", "false").lower() in ("1", "true", "yes", "on")
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "512"))
+
 # Sentence terminators across scripts (`.` `!` `?` `।` ellipsis)
 _SENTENCE_END = re.compile(r"([.!?।]+|\.{3})(\s+|$)")
 
@@ -46,6 +62,32 @@ def _get_client() -> httpx.AsyncClient:
     return _client
 
 
+async def warmup() -> None:
+    """Load the model and open the pooled connection before the first user.
+
+    Without this the first chat of the day pays model load + TCP/TLS setup
+    while someone is watching the typing dots. Failures are ignored — a cold
+    first turn is worse than a warm one, but it is not an error.
+    """
+    try:
+        client = _get_client()
+        await client.post(
+            f"{OLLAMA_URL}/api/chat",
+            json={
+                "model": LLM_MODEL,
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": False,
+                "think": False,
+                "keep_alive": OLLAMA_KEEP_ALIVE,
+                "options": {"num_predict": 1},
+            },
+            timeout=httpx.Timeout(180.0, connect=10.0),
+        )
+        print(f"[warmup] {LLM_MODEL} ready")
+    except Exception as e:
+        print(f"[warmup] skipped: {e}")
+
+
 async def stream_ollama(messages: list[dict]) -> AsyncIterator[dict]:
     buf = ""
     full = ""
@@ -55,7 +97,14 @@ async def stream_ollama(messages: list[dict]) -> AsyncIterator[dict]:
     async with client.stream(
         "POST",
         f"{OLLAMA_URL}/api/chat",
-        json={"model": LLM_MODEL, "messages": messages, "stream": True},
+        json={
+            "model": LLM_MODEL,
+            "messages": messages,
+            "stream": True,
+            "think": LLM_THINK,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {"num_predict": LLM_MAX_TOKENS},
+        },
     ) as resp:
         resp.raise_for_status()
         async for line in resp.aiter_lines():

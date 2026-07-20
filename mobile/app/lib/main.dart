@@ -6,10 +6,12 @@ import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/main_shell.dart';
+import 'services/profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  ProfileService.init(); // load profile on login, clear on logout
   runApp(const PoliticalPlatformApp());
 }
 

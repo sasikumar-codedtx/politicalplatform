@@ -8,7 +8,10 @@ import 'member_id_screen.dart';
 // Figma: 1328-9652 — Face/photo capture screen for TVK member ID card
 
 class FaceCaptureScreen extends StatefulWidget {
-  const FaceCaptureScreen({super.key});
+  /// The row returned by POST /members, carried straight to the card so it
+  /// shows the membership just created instead of re-fetching.
+  final Map<String, dynamic>? member;
+  const FaceCaptureScreen({super.key, this.member});
 
   @override
   State<FaceCaptureScreen> createState() => _FaceCaptureScreenState();
@@ -49,7 +52,8 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => MemberIdScreen(photoFile: _capturedImage),
+        builder: (_) =>
+            MemberIdScreen(photoFile: _capturedImage, member: widget.member),
       ),
     );
   }

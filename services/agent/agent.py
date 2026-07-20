@@ -28,6 +28,28 @@ from db import (
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 LLM_MODEL  = os.getenv("LLM_MODEL", "gpt-oss:20b-cloud")
 
+# Latency knobs:
+# - KEEP_ALIVE keeps the model resident so consecutive turns skip the
+#   multi-second reload (default: never unload).
+# - THINK=false stops the reasoning model from emitting <think> tokens we
+#   only throw away — typically the single biggest latency win.
+# - MAX_TOKENS caps reply length so the model can't ramble past the persona's
+#   3-5 sentence target.
+def _keep_alive():
+    # Ollama accepts an int (seconds; -1 = never unload) or a duration string
+    # like "24h". A bare "-1" STRING is rejected ("missing unit"), so coerce
+    # numeric values to int.
+    v = os.getenv("OLLAMA_KEEP_ALIVE", "-1")
+    try:
+        return int(v)
+    except ValueError:
+        return v
+
+
+OLLAMA_KEEP_ALIVE = _keep_alive()
+LLM_THINK  = os.getenv("LLM_THINK", "false").lower() in ("1", "true", "yes", "on")
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "512"))
+
 # Keep at most this many user+assistant turns. The system message and any
 # transient role-anchor/RAG context messages are kept separately. Long
 # histories add 50-200ms per turn to Ollama Cloud's prompt-processing.
@@ -103,6 +125,9 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
             "model": LLM_MODEL,
             "messages": messages,
             "stream": False,
+            "think": LLM_THINK,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {"num_predict": LLM_MAX_TOKENS},
         },
         timeout=120.0,
     )

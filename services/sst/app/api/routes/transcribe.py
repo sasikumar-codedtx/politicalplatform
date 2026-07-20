@@ -40,6 +40,31 @@ _AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".mp4", ".ogg", ".webm", ".flac", ".aac"}
 
 _MAX_AUDIO_BYTES = 10 * 1024 * 1024   # 10 MB
 
+# Unicode blocks we can identify from the transcript itself.
+_SCRIPT_BLOCKS = {
+    "ta": (0x0B80, 0x0BFF),   # Tamil
+    "hi": (0x0900, 0x097F),   # Devanagari
+}
+
+
+def _script_of(text: str) -> Optional[str]:
+    """Identify the language from the script the transcript is written in.
+
+    Whisper routinely mislabels a short Tamil clip as another Indic language
+    (hi/ml/te/kn) while still transcribing it correctly in Tamil script. The
+    script is the more reliable signal, so we check it before rejecting.
+    """
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return None
+    for code, (lo, hi) in _SCRIPT_BLOCKS.items():
+        hits = sum(1 for c in letters if lo <= ord(c) <= hi)
+        if hits / len(letters) >= 0.30:
+            return code
+    if sum(1 for c in letters if ord(c) < 128) / len(letters) >= 0.80:
+        return "en"
+    return None
+
 
 async def _infer(file_path: str, lang: Optional[str], initial_prompt: str = "") -> dict:
     level = get_load_level()
@@ -123,18 +148,28 @@ async def transcribe_audio(
         # error so the user knows to switch to a supported language.
         detected = (result.get("language") or "").lower()
         if detected and detected not in settings.SUPPORTED_LANGUAGES:
-            allowed = ", ".join(sorted(settings.SUPPORTED_LANGUAGES))
-            logger.info(f"[REST-STT] rejected — detected={detected} not in allow-list [{allowed}]")
-            return JSONResponse(status_code=422, content={
-                "text": "",
-                "language": detected,
-                "error": f"Language '{detected}' is not supported. Allowed: {allowed}.",
-            })
+            # The label is unreliable on short clips — believe the script the
+            # transcript actually came back in before turning the user away.
+            by_script = _script_of(result["text"])
+            if by_script in settings.SUPPORTED_LANGUAGES:
+                logger.info(f"[REST-STT] relabelled {detected} → {by_script} (script match)")
+                detected = by_script
+            else:
+                allowed = ", ".join(sorted(settings.SUPPORTED_LANGUAGES))
+                logger.info(
+                    f"[REST-STT] rejected — detected={detected} script={by_script} "
+                    f"not in allow-list [{allowed}]"
+                )
+                return JSONResponse(status_code=422, content={
+                    "text": "",
+                    "language": detected,
+                    "error": "Sorry, I could not understand that. Please speak in Tamil or English.",
+                })
 
-        logger.info(f"[REST-STT] lang={result.get('language')} → \"{result['text'][:80]}\"")
+        logger.info(f"[REST-STT] lang={detected or 'auto'} → \"{result['text'][:80]}\"")
         return {
             "text":                 result["text"],
-            "language":             result.get("language") or lang or "auto",
+            "language":             detected or lang or "auto",
             "language_probability": result.get("language_probability", 1.0),
         }
 

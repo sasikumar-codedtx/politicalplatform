@@ -32,9 +32,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _loadSessions() async {
+    // Cache-first: show the last-known list instantly (~5 ms), then refresh
+    // from the backend in the background.
+    final cached = await AgentService.getCachedSessions();
+    if (cached.isNotEmpty && mounted) {
+      setState(() { _sessions = cached; _loading = false; });
+    }
     try {
       final sessions = await AgentService.getSessions();
-      if (mounted) setState(() { _sessions = sessions; _loading = false; });
+      // Don't wipe a good cached list if the network returned nothing
+      // (transient failure); only replace on a real result or first load.
+      if (mounted && (sessions.isNotEmpty || cached.isEmpty)) {
+        setState(() { _sessions = sessions; _loading = false; });
+      } else if (mounted) {
+        setState(() => _loading = false);
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }

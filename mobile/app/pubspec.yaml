@@ -78,6 +78,8 @@ dependencies:
   web_socket_channel: ^3.0.1
   uuid: ^4.5.1
 
+  share_plus: ^10.1.4
+
 # Pin record's transitive interface so the Linux subplatform compiles.
 # `record_linux 0.7.2` (the version pub resolves) implements
 # record_platform_interface 1.2.x and is missing the newer `startStream`

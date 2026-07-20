@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/agent_service.dart';
+import '../widgets/loading_overlay.dart';
 import 'face_capture_screen.dart';
 
 // Figma: 1328-4236 — Join TVK registration form
@@ -61,7 +63,10 @@ class _JoinScreenState extends State<JoinScreen> {
     if (picked != null) setState(() => _dob = picked);
   }
 
-  void _onSubmit() {
+  bool _submitting = false;
+
+  Future<void> _onSubmit() async {
+    if (_submitting) return;
     if (_nameCtrl.text.trim().isEmpty) {
       _showError('Please enter your name');
       return;
@@ -70,10 +75,28 @@ class _JoinScreenState extends State<JoinScreen> {
       _showError('Please enter a valid mobile number');
       return;
     }
-    // Navigate to face capture
-    Navigator.push(
+    setState(() => _submitting = true);
+    final saved = await AgentService.registerMember({
+      'name': _nameCtrl.text.trim(),
+      'email': _emailCtrl.text.trim(),
+      'mobile': _mobileCtrl.text.trim(),
+      'dob': _dob == null
+          ? ''
+          : '${_dob!.day.toString().padLeft(2, '0')}/${_dob!.month.toString().padLeft(2, '0')}/${_dob!.year}',
+      'gender': _gender ?? '',
+      'district': _district ?? '',
+      'pin': _pinCtrl.text.trim(),
+      'booth': _boothCtrl.text.trim(),
+    });
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (saved == null) {
+      _showError('Could not save your details — check connection and login.');
+      return;
+    }
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const FaceCaptureScreen()),
+      MaterialPageRoute(builder: (_) => FaceCaptureScreen(member: saved)),
     );
   }
 
@@ -94,7 +117,9 @@ class _JoinScreenState extends State<JoinScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: const Color(0xFFF6F6F6),
-        body: SingleChildScrollView(
+        body: LoadingOverlay(
+          isLoading: _submitting,
+          child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -346,6 +371,7 @@ class _JoinScreenState extends State<JoinScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

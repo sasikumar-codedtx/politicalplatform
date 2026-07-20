@@ -39,17 +39,36 @@ FIXES: Dict[str, Dict[str, str]] = {
         "Arunraj":     "அருண்ராஜ்",
         "Aadhav":      "ஆதவ்",
         # Party + state — let the voice say them in Tamil naturally.
-        "TVK":         "டி.வி.கே.",
-        "(TVK)":       "டி.வி.கே.",
+        # Spell the initials as three separate long-vowel syllables. With the
+        # old dotted form ("டி.வி.கே.") Fish treated the periods as breaks and
+        # clipped the last letter to a short "க" (ka) instead of the letter
+        # name "கே" (kay). Spaces + long vowels make it read "dee vee kay".
+        "TVK":         "டீ வீ கே",
+        "T.V.K.":      "டீ வீ கே",
+        "T.V.K":       "டீ வீ கே",
+        "T V K":       "டீ வீ கே",
+        "(TVK)":       "டீ வீ கே",
         "Tamil Nadu":  "தமிழ்நாடு",
         "Chennai":     "சென்னை",
         # Use the Tamil sandhi compound (no space between வெற்றி + கழகம்)
         # so Fish reads it as one flowing word instead of "ka-zha-gam" with
-        # pauses between syllables.
-        "Tamilaga Vettri Kazhagam": "தமிழக வெற்றிக்கழகம்",
-        "Tamilzha Vettri Kazhagam": "தமிழக வெற்றிக்கழகம்",
-        "Vettri Kazhagam":          "வெற்றிக்கழகம்",
-        "Kazhagam":                 "கழகம்",
+        # pauses between syllables. Cover the common English spellings the LLM
+        # emits (single/double t, l/zh, Tamil/Tamizh/Thamizh) — any uncovered
+        # variant falls back to the English reader and sounds wrong.
+        "Tamilaga Vetri Kalagam":    "தமிழக வெற்றிக்கழகம்",
+        "Tamilaga Vetri Kazhagam":   "தமிழக வெற்றிக்கழகம்",
+        "Tamilaga Vettri Kalagam":   "தமிழக வெற்றிக்கழகம்",
+        "Tamilaga Vettri Kazhagam":  "தமிழக வெற்றிக்கழகம்",
+        "Tamizhaga Vetri Kazhagam":  "தமிழக வெற்றிக்கழகம்",
+        "Tamizhaga Vettri Kazhagam": "தமிழக வெற்றிக்கழகம்",
+        "Thamizhaga Vetri Kazhagam": "தமிழக வெற்றிக்கழகம்",
+        "Tamilzha Vettri Kazhagam":  "தமிழக வெற்றிக்கழகம்",
+        "Vetri Kalagam":             "வெற்றிக்கழகம்",
+        "Vetri Kazhagam":            "வெற்றிக்கழகம்",
+        "Vettri Kalagam":            "வெற்றிக்கழகம்",
+        "Vettri Kazhagam":           "வெற்றிக்கழகம்",
+        "Kalagam":                   "கழகம்",
+        "Kazhagam":                  "கழகம்",
     },
     "india-pm": {
         # Hindi/English INC context — keep mostly Latin or use Devanagari.
@@ -61,6 +80,17 @@ FIXES: Dict[str, Dict[str, str]] = {
 
 # Pre-compile patterns lazily on first use, keyed by flavor.
 _CACHE: Dict[str, list[tuple[re.Pattern[str], str]]] = {}
+
+
+def _bounded(src: str) -> str:
+    """Wrap [src] in \\b only on the sides that end in a word character.
+
+    A trailing \\b after punctuation never matches ("T.V.K." at end of a
+    sentence, "(TVK)"), which silently disabled those entries.
+    """
+    left = r"\b" if src[:1].isalnum() else ""
+    right = r"\b" if src[-1:].isalnum() else ""
+    return f"{left}{re.escape(src)}{right}"
 
 
 def _patterns_for(flavor_id: str) -> list[tuple[re.Pattern[str], str]]:
@@ -75,7 +105,7 @@ def _patterns_for(flavor_id: str) -> list[tuple[re.Pattern[str], str]]:
     # Longest-first so "Tamil Nadu" matches before "Tamil".
     items = sorted(merged.items(), key=lambda kv: -len(kv[0]))
     compiled = [
-        (re.compile(rf"\b{re.escape(src)}\b", re.IGNORECASE), dst)
+        (re.compile(_bounded(src), re.IGNORECASE), dst)
         for src, dst in items
     ]
     _CACHE[flavor_id] = compiled

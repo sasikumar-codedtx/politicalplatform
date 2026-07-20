@@ -45,6 +45,11 @@ class _ChatScreenState extends State<ChatScreen> {
   // this queue in order so even fast-arriving sentences play one at a time.
   final List<_PendingAudio> _audioQueue = [];
   bool _playbackPumping = false;
+
+  // All audio bytes for the CURRENT streaming reply, in order. Saved to a
+  // per-message local file on `done` so replaying that message plays from
+  // disk with zero network + zero re-synthesis (instant).
+  final List<int> _streamAudioBuffer = [];
   int _streamGen = 0;     // bumps on each new turn — cancels in-flight playback
 
   // Per-message replay state — kept separate from _streamGen so tapping the
@@ -79,6 +84,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // ── History load ──────────────────────────────────────────────────────────
   Future<void> _loadMessages() async {
+    // Cache-first: render the last-known messages instantly, then sync.
+    final cached = await AgentService.getCachedHistory(widget.session.id);
+    if (cached.isNotEmpty && mounted) {
+      setState(() => _messages = cached);
+      _scrollToBottom();
+    }
     try {
       final messages = await AgentService.getHistory(widget.session.id);
       if (mounted) setState(() => _messages = messages);
@@ -138,6 +149,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _streamingReply = '';
       _streaming = true;
       _audioQueue.clear();
+      _streamAudioBuffer.clear();
     });
     _scrollToBottom();
 
@@ -164,12 +176,16 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollToBottom();
     } else if (evt is ChatAudio) {
       _audioQueue.add(_PendingAudio(myGen, evt));
+      // Accumulate for the per-message local cache. Frames arrive in order
+      // before `done`, so the buffer is complete by the time we save it.
+      _streamAudioBuffer.addAll(evt.bytes);
       _pumpAudio();
     } else if (evt is ChatDone) {
       // Commit the streamed text into the message list. The replay speaker
       // icon renders on every AI bubble — no separate "spoken once" gate.
       final reply = evt.reply.isNotEmpty ? evt.reply : _streamingReply;
       if (reply.trim().isNotEmpty) {
+        _saveReplyAudio(reply);
         setState(() {
           _messages.add(ChatMessage(
             role: 'assistant', content: reply, timestamp: DateTime.now(),
@@ -245,15 +261,22 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _replayingContent = content);
     try { await _player.stop(); } catch (_) {}
     try {
+      // Fast path — audio already saved on this device (from the live turn or
+      // a previous replay). Plays from disk, no network, no re-synthesis.
+      final local = await _ttsFile(content);
+      if (await local.exists() && await local.length() > 0) {
+        if (myGen != _replayGen || !mounted) return;
+        await _player.setFilePath(local.path);
+        await _player.play();
+        return;
+      }
+      // Slow path — fetch once (server cache → Fish), then bank it locally so
+      // every future replay of this message is instant.
       final bytes = await AgentService.synthesizeSpeech(content);
       if (myGen != _replayGen || !mounted) return;
-      final dir = await getTemporaryDirectory();
-      final f = File(
-        '${dir.path}/replay_${myGen}_${DateTime.now().millisecondsSinceEpoch}.mp3',
-      );
-      await f.writeAsBytes(bytes, flush: true);
+      await local.writeAsBytes(bytes, flush: true);
       if (myGen != _replayGen || !mounted) return;
-      await _player.setFilePath(f.path);
+      await _player.setFilePath(local.path);
       await _player.play();
     } catch (e) {
       if (mounted) _showError('Could not play audio: $e');
@@ -262,6 +285,30 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() => _replayingContent = null);
       }
     }
+  }
+
+  // Stable per-message audio file (FNV-1a hash of the text → temp dir).
+  String _ttsKey(String content) {
+    int h = 0x811c9dc5;
+    for (final c in content.codeUnits) {
+      h = (h ^ c) & 0xffffffff;
+      h = (h * 0x01000193) & 0xffffffff;
+    }
+    return h.toRadixString(16);
+  }
+
+  Future<File> _ttsFile(String content) async {
+    final dir = await getTemporaryDirectory();
+    return File('${dir.path}/msg_${_ttsKey(content)}.mp3');
+  }
+
+  Future<void> _saveReplyAudio(String content) async {
+    if (_streamAudioBuffer.isEmpty) return;
+    final bytes = List<int>.from(_streamAudioBuffer);
+    try {
+      final f = await _ttsFile(content);
+      await f.writeAsBytes(bytes, flush: true);
+    } catch (_) {}
   }
 
   void _showError(String msg) {
@@ -294,8 +341,8 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: bg,
       appBar: PreferredSize(
         // PreferredSize does not add the status-bar inset the way AppBar does,
-        // so it must be included here or the header's SafeArea eats the 64px.
-        preferredSize: Size.fromHeight(64 + MediaQuery.of(context).padding.top),
+        // so it must be included here or the header's SafeArea eats the height.
+        preferredSize: Size.fromHeight(60 + MediaQuery.of(context).padding.top),
         child: _buildHeader(color),
       ),
       body: Column(
@@ -339,9 +386,12 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 12, 10),
+        child: SizedBox(
+          height: 60,
+          child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
@@ -368,6 +418,8 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Respected Thiru Vijay',
@@ -408,6 +460,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

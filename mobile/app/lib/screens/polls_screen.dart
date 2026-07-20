@@ -3,14 +3,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'create_poll_screen.dart';
 
 class PollsScreen extends StatefulWidget {
-  const PollsScreen({super.key});
+  final int initialTab; // 0=Polls, 1=Complaints, 2=Donation
+  const PollsScreen({super.key, this.initialTab = 0});
 
   @override
   State<PollsScreen> createState() => _PollsScreenState();
 }
 
 class _PollsScreenState extends State<PollsScreen> {
-  int _tab = 0; // 0=Polls, 1=Complaints, 2=Donation
+  late int _tab = widget.initialTab; // 0=Polls, 1=Complaints, 2=Donation
   // Selected option per poll card
   final Map<int, int?> _selected = {};
   final Set<int> _submitted = {};

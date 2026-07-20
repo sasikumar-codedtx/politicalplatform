@@ -10,6 +10,9 @@ import 'chat_list_screen.dart';
 import 'phone_login_screen.dart';
 import 'join_screen.dart';
 import '../services/device_session.dart';
+import '../services/profile_service.dart';
+import 'dart:async';
+import 'dart:io';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -21,6 +24,25 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   // 0=Home 1=Forum  [2=VoiceChat action]  3=News 4=MyTVK
   int _selectedIndex = 0;
+  StreamSubscription<User?>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    ProfileService.load(); // so the My TVK icon shows the saved photo on launch
+    // On logout, leave the (gated) profile tab and return to Home.
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null && mounted && _selectedIndex == 4) {
+        setState(() => _selectedIndex = 0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
 
   void _onNavTap(int index) {
     if (index == 2) {
@@ -577,23 +599,19 @@ class _MyTvkNavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, snapshot) {
-                final loggedIn =
-                    snapshot.hasData && snapshot.data != null;
-                if (loggedIn) {
+            ValueListenableBuilder<String?>(
+              valueListenable: ProfileService.avatar,
+              builder: (context, path, _) {
+                if (path != null) {
                   return ClipOval(
-                    child: Image.asset(
-                      'assets/images/av2.png',
+                    child: Image.file(
+                      File(path),
                       width: 24,
                       height: 24,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stack) => Icon(
                         Icons.person_rounded,
-                        color: isActive
-                            ? primary
-                            : const Color(0xFF555555),
+                        color: isActive ? primary : const Color(0xFF555555),
                         size: 22,
                       ),
                     ),
@@ -603,8 +621,7 @@ class _MyTvkNavItem extends StatelessWidget {
                   isActive
                       ? Icons.person_rounded
                       : Icons.person_outline_rounded,
-                  color:
-                      isActive ? primary : const Color(0xFF555555),
+                  color: isActive ? primary : const Color(0xFF555555),
                   size: 22,
                 );
               },

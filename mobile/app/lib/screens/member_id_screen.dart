@@ -1,16 +1,99 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import '../services/profile_service.dart';
+import '../services/agent_service.dart';
+import '../widgets/loading_overlay.dart';
 
 // Figma: 1328-9683 — TVK Member ID card result screen
 
-class MemberIdScreen extends StatelessWidget {
+class MemberIdScreen extends StatefulWidget {
   final File? photoFile;
-  const MemberIdScreen({super.key, this.photoFile});
+
+  /// Pass the member row to show it directly. When null the latest membership
+  /// for the logged-in account is fetched.
+  final Map<String, dynamic>? member;
+  const MemberIdScreen({super.key, this.photoFile, this.member});
+
+  @override
+  State<MemberIdScreen> createState() => _MemberIdScreenState();
+}
+
+class _MemberIdScreenState extends State<MemberIdScreen> {
+  final _cardKey = GlobalKey();
+  Map<String, dynamic>? _member;
+  bool _loading = true;
+  bool _sharing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.member != null) {
+      _member = widget.member;
+      _loading = false;
+    } else {
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final m = await AgentService.getMember();
+    if (mounted) setState(() { _member = m; _loading = false; });
+  }
+
+  String get _shareText {
+    final m = _member;
+    final id = m?['member_id'] ?? '';
+    final name = m?['name'] ?? '';
+    return 'I am now a TVK member! 🚩\nName: $name\nMember ID: $id\n\nJoin TVK on the My TVK app.';
+  }
+
+  /// Shares the card as a PNG so WhatsApp (and anything else) shows the image,
+  /// falling back to text if the card could not be rendered.
+  Future<void> _share() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final file = await _captureCard();
+      if (file != null) {
+        await Share.shareXFiles([XFile(file.path)], text: _shareText);
+      } else {
+        await Share.share(_shareText);
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  Future<File?> _captureCard() async {
+    try {
+      final boundary =
+          _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      // Wait out any in-flight paint so the photo is included, not a blank frame.
+      if (boundary.debugNeedsPaint) {
+        await Future.delayed(const Duration(milliseconds: 60));
+      }
+      final image = await boundary.toImage(pixelRatio: 3);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (bytes == null) return null;
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/tvk_member_card.png');
+      await file.writeAsBytes(bytes.buffer.asUint8List(), flush: true);
+      return file;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final photoFile = widget.photoFile;
     final topPad = MediaQuery.of(context).padding.top;
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
@@ -18,7 +101,9 @@ class MemberIdScreen extends StatelessWidget {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Stack(
+        body: LoadingOverlay(
+          isLoading: _loading || _sharing,
+          child: Stack(
           children: [
             // ── Red ellipse glow (Figma: centered radial behind card) ────────
             Positioned(
@@ -77,7 +162,10 @@ class MemberIdScreen extends StatelessWidget {
                   const SizedBox(height: 36),
 
                   // ── ID Card — Figma: 194×276, red gradient ───────────────
-                  _TvkIdCard(photoFile: photoFile),
+                  RepaintBoundary(
+                    key: _cardKey,
+                    child: _TvkIdCard(photoFile: photoFile, member: _member),
+                  ),
 
                   const SizedBox(height: 32),
 
@@ -148,16 +236,19 @@ class MemberIdScreen extends StatelessWidget {
             Positioned(
               top: topPad + 14,
               right: 16,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFEEEEEE)),
+              child: GestureDetector(
+                onTap: _share,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFEEEEEE)),
+                  ),
+                  child: const Icon(Icons.ios_share_rounded,
+                      color: Color(0xFF1A1A1A), size: 18),
                 ),
-                child: const Icon(Icons.ios_share_rounded,
-                    color: Color(0xFF1A1A1A), size: 18),
               ),
             ),
 
@@ -198,6 +289,7 @@ class MemberIdScreen extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -207,7 +299,13 @@ class MemberIdScreen extends StatelessWidget {
 
 class _TvkIdCard extends StatelessWidget {
   final File? photoFile;
-  const _TvkIdCard({this.photoFile});
+  final Map<String, dynamic>? member;
+  const _TvkIdCard({this.photoFile, this.member});
+
+  String _v(String key, String fallback) {
+    final val = member?[key];
+    return (val is String && val.trim().isNotEmpty) ? val : fallback;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -367,12 +465,14 @@ class _TvkIdCard extends StatelessWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(9),
                           child: photoFile != null
-                              ? Image.file(
-                                  photoFile!,
-                                  fit: BoxFit.cover,
-                                )
-                              : const Icon(Icons.person_rounded,
-                                  color: Colors.white38, size: 42),
+                              ? Image.file(photoFile!, fit: BoxFit.cover)
+                              : ValueListenableBuilder<String?>(
+                                  valueListenable: ProfileService.avatar,
+                                  builder: (_, path, _) => path != null
+                                      ? Image.file(File(path), fit: BoxFit.cover)
+                                      : const Icon(Icons.person_rounded,
+                                          color: Colors.white38, size: 42),
+                                ),
                         ),
                       ),
 
@@ -384,7 +484,9 @@ class _TvkIdCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Vijay Prabhakar',
+                              _v('name', 'TVK Member'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -392,21 +494,11 @@ class _TvkIdCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            _InfoRow(
-                                label: 'Member ID',
-                                value: 'TVK-2026-00124897'),
-                            _InfoRow(
-                                label: 'District',
-                                value: 'Chennai North'),
-                            _InfoRow(
-                                label: 'Booth',
-                                value: 'Ward 42, Booth 7'),
-                            _InfoRow(
-                                label: 'Joined',
-                                value: 'May 2026'),
-                            _InfoRow(
-                                label: 'Valid Till',
-                                value: 'Dec 2027'),
+                            _InfoRow(label: 'Member ID', value: _v('member_id', '—')),
+                            _InfoRow(label: 'District', value: _v('district', '—')),
+                            _InfoRow(label: 'Booth', value: _v('booth', '—')),
+                            _InfoRow(label: 'Mobile', value: _v('mobile', '—')),
+                            const _InfoRow(label: 'Valid Till', value: 'Dec 2027'),
                           ],
                         ),
                       ),
@@ -422,23 +514,34 @@ class _TvkIdCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      // Yellow/red member badge strip
+                      // Gold status badge — tinted rather than a solid
+                      // yellow→red gradient so it sits on the maroon card the
+                      // same way the green "Verified" pill does
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFFCA00), Color(0xFFE40101)],
-                          ),
+                          color: const Color(0xFF3D2A00),
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                              color: const Color(0xFFFFCA00)
+                                  .withValues(alpha: 0.45)),
                         ),
-                        child: Text(
-                          'ACTIVE MEMBER',
-                          style: GoogleFonts.bebasNeue(
-                            fontSize: 10,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.workspace_premium_rounded,
+                                color: Color(0xFFFFCA00), size: 11),
+                            const SizedBox(width: 4),
+                            Text(
+                              'ACTIVE MEMBER',
+                              style: GoogleFonts.bebasNeue(
+                                fontSize: 10,
+                                color: const Color(0xFFFFCA00),
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),

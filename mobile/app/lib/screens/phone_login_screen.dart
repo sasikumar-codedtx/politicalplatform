@@ -28,6 +28,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   String? _error;
 
   Future<void> _sendOtp() async {
+    if (_loading) return; // guard against rapid double-taps
     // Strip everything except digits, then drop leading 91 if user included country code
     final digits = _phoneController.text.trim().replaceAll(RegExp(r'\D'), '');
     final local = digits.startsWith('91') && digits.length == 12 ? digits.substring(2) : digits;
@@ -79,11 +80,17 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   Future<void> _verifyOtp() async {
+    if (_loading) return; // guard against rapid double-taps
+    final code = _otpController.text.trim();
+    if (code.length < 6) {
+      setState(() => _error = 'Enter the 6-digit OTP');
+      return;
+    }
     setState(() { _loading = true; _error = null; });
     try {
       final credential = PhoneAuthProvider.credential(
         verificationId: _verificationId,
-        smsCode: _otpController.text.trim(),
+        smsCode: code,
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
       _goToDashboard();
@@ -93,10 +100,17 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   void _goToDashboard() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainShell()),
-    );
+    if (!mounted) return;
+    // If we were opened over an existing screen (e.g. the login gate that
+    // awaits us and then shows the Join-TVK sheet), pop back so that caller
+    // resumes on a live context. Only when we're the root do we replace with
+    // the shell.
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+    } else {
+      nav.pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
+    }
   }
 
   @override

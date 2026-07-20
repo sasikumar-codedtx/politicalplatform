@@ -187,6 +187,17 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     }
   }
 
+  /// Turns a thrown error into something worth showing a citizen. Dart
+  /// prefixes every Exception with "Exception: ", and network failures carry
+  /// stack-trace noise no user can act on.
+  String _friendly(Object e) {
+    final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
+    if (msg.isEmpty || msg.contains('SocketException') || msg.contains('TimeoutException')) {
+      return 'Sorry, I could not reach the server. Please check your connection.';
+    }
+    return msg;
+  }
+
   Future<void> _stopAndProcess() async {
     // Timer stops immediately when user stops recording — it should only
     // count "you are speaking" time, not the AI's thinking + reply time.
@@ -238,7 +249,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         await _startRecording();
       }
     } catch (e) {
-      _showError('$e');
+      _showError(_friendly(e));
       if (mounted) {
         setState(() => _state = _VoiceState.idle);
       }

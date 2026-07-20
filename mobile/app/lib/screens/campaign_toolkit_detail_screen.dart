@@ -550,8 +550,6 @@ class _VideoCard extends StatelessWidget {
                   fontSize: 16, color: Colors.white,
                   letterSpacing: 0.2,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

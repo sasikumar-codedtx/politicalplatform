@@ -9,7 +9,7 @@ from auth import verify_token
 from embeddings import embed
 from rag import retrieve_context
 from scraper import scrape_url, get_youtube_transcript
-from streaming import stream_ollama
+from streaming import stream_ollama, warmup as llm_warmup
 from tts import synthesize_sentence
 import avatar_client as face_avatar_client
 from persona import get_persona
@@ -36,6 +36,15 @@ from db import (
     list_avatars,
     get_avatar,
     delete_avatar as db_delete_avatar,
+    get_profile,
+    upsert_profile,
+    set_profile_avatar,
+    get_profile_avatar,
+    add_complaint,
+    list_complaints,
+    add_member,
+    list_members,
+    get_member,
 )
 import uuid as _uuid
 from seed_prompts import SEED_PROMPTS, CATEGORY_ORDER, CATEGORY_LABELS
@@ -154,8 +163,11 @@ def health():
 
 
 @app.on_event("startup")
-def startup():
+async def startup():
     init_db()
+    # Fire and forget — the service accepts traffic immediately while the
+    # model loads in the background.
+    asyncio.create_task(llm_warmup())
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -434,6 +446,118 @@ def end_session(session_id: str):
     return {"status": "cleared" if cleared else "not found", "session_id": session_id}
 
 
+# ── User profile + complaints (per Firebase uid, synced across devices) ───────
+
+class ProfileUpdate(BaseModel):
+    name: str | None = None
+    city: str | None = None
+
+
+class ComplaintCreate(BaseModel):
+    title: str
+    description: str = ""
+    category: str = "General"
+
+
+def _require_uid(authorization: str | None) -> str:
+    uid, auth_error = verify_token(authorization)
+    if auth_error:
+        raise HTTPException(status_code=401, detail=auth_error)
+    return uid
+
+
+@app.get("/profile")
+def profile_get(authorization: str | None = Header(default=None)):
+    return get_profile(_require_uid(authorization))
+
+
+@app.put("/profile")
+def profile_put(req: ProfileUpdate, authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    upsert_profile(uid, req.name, req.city)
+    return get_profile(uid)
+
+
+@app.post("/profile/avatar")
+async def profile_avatar_upload(authorization: str | None = Header(default=None),
+                                file: UploadFile = File(...)):
+    uid = _require_uid(authorization)
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty file")
+    set_profile_avatar(uid, data, file.content_type or "image/jpeg")
+    return {"status": "ok", "size": len(data)}
+
+
+@app.get("/profile/avatar")
+def profile_avatar_get(authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    result = get_profile_avatar(uid)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no avatar")
+    data, mime = result
+    return _Response(content=data, media_type=mime,
+                     headers={"Cache-Control": "no-store"})
+
+
+@app.post("/complaints")
+def complaints_create(req: ComplaintCreate, authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    title = req.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    row = add_complaint(uid, title, req.description.strip(), req.category.strip() or "General")
+    audit("complaint_created", entity_type="complaint", entity_id=str(row["id"]),
+          metadata={"category": row["category"]})
+    return row
+
+
+@app.get("/complaints")
+def complaints_list(authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    items = list_complaints(uid)
+    return {"complaints": items, "count": len(items)}
+
+
+class MemberCreate(BaseModel):
+    name: str
+    email: str = ""
+    mobile: str = ""
+    dob: str = ""
+    gender: str = ""
+    district: str = ""
+    pin: str = ""
+    booth: str = ""
+
+
+@app.post("/members")
+def member_create(req: MemberCreate, authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    if not req.name.strip():
+        raise HTTPException(status_code=400, detail="name is required")
+    row = add_member(uid, req.name.strip(), req.email.strip(), req.mobile.strip(),
+                     req.dob.strip(), req.gender.strip(), req.district.strip(),
+                     req.pin.strip(), req.booth.strip())
+    audit("member_joined", entity_type="member", entity_id=row["member_id"])
+    return row
+
+
+@app.get("/members")
+def members_list(authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    items = list_members(uid)
+    return {"members": items, "count": len(items)}
+
+
+@app.get("/members/me")
+def member_me(authorization: str | None = Header(default=None)):
+    uid = _require_uid(authorization)
+    row = get_member(uid)
+    if row is None:
+        raise HTTPException(status_code=404, detail="not a member yet")
+    return row
+
+
 # ── Admin / RAG routes ───────────────────────────────────────────────────────
 
 @app.get("/admin/documents")
@@ -676,18 +800,27 @@ def _build_chat_messages(session_id: str, user_message: str,
 
 @app.websocket("/ws/chat")
 async def ws_chat(ws: WebSocket):
+    # Persistent socket: accept once, then serve every turn on the same
+    # connection. The client keeps this open for the whole chat session, so
+    # each message skips a fresh WS + TLS handshake.
     await ws.accept()
     try:
-        first = await ws.receive_json()
+        while True:
+            payload = await ws.receive_json()
+            if payload.get("type") != "user_message":
+                await ws.send_json({"type": "error", "detail": "expected type=user_message"})
+                continue
+            await _ws_handle_turn(ws, payload)
+    except WebSocketDisconnect:
+        return
     except Exception:
-        await ws.close(code=1003)
-        return
+        try:
+            await ws.close(code=1011)
+        except Exception:
+            pass
 
-    if first.get("type") != "user_message":
-        await ws.send_json({"type": "error", "detail": "expected type=user_message"})
-        await ws.close(code=1003)
-        return
 
+async def _ws_handle_turn(ws: WebSocket, first: dict):
     session_id = (first.get("session_id") or "").strip()
     message    = (first.get("message") or "").strip()
     flavor_id  = first.get("flavor_id")
@@ -724,14 +857,12 @@ async def ws_chat(ws: WebSocket):
 
     if not session_id or not message:
         await ws.send_json({"type": "error", "detail": "session_id and message are required"})
-        await ws.close(code=1003)
         return
 
     auth_header = f"Bearer {token}" if token else None
     uid, auth_error = verify_token(auth_header)
     if auth_error:
         await ws.send_json({"type": "error", "detail": auth_error})
-        await ws.close(code=4401)
         return
 
     blocked = check_injection(message)
@@ -747,14 +878,12 @@ async def ws_chat(ws: WebSocket):
         except Exception:
             pass
         await ws.send_json({"type": "done", "reply": blocked})
-        await ws.close()
         return
 
     try:
         messages = _build_chat_messages(session_id, message, flavor_id, uid)
     except Exception as e:
         await ws.send_json({"type": "error", "detail": f"setup error: {e}"})
-        await ws.close(code=1011)
         return
 
     sentence_tasks: list[tuple[int, str, asyncio.Task]] = []
@@ -802,14 +931,15 @@ async def ws_chat(ws: WebSocket):
         producer_done.set()
         for _, _, task in sentence_tasks:
             task.cancel()
-        return
+        raise  # propagate to ws_chat's loop so it exits cleanly
     except Exception as e:
         producer_done.set()
+        for _, _, task in sentence_tasks:
+            task.cancel()
         try:
             await ws.send_json({"type": "error", "detail": str(e)})
         except Exception:
             pass
-        await ws.close(code=1011)
         return
 
     producer_done.set()
@@ -821,7 +951,6 @@ async def ws_chat(ws: WebSocket):
               metadata={"flavor_id": flavor_id, "message_preview": message[:80]})
 
     await ws.send_json({"type": "done", "reply": full_reply})
-    await ws.close()
 
 
 # ── Avatar admin routes (Face Photo only) ────────────────────────────────────
