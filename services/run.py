@@ -140,11 +140,16 @@ def _is_enabled(svc: dict) -> tuple[bool, str]:
     return True, ""
 
 
+_DEV_RELOAD = _truthy(os.getenv("DEV_RELOAD", "")) is True
+
+
 def _spawn(svc: dict) -> subprocess.Popen:
     cmd = [_python(), "-m", "uvicorn", svc["module"],
-           "--host", "127.0.0.1", "--port", str(svc["port"]),
-           "--reload"]
-    print(f"[gateway] starting {svc['name']:>14} on :{svc['port']}", flush=True)
+           "--host", "127.0.0.1", "--port", str(svc["port"])]
+    if _DEV_RELOAD:
+        cmd.append("--reload")
+    print(f"[gateway] starting {svc['name']:>14} on :{svc['port']}"
+          f"{'  (reload)' if _DEV_RELOAD else ''}", flush=True)
     return subprocess.Popen(cmd, cwd=str(svc["cwd"]))
 
 
