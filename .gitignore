@@ -6,7 +6,7 @@ services/admin-ui/build/
 services/admin-ui/dist/
 
 # Python virtual env
-services/agent/venv/
+services/venv/
 
 # Avatar runtime cache (GLBs + uploaded photos)
 services/agent/data/
@@ -18,3 +18,4 @@ services/admin-ui/node_modules/
 
 # Ignore all node_modules globally
 node_modules/*
+.env
