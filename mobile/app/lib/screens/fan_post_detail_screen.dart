@@ -314,7 +314,13 @@ class _FullPostCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.ios_share_rounded, size: 22, color: AppColors.textMuted),
+              GestureDetector(
+                onTap: () => Share.share(post.linkUrl == null
+                    ? post.text
+                    : '${post.text}\n\n${post.linkUrl}'),
+                child: Icon(Icons.ios_share_rounded,
+                    size: 22, color: AppColors.textMuted),
+              ),
             ],
           ),
         ],

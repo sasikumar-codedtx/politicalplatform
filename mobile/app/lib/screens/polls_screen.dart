@@ -653,7 +653,6 @@ class _AppBar extends StatelessWidget {
               ),
             ),
           ),
-          Icon(Icons.translate_rounded, size: 24, color: AppColors.textPrimary),
         ],
       ),
     );

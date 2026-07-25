@@ -2569,14 +2569,26 @@ class _EventCard extends StatelessWidget {
           height: 171,
           child: Stack(
             children: [
-              // Background image — rally/event photo
+              // Background image — real event photo from the backend when set,
+              // else the bundled rally asset (same pattern as News/TVK media).
               Positioned.fill(
-                child: Image.asset(
-                  imgPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: const Color(0xFF8B1A1A)),
-                ),
+                child: (event.imageUrl != null && event.imageUrl!.isNotEmpty)
+                    ? Image.network(
+                        event.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Image.asset(
+                          imgPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stack) =>
+                              Container(color: const Color(0xFF8B1A1A)),
+                        ),
+                      )
+                    : Image.asset(
+                        imgPath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Container(color: const Color(0xFF8B1A1A)),
+                      ),
               ),
               // Dark red gradient overlay (bottom half)
               Positioned.fill(

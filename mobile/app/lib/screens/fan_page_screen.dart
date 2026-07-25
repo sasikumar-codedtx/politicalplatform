@@ -413,7 +413,11 @@ class _PostCardState extends State<_PostCard> {
                   ],
                 ),
               ),
-              Icon(Icons.more_vert_rounded, color: AppColors.textMuted, size: 20),
+              GestureDetector(
+                onTap: _share,
+                child: Icon(Icons.more_vert_rounded,
+                    color: AppColors.textMuted, size: 20),
+              ),
             ],
           ),
           const SizedBox(height: 12),

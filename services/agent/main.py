@@ -16,6 +16,7 @@ from persona import get_persona
 from prompts import get_prompt
 from pypdf import PdfReader
 from guard import check_injection, role_anchor
+from complaint_agent import try_raise_complaint
 from youtube_posts import fetch_channel_posts
 from db import (
     init_db,
@@ -1299,6 +1300,23 @@ async def _ws_handle_turn(ws: WebSocket, first: dict):
         except Exception:
             pass
         await ws.send_json({"type": "done", "reply": blocked})
+        return
+
+    # Autonomous complaint intake — if the user is reporting a civic problem,
+    # file it and reply with the confirmation instead of a normal chat answer.
+    complaint_reply = try_raise_complaint(message, flavor_id, uid)
+    if complaint_reply:
+        add_message(session_id, "user", message)
+        add_message(session_id, "assistant", complaint_reply)
+        await ws.send_json({"type": "token", "text": complaint_reply})
+        try:
+            audio, mime = await synth_one(complaint_reply)
+            await ws.send_json({"type": "audio", "index": 0, "text": complaint_reply,
+                                "mime": mime, "size": len(audio)})
+            await ws.send_bytes(audio)
+        except Exception:
+            pass
+        await ws.send_json({"type": "done", "reply": complaint_reply})
         return
 
     try:

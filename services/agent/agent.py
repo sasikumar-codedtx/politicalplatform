@@ -15,6 +15,7 @@ from persona import get_persona
 from prompts import get_prompt
 from rag import retrieve_context
 from guard import check_injection, role_anchor
+from complaint_agent import try_raise_complaint
 from db import (
     add_message,
     audit,
@@ -78,6 +79,12 @@ def get_reply(session_id: str, user_message: str, flavor_id: str | None = None, 
 
     ensure_session(session_id, persona, flavor_id=flavor_id, user_id=user_id)
     add_message(session_id, "user", user_message)
+
+    # Autonomous complaint intake — file it and confirm instead of a normal reply.
+    complaint_reply = try_raise_complaint(user_message, flavor_id, user_id or "")
+    if complaint_reply:
+        add_message(session_id, "assistant", complaint_reply)
+        return complaint_reply
 
     title = user_message[:40].strip()
     if len(user_message) > 40:
