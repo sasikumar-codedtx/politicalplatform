@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
+import '../config/app_colors.dart';
 import 'home_screen.dart';
 import 'fan_page_screen.dart';
 import 'news_screen.dart';
@@ -78,7 +79,7 @@ class _MainShellState extends State<MainShell> {
     }
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -107,7 +108,7 @@ class _MainShellState extends State<MainShell> {
     }
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -134,7 +135,7 @@ class _MainShellState extends State<MainShell> {
   void _promptJoinTvk() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -159,8 +160,8 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final f = AppConfig.current;
     final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final border = Color(f.borderColor);
+    final bg = AppColors.bg;
+    final border = AppColors.border;
 
     return Scaffold(
       backgroundColor: bg,
@@ -187,7 +188,7 @@ class _MainShellState extends State<MainShell> {
                 _NavItem(
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home_rounded,
-                  label: f.appName,
+                  label: 'Home',
                   index: 0,
                   selected: _selectedIndex,
                   onTap: _onNavTap,
@@ -201,34 +202,6 @@ class _MainShellState extends State<MainShell> {
                   selected: _selectedIndex,
                   onTap: _onNavTap,
                   primary: primary,
-                ),
-                // Centre — Talk to My Leader
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _onNavTap(2),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: primary,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: primary.withValues(alpha: 0.4),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: const Icon(Icons.mic_rounded,
-                              color: Colors.white, size: 24),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
                 _NavItem(
                   icon: Icons.campaign_outlined,
@@ -287,7 +260,7 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              color: isActive ? primary : const Color(0xFF555555),
+              color: isActive ? primary : AppColors.textSecondary,
               size: 22,
             ),
             const SizedBox(height: 3),
@@ -297,7 +270,7 @@ class _NavItem extends StatelessWidget {
                 fontSize: 10,
                 fontWeight:
                     isActive ? FontWeight.w700 : FontWeight.w400,
-                color: isActive ? primary : const Color(0xFF555555),
+                color: isActive ? primary : AppColors.textSecondary,
               ),
             ),
           ],
@@ -313,7 +286,7 @@ Widget _sheetHandle() {
   return Container(
     width: 40, height: 4,
     decoration: BoxDecoration(
-      color: Colors.black12,
+      color: AppColors.border,
       borderRadius: BorderRadius.circular(2),
     ),
   );
@@ -377,7 +350,7 @@ class _LoginGateSheet extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
               )),
           const SizedBox(height: 8),
           Text(
@@ -385,7 +358,7 @@ class _LoginGateSheet extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -397,16 +370,16 @@ class _LoginGateSheet extends StatelessWidget {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFEEEEEE)),
+                border: Border.all(color: AppColors.border),
               ),
               alignment: Alignment.center,
               child: Text('Skip for Now',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF555555),
+                    color: AppColors.textSecondary,
                   )),
             ),
           ),
@@ -446,7 +419,7 @@ class _MandatoryLoginSheet extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
               )),
           const SizedBox(height: 8),
           Text(
@@ -454,7 +427,7 @@ class _MandatoryLoginSheet extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -470,7 +443,7 @@ class _MandatoryLoginSheet extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF999999),
+                    color: AppColors.textMuted,
                   )),
             ),
           ),
@@ -518,7 +491,7 @@ class _JoinTvkPromptSheet extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
               )),
           const SizedBox(height: 8),
           Text(
@@ -526,7 +499,7 @@ class _JoinTvkPromptSheet extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -564,7 +537,7 @@ class _JoinTvkPromptSheet extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black45,
+                  color: AppColors.textMuted,
                 )),
           ),
         ],
@@ -611,7 +584,7 @@ class _MyTvkNavItem extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stack) => Icon(
                         Icons.person_rounded,
-                        color: isActive ? primary : const Color(0xFF555555),
+                        color: isActive ? primary : AppColors.textSecondary,
                         size: 22,
                       ),
                     ),
@@ -621,7 +594,7 @@ class _MyTvkNavItem extends StatelessWidget {
                   isActive
                       ? Icons.person_rounded
                       : Icons.person_outline_rounded,
-                  color: isActive ? primary : const Color(0xFF555555),
+                  color: isActive ? primary : AppColors.textSecondary,
                   size: 22,
                 );
               },
@@ -634,7 +607,7 @@ class _MyTvkNavItem extends StatelessWidget {
                 fontWeight:
                     isActive ? FontWeight.w700 : FontWeight.w400,
                 color:
-                    isActive ? primary : const Color(0xFF555555),
+                    isActive ? primary : AppColors.textSecondary,
               ),
             ),
           ],

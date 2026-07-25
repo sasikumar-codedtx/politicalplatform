@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../models/youtube_playlist.dart';
 import '../models/youtube_video.dart';
 import '../services/youtube_service.dart';
@@ -34,12 +35,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1A1A1A)),
+          icon: Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -47,7 +48,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
       ),
@@ -64,7 +65,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     'No videos in this playlist.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 )
@@ -96,7 +97,7 @@ class _VideoCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
@@ -118,11 +119,11 @@ class _VideoCard extends StatelessWidget {
                   video.thumbnailUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, e, s) => Container(
-                    color: const Color(0xFFEEEEEE),
-                    child: const Icon(
+                    color: AppColors.surfaceAlt,
+                    child: Icon(
                       Icons.play_circle_outline_rounded,
                       size: 40,
-                      color: Color(0xFFCCCCCC),
+                      color: AppColors.textMuted,
                     ),
                   ),
                 ),
@@ -138,7 +139,7 @@ class _VideoCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -154,7 +155,7 @@ class _VideoCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: Colors.black54,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -163,7 +164,7 @@ class _VideoCard extends StatelessWidget {
                         video.formattedDate,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: Colors.black38,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],

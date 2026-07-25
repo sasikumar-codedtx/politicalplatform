@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../config/app_config.dart';
+import '../config/app_colors.dart';
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
@@ -41,17 +41,17 @@ class ServicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(AppConfig.current.backgroundColor),
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 1,
         automaticallyImplyLeading: false,
-        title: Text('Citizen Services', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
+        title: Text('Citizen Services', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Divider(color: Color(AppConfig.current.borderColor), height: 1),
+          child: Divider(color: AppColors.border, height: 1),
         ),
       ),
       body: ListView(
@@ -82,7 +82,7 @@ class _CategorySection extends StatelessWidget {
                 child: Icon(category.icon, color: category.color, size: 16),
               ),
               const SizedBox(width: 8),
-              Text(category.title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF333333))),
+              Text(category.title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             ],
           ),
         ),
@@ -103,7 +103,7 @@ class _ServiceTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
       ),
@@ -115,17 +115,17 @@ class _ServiceTile extends StatelessWidget {
           decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(service.icon, color: accentColor, size: 22),
         ),
-        title: Text(service.title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
-        subtitle: Text(service.subtitle, style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500])),
+        title: Text(service.title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        subtitle: Text(service.subtitle, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: isLive ? accentColor.withValues(alpha: 0.1) : Colors.grey[100],
+            color: isLive ? accentColor.withValues(alpha: 0.1) : AppColors.surfaceAlt,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             service.badge,
-            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: isLive ? accentColor : Colors.grey[400]),
+            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: isLive ? accentColor : AppColors.textMuted),
           ),
         ),
         onTap: isLive ? () {} : null,

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 
 class VijayDetailScreen extends StatefulWidget {
   const VijayDetailScreen({super.key});
@@ -33,7 +34,7 @@ class _VijayDetailScreenState extends State<VijayDetailScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6F6F6),
+        backgroundColor: AppColors.bg,
         body: Column(
           children: [
             // ── Hero section ─────────────────────────────────────────────────
@@ -41,11 +42,11 @@ class _VijayDetailScreenState extends State<VijayDetailScreen>
 
             // ── Tab bar ───────────────────────────────────────────────────────
             Container(
-              color: Colors.white,
+              color: AppColors.surface,
               child: TabBar(
                 controller: _tabController,
-                labelColor: const Color(0xFF1A1A1A),
-                unselectedLabelColor: const Color(0xFF888888),
+                labelColor: AppColors.textPrimary,
+                unselectedLabelColor: AppColors.textMuted,
                 labelStyle: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -421,9 +422,9 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
         ],
@@ -436,7 +437,7 @@ class _InfoCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               border: i < rows.length - 1
-                  ? const Border(bottom: BorderSide(color: Color(0xFFF2F2F2)))
+                  ? Border(bottom: BorderSide(color: AppColors.border))
                   : null,
             ),
             child: Row(
@@ -449,7 +450,7 @@ class _InfoCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF888888),
+                      color: AppColors.textMuted,
                     ),
                   ),
                 ),
@@ -459,7 +460,7 @@ class _InfoCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -482,9 +483,9 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
         ],
@@ -497,7 +498,7 @@ class _SectionCard extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 10),
@@ -506,7 +507,7 @@ class _SectionCard extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF555555),
+              color: AppColors.textSecondary,
               height: 1.65,
             ),
           ),
@@ -538,7 +539,7 @@ class _SectionTitle extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
       ],
@@ -648,9 +649,9 @@ class _AchievementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
         ],
@@ -663,7 +664,7 @@ class _AchievementCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               border: i < items.length - 1
-                  ? const Border(bottom: BorderSide(color: Color(0xFFF2F2F2)))
+                  ? Border(bottom: BorderSide(color: AppColors.border))
                   : null,
             ),
             child: Row(
@@ -688,7 +689,7 @@ class _AchievementCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1A1A1A),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -697,7 +698,7 @@ class _AchievementCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: const Color(0xFF666666),
+                          color: AppColors.textSecondary,
                           height: 1.5,
                         ),
                       ),

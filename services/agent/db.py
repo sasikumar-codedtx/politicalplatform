@@ -183,16 +183,25 @@ def init_db() -> None:
                     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
                 );
             """)
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT '';")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_complaints_device ON complaints(device_id);")
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS idx_complaints_uid
                 ON complaints(uid, created_at DESC);
             """)
+            # Optional evidence file (image / pdf / zip / anything) per complaint.
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS attachment BYTEA;")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS attachment_name TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS attachment_mime TEXT NOT NULL DEFAULT '';")
             # TVK membership — the Join form. serial drives the printed member id.
             # One login can register several members (family / booth sign-ups),
-            # so uid is NOT unique — serial is the key.
+            # so uid is NOT unique — serial is the key. device_id lets a
+            # not-logged-in citizen register on their phone; on login those
+            # rows are adopted (uid stamped) so they sync across devices.
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS members (
-                    uid        TEXT NOT NULL,
+                    uid        TEXT NOT NULL DEFAULT '',
+                    device_id  TEXT NOT NULL DEFAULT '',
                     serial     BIGSERIAL,
                     name       TEXT NOT NULL DEFAULT '',
                     email      TEXT NOT NULL DEFAULT '',
@@ -217,7 +226,123 @@ def init_db() -> None:
                     END IF;
                 END $$;
             """)
+            cur.execute("ALTER TABLE members ALTER COLUMN uid SET DEFAULT '';")
+            cur.execute("ALTER TABLE members ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT '';")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_members_uid ON members(uid);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_members_device ON members(device_id);")
+            # Community polls — anyone (logged in or by device) can create + vote.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS polls (
+                    id            BIGSERIAL PRIMARY KEY,
+                    flavor_id     TEXT NOT NULL DEFAULT '',
+                    question      TEXT NOT NULL,
+                    options       JSONB NOT NULL DEFAULT '[]',
+                    duration_days INT NOT NULL DEFAULT 2,
+                    creator       TEXT NOT NULL DEFAULT '',
+                    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_polls_flavor ON polls(flavor_id, created_at DESC);")
+            # One row per (poll, voter). voter is a uid when logged in, else a
+            # device id — adopted onto the uid on login, same as members.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS poll_votes (
+                    poll_id      BIGINT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+                    voter        TEXT NOT NULL,
+                    option_index INT NOT NULL,
+                    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    PRIMARY KEY (poll_id, voter)
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_poll_votes_voter ON poll_votes(voter);")
+            # Forum (community wall) — posts, likes and comments are shared by
+            # every user, so counts are real instead of phone-local.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS forum_posts (
+                    id         BIGSERIAL PRIMARY KEY,
+                    flavor_id  TEXT NOT NULL DEFAULT '',
+                    author     TEXT NOT NULL DEFAULT '',
+                    user_name  TEXT NOT NULL DEFAULT '',
+                    body       TEXT NOT NULL DEFAULT '',
+                    media_type TEXT NOT NULL DEFAULT 'none',
+                    media_url  TEXT NOT NULL DEFAULT '',
+                    status     TEXT NOT NULL DEFAULT 'approved',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_forum_posts_flavor ON forum_posts(flavor_id, created_at DESC);")
+            # Official posts mirrored from the channel's YouTube Posts tab.
+            cur.execute("ALTER TABLE forum_posts ADD COLUMN IF NOT EXISTS external_id TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE forum_posts ADD COLUMN IF NOT EXISTS link_url TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE forum_posts ADD COLUMN IF NOT EXISTS is_official BOOLEAN NOT NULL DEFAULT FALSE;")
+            cur.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_forum_posts_external "
+                "ON forum_posts(external_id) WHERE external_id <> '';"
+            )
+            # Uploaded attachment (image/video) for member posts.
+            cur.execute("ALTER TABLE forum_posts ADD COLUMN IF NOT EXISTS media BYTEA;")
+            cur.execute("ALTER TABLE forum_posts ADD COLUMN IF NOT EXISTS media_mime TEXT NOT NULL DEFAULT '';")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS forum_likes (
+                    post_id    BIGINT NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE,
+                    voter      TEXT NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    PRIMARY KEY (post_id, voter)
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_forum_likes_voter ON forum_likes(voter);")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS forum_comments (
+                    id         BIGSERIAL PRIMARY KEY,
+                    post_id    BIGINT NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE,
+                    author     TEXT NOT NULL DEFAULT '',
+                    user_name  TEXT NOT NULL DEFAULT '',
+                    body       TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_forum_comments_post ON forum_comments(post_id, created_at DESC);")
+            # Campaign toolkit — admin-published posters / media / slogans /
+            # hashtags per flavor. Public read; admin writes.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS toolkit_items (
+                    id         BIGSERIAL PRIMARY KEY,
+                    flavor_id  TEXT NOT NULL DEFAULT '',
+                    kind       TEXT NOT NULL DEFAULT 'Posters',
+                    title      TEXT NOT NULL DEFAULT '',
+                    image_url  TEXT NOT NULL DEFAULT '',
+                    link_url   TEXT NOT NULL DEFAULT '',
+                    subtitle   TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_toolkit_flavor_kind ON toolkit_items(flavor_id, kind, created_at DESC);")
+            # Admin-published content — News + Events (CMS). Public read per flavor.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS news (
+                    id           BIGSERIAL PRIMARY KEY,
+                    flavor_id    TEXT NOT NULL DEFAULT '',
+                    title        TEXT NOT NULL,
+                    summary      TEXT NOT NULL DEFAULT '',
+                    category     TEXT NOT NULL DEFAULT 'Party',
+                    image_url    TEXT NOT NULL DEFAULT '',
+                    published_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_news_flavor ON news(flavor_id, published_at DESC);")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    id         BIGSERIAL PRIMARY KEY,
+                    flavor_id  TEXT NOT NULL DEFAULT '',
+                    title      TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    location   TEXT NOT NULL DEFAULT '',
+                    event_type TEXT NOT NULL DEFAULT 'Event',
+                    image_url  TEXT NOT NULL DEFAULT '',
+                    starts_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_events_flavor ON events(flavor_id, starts_at DESC);")
     _seed_prompts_if_empty()
 
 
@@ -289,16 +414,33 @@ def get_profile_avatar(uid: str) -> tuple[bytes, str] | None:
 
 # ── Complaints ──────────────────────────────────────────────────────────────
 
-def add_complaint(uid: str, title: str, description: str, category: str) -> dict:
+def _adopt_complaints(cur, uid: str, device_id: str) -> None:
+    """Move complaints raised on this device before login onto the account."""
+    if not uid or not device_id:
+        return
+    cur.execute(
+        "UPDATE complaints SET uid = %s WHERE device_id = %s "
+        "AND (uid = '' OR uid IS NULL)",
+        (uid, device_id),
+    )
+
+
+def add_complaint(uid: str, device_id: str, title: str, description: str,
+                  category: str,
+                  attachment: bytes | None = None, attachment_name: str = "",
+                  attachment_mime: str = "") -> dict:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO complaints (uid, title, description, category)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, title, description, category, status, created_at
+                INSERT INTO complaints (uid, device_id, title, description, category,
+                                        attachment, attachment_name, attachment_mime)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, title, description, category, status, created_at, attachment_name
                 """,
-                (uid, title, description, category),
+                (uid, device_id, title, description, category,
+                 psycopg2.Binary(attachment) if attachment else None,
+                 attachment_name, attachment_mime),
             )
             row = cur.fetchone()
             return {
@@ -308,7 +450,30 @@ def add_complaint(uid: str, title: str, description: str, category: str) -> dict
                 "category": row["category"],
                 "status": row["status"],
                 "created_at": _iso(row["created_at"]),
+                "has_attachment": bool(row["attachment_name"]),
+                "attachment_name": row["attachment_name"],
             }
+
+
+def get_complaint_attachment(uid: str, device_id: str,
+                             complaint_id: int) -> tuple[bytes, str, str] | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if uid:
+                _adopt_complaints(cur, uid, device_id)
+                where, args = "uid = %s", (complaint_id, uid)
+            else:
+                where = "device_id = %s AND (uid = '' OR uid IS NULL)"
+                args = (complaint_id, device_id)
+            cur.execute(
+                "SELECT attachment, attachment_mime, attachment_name FROM complaints "
+                f"WHERE id = %s AND {where}",
+                args,
+            )
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                return None
+            return bytes(row[0]), (row[1] or "application/octet-stream"), (row[2] or "file")
 
 
 def _member_row_to_dict(row: dict) -> dict:
@@ -329,52 +494,455 @@ def _member_row_to_dict(row: dict) -> dict:
 _MEMBER_COLS = ("serial, name, email, mobile, dob, gender, district, pin, booth, created_at")
 
 
-def add_member(uid: str, name: str, email: str, mobile: str, dob: str,
+def _adopt_members(cur, uid: str, device_id: str) -> None:
+    """Stamp this device's anonymous member rows onto the logged-in account so
+    they sync across the user's other devices. Idempotent — hits 0 rows once
+    stamped. Ownership MOVES (not shared) so a co-user of the same phone never
+    sees another account's members."""
+    if not uid or not device_id:
+        return
+    cur.execute(
+        "UPDATE members SET uid = %s WHERE device_id = %s AND (uid = '' OR uid IS NULL)",
+        (uid, device_id),
+    )
+
+
+def add_member(uid: str, device_id: str, name: str, email: str, mobile: str, dob: str,
                gender: str, district: str, pin: str, booth: str) -> dict:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 f"""
-                INSERT INTO members (uid, name, email, mobile, dob, gender, district, pin, booth)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO members (uid, device_id, name, email, mobile, dob, gender, district, pin, booth)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING {_MEMBER_COLS}
                 """,
-                (uid, name, email, mobile, dob, gender, district, pin, booth),
+                (uid, device_id, name, email, mobile, dob, gender, district, pin, booth),
             )
             return _member_row_to_dict(cur.fetchone())
 
 
-def list_members(uid: str) -> list[dict]:
+def list_members(uid: str, device_id: str) -> list[dict]:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                f"SELECT {_MEMBER_COLS} FROM members WHERE uid = %s ORDER BY serial",
-                (uid,),
-            )
+            if uid:
+                _adopt_members(cur, uid, device_id)
+                cur.execute(
+                    f"SELECT {_MEMBER_COLS} FROM members WHERE uid = %s ORDER BY serial",
+                    (uid,),
+                )
+            else:
+                cur.execute(
+                    f"SELECT {_MEMBER_COLS} FROM members "
+                    "WHERE device_id = %s AND (uid = '' OR uid IS NULL) ORDER BY serial",
+                    (device_id,),
+                )
             return [_member_row_to_dict(r) for r in cur.fetchall()]
 
 
-def get_member(uid: str) -> dict | None:
+def get_member(uid: str, device_id: str) -> dict | None:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                f"SELECT {_MEMBER_COLS} FROM members WHERE uid = %s "
-                "ORDER BY serial DESC LIMIT 1",
-                (uid,),
-            )
+            if uid:
+                _adopt_members(cur, uid, device_id)
+                cur.execute(
+                    f"SELECT {_MEMBER_COLS} FROM members WHERE uid = %s "
+                    "ORDER BY serial DESC LIMIT 1",
+                    (uid,),
+                )
+            else:
+                cur.execute(
+                    f"SELECT {_MEMBER_COLS} FROM members "
+                    "WHERE device_id = %s AND (uid = '' OR uid IS NULL) "
+                    "ORDER BY serial DESC LIMIT 1",
+                    (device_id,),
+                )
             row = cur.fetchone()
             return _member_row_to_dict(row) if row else None
 
 
-def list_complaints(uid: str) -> list[dict]:
+# ── Polls ─────────────────────────────────────────────────────────────────────
+
+def _adopt_poll_votes(cur, uid: str, device_id: str) -> None:
+    """Move this device's anonymous votes onto the logged-in account. Dedupe
+    first: if the account already voted on a poll this device also voted on,
+    drop the device row so the (poll_id, voter) PK move can't collide."""
+    if not uid or not device_id:
+        return
+    cur.execute(
+        "DELETE FROM poll_votes WHERE voter = %s AND poll_id IN "
+        "(SELECT poll_id FROM poll_votes WHERE voter = %s)",
+        (device_id, uid),
+    )
+    cur.execute("UPDATE poll_votes SET voter = %s WHERE voter = %s", (uid, device_id))
+    cur.execute("UPDATE polls SET creator = %s WHERE creator = %s", (uid, device_id))
+
+
+def _voter(cur, uid: str, device_id: str) -> str:
+    """Effective vote identity: the uid when logged in (adopting any device
+    votes first), else the device id."""
+    if uid:
+        _adopt_poll_votes(cur, uid, device_id)
+        return uid
+    return device_id or ""
+
+
+def add_poll(flavor_id: str, question: str, options: list[str],
+             duration_days: int, creator: str) -> dict:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT id, title, description, category, status, created_at
-                FROM complaints WHERE uid = %s ORDER BY created_at DESC
+                INSERT INTO polls (flavor_id, question, options, duration_days, creator)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id, question, options, duration_days, created_at
                 """,
-                (uid,),
+                (flavor_id, question, psycopg2.extras.Json(options), duration_days, creator),
+            )
+            return _poll_row_to_dict(cur.fetchone(), None)
+
+
+def list_polls(flavor_id: str, uid: str, device_id: str) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            voter = _voter(cur, uid, device_id)
+            cur.execute(
+                """
+                SELECT p.id, p.question, p.options, p.duration_days, p.created_at,
+                       (SELECT COUNT(*) FROM poll_votes v WHERE v.poll_id = p.id) AS responses,
+                       (SELECT v.option_index FROM poll_votes v
+                        WHERE v.poll_id = p.id AND v.voter = %s) AS my_vote
+                FROM polls p
+                WHERE p.flavor_id = %s
+                ORDER BY p.created_at DESC
+                """,
+                (voter, flavor_id),
+            )
+            return [_poll_row_to_dict(r, r["my_vote"]) for r in cur.fetchall()]
+
+
+def vote_poll(poll_id: int, voter: str, option_index: int) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO poll_votes (poll_id, voter, option_index)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (poll_id, voter)
+                DO UPDATE SET option_index = EXCLUDED.option_index
+                """,
+                (poll_id, voter, option_index),
+            )
+
+
+def count_polls_participated(uid: str, device_id: str) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            voter = _voter(cur, uid, device_id)
+            if not voter:
+                return 0
+            cur.execute(
+                "SELECT COUNT(DISTINCT poll_id) FROM poll_votes WHERE voter = %s",
+                (voter,),
+            )
+            return int(cur.fetchone()[0])
+
+
+def _poll_row_to_dict(row: dict, my_vote: int | None) -> dict:
+    created = row["created_at"]
+    days_left = row["duration_days"]
+    if created is not None:
+        elapsed = (datetime.now(timezone.utc) - created).days
+        days_left = max(0, row["duration_days"] - elapsed)
+    return {
+        "id": row["id"],
+        "question": row["question"],
+        "options": row["options"] or [],
+        "responses": int(row.get("responses") or 0),
+        "days_left": days_left,
+        "my_vote": my_vote,
+    }
+
+
+def _adopt_forum(cur, uid: str, device_id: str) -> None:
+    """Move this device's anonymous forum activity onto the logged-in account."""
+    if not uid or not device_id:
+        return
+    cur.execute(
+        "DELETE FROM forum_likes WHERE voter = %s AND post_id IN "
+        "(SELECT post_id FROM forum_likes WHERE voter = %s)",
+        (device_id, uid),
+    )
+    cur.execute("UPDATE forum_likes SET voter = %s WHERE voter = %s", (uid, device_id))
+    cur.execute("UPDATE forum_posts SET author = %s WHERE author = %s", (uid, device_id))
+    cur.execute("UPDATE forum_comments SET author = %s WHERE author = %s", (uid, device_id))
+
+
+def forum_actor(uid: str, device_id: str) -> str:
+    """Effective forum identity, adopting device activity on login."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if uid:
+                _adopt_forum(cur, uid, device_id)
+                return uid
+            return device_id or ""
+
+
+def _forum_row_to_dict(row: dict) -> dict:
+    created = row["created_at"]
+    # An uploaded attachment is served from our own endpoint; the app builds the
+    # absolute URL from `has_media`. `media_url` stays for official (YouTube)
+    # posts that carry a remote thumbnail.
+    has_media = bool(row.get("has_media")) or row.get("media") is not None
+    return {
+        "id": str(row["id"]),
+        "user_id": row["author"],
+        "user_name": row["user_name"],
+        "text": row["body"],
+        "media_type": row["media_type"],
+        "media_url": row["media_url"],
+        "has_media": has_media,
+        "status": row["status"],
+        "like_count": int(row.get("like_count") or 0),
+        "comment_count": int(row.get("comment_count") or 0),
+        "liked": bool(row.get("liked")),
+        "link_url": row.get("link_url") or "",
+        "is_official": bool(row.get("is_official")),
+        "created_at": created.isoformat() if created else None,
+    }
+
+
+def upsert_official_post(flavor_id: str, external_id: str, user_name: str,
+                         body: str, media_type: str, media_url: str,
+                         link_url: str, created_at) -> None:
+    """Insert a channel post once; later syncs only refresh its content."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO forum_posts
+                    (flavor_id, author, user_name, body, media_type, media_url,
+                     status, external_id, link_url, is_official, created_at)
+                VALUES (%s, 'official', %s, %s, %s, %s, 'approved', %s, %s, TRUE, %s)
+                ON CONFLICT (external_id) WHERE external_id <> ''
+                DO UPDATE SET body = EXCLUDED.body,
+                              media_type = EXCLUDED.media_type,
+                              media_url = EXCLUDED.media_url,
+                              user_name = EXCLUDED.user_name
+                """,
+                (flavor_id, user_name, body, media_type, media_url,
+                 external_id, link_url, created_at),
+            )
+
+
+def list_forum_posts(flavor_id: str, actor: str, status: str = "",
+                     mine_only: bool = False) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Never SELECT the media bytes in a list — only whether one exists.
+            sql = """
+                SELECT p.id, p.author, p.user_name, p.body, p.media_type,
+                       p.media_url, p.status, p.link_url, p.is_official, p.created_at,
+                       (p.media IS NOT NULL) AS has_media,
+                       (SELECT COUNT(*) FROM forum_likes l WHERE l.post_id = p.id) AS like_count,
+                       (SELECT COUNT(*) FROM forum_comments c WHERE c.post_id = p.id) AS comment_count,
+                       EXISTS (SELECT 1 FROM forum_likes l
+                               WHERE l.post_id = p.id AND l.voter = %s) AS liked
+                FROM forum_posts p
+                WHERE p.flavor_id = %s
+            """
+            params: list = [actor, flavor_id]
+            if status:
+                sql += " AND p.status = %s"
+                params.append(status)
+            if mine_only:
+                sql += " AND p.author = %s"
+                params.append(actor)
+            sql += " ORDER BY p.created_at DESC"
+            cur.execute(sql, tuple(params))
+            return [_forum_row_to_dict(r) for r in cur.fetchall()]
+
+
+def add_forum_post(flavor_id: str, author: str, user_name: str, body: str,
+                   media_type: str, media_url: str, status: str,
+                   media: bytes | None = None, media_mime: str = "") -> dict:
+    # An uploaded file wins over a URL and sets the media type from its mime.
+    if media:
+        media_type = "video" if media_mime.startswith("video") else "image"
+        media_url = ""
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO forum_posts
+                    (flavor_id, author, user_name, body, media_type, media_url,
+                     status, media, media_mime)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, author, user_name, body, media_type, media_url,
+                          status, link_url, is_official, created_at,
+                          (media IS NOT NULL) AS has_media
+                """,
+                (flavor_id, author, user_name, body, media_type, media_url, status,
+                 psycopg2.Binary(media) if media else None, media_mime),
+            )
+            return _forum_row_to_dict(cur.fetchone())
+
+
+def get_forum_media(post_id: int) -> tuple[bytes, str] | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT media, media_mime FROM forum_posts WHERE id = %s",
+                        (post_id,))
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                return None
+            return bytes(row[0]), (row[1] or "application/octet-stream")
+
+
+def delete_forum_post(post_id: int, actor: str) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM forum_posts WHERE id = %s AND author = %s",
+                (post_id, actor),
+            )
+
+
+def set_forum_post_status(post_id: int, status: str) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE forum_posts SET status = %s WHERE id = %s", (status, post_id)
+            )
+
+
+def toggle_forum_like(post_id: int, voter: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM forum_likes WHERE post_id = %s AND voter = %s",
+                (post_id, voter),
+            )
+            liked = cur.rowcount == 0
+            if liked:
+                cur.execute(
+                    "INSERT INTO forum_likes (post_id, voter) VALUES (%s, %s)",
+                    (post_id, voter),
+                )
+            cur.execute(
+                "SELECT COUNT(*) FROM forum_likes WHERE post_id = %s", (post_id,)
+            )
+            return {"liked": liked, "like_count": int(cur.fetchone()[0])}
+
+
+def list_forum_comments(post_id: int) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, post_id, author, user_name, body, created_at
+                FROM forum_comments WHERE post_id = %s ORDER BY created_at DESC
+                """,
+                (post_id,),
+            )
+            return [
+                {
+                    "id": str(r["id"]),
+                    "post_id": str(r["post_id"]),
+                    "user_id": r["author"],
+                    "user_name": r["user_name"],
+                    "text": r["body"],
+                    "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                }
+                for r in cur.fetchall()
+            ]
+
+
+def add_forum_comment(post_id: int, author: str, user_name: str, body: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO forum_comments (post_id, author, user_name, body)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, post_id, author, user_name, body, created_at
+                """,
+                (post_id, author, user_name, body),
+            )
+            r = cur.fetchone()
+            return {
+                "id": str(r["id"]),
+                "post_id": str(r["post_id"]),
+                "user_id": r["author"],
+                "user_name": r["user_name"],
+                "text": r["body"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+
+
+def _toolkit_row(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "kind": row["kind"],
+        "title": row["title"],
+        "image_url": row["image_url"],
+        "link_url": row["link_url"],
+        "subtitle": row["subtitle"],
+    }
+
+
+def list_toolkit_items(flavor_id: str, kind: str = "") -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if kind:
+                cur.execute(
+                    "SELECT * FROM toolkit_items WHERE flavor_id = %s AND kind = %s "
+                    "ORDER BY created_at DESC", (flavor_id, kind))
+            else:
+                cur.execute(
+                    "SELECT * FROM toolkit_items WHERE flavor_id = %s "
+                    "ORDER BY kind, created_at DESC", (flavor_id,))
+            return [_toolkit_row(r) for r in cur.fetchall()]
+
+
+def add_toolkit_item(flavor_id: str, kind: str, title: str, image_url: str,
+                     link_url: str, subtitle: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO toolkit_items
+                    (flavor_id, kind, title, image_url, link_url, subtitle)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING *
+                """,
+                (flavor_id, kind, title, image_url, link_url, subtitle),
+            )
+            return _toolkit_row(cur.fetchone())
+
+
+def delete_toolkit_item(item_id: int) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM toolkit_items WHERE id = %s", (item_id,))
+
+
+def list_complaints(uid: str, device_id: str = "") -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Logged in: everything on the account (adopting this device's
+            # pre-login complaints first). Not logged in: this device only.
+            if uid:
+                _adopt_complaints(cur, uid, device_id)
+                where, arg = "uid = %s", uid
+            else:
+                where = "device_id = %s AND (uid = '' OR uid IS NULL)"
+                arg = device_id
+            cur.execute(
+                f"""
+                SELECT id, title, description, category, status, created_at, attachment_name
+                FROM complaints WHERE {where} ORDER BY created_at DESC
+                """,
+                (arg,),
             )
             return [
                 {
@@ -384,9 +952,152 @@ def list_complaints(uid: str) -> list[dict]:
                     "category": row["category"],
                     "status": row["status"],
                     "created_at": _iso(row["created_at"]),
+                    "has_attachment": bool(row["attachment_name"]),
+                    "attachment_name": row["attachment_name"],
                 }
                 for row in cur.fetchall()
             ]
+
+
+def list_all_complaints() -> list[dict]:
+    """Every complaint, for the admin panel."""
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, title, description, category, status, created_at,
+                       attachment_name
+                FROM complaints ORDER BY created_at DESC
+                """
+            )
+            return [
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "category": row["category"],
+                    "status": row["status"],
+                    "created_at": _iso(row["created_at"]),
+                    "has_attachment": bool(row["attachment_name"]),
+                    "attachment_name": row["attachment_name"],
+                }
+                for row in cur.fetchall()
+            ]
+
+
+def set_complaint_status(complaint_id: int, status: str) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE complaints SET status = %s WHERE id = %s",
+                (status, complaint_id),
+            )
+
+
+# ── News + Events (admin CMS) ─────────────────────────────────────────────────
+
+def _fmt_date(dt) -> str:
+    return f"{dt.strftime('%b')} {dt.day}, {dt.year}"
+
+
+def _fmt_time(dt) -> str:
+    return dt.strftime("%I:%M %p").lstrip("0").lower()
+
+
+def add_news(flavor_id: str, title: str, summary: str, category: str, image_url: str) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO news (flavor_id, title, summary, category, image_url)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id, title, summary, category, image_url, published_at
+                """,
+                (flavor_id, title, summary, category, image_url),
+            )
+            return _news_row_to_dict(cur.fetchone())
+
+
+def list_news(flavor_id: str, limit: int = 50) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, title, summary, category, image_url, published_at
+                FROM news WHERE flavor_id = %s ORDER BY published_at DESC LIMIT %s
+                """,
+                (flavor_id, limit),
+            )
+            return [_news_row_to_dict(r) for r in cur.fetchall()]
+
+
+def delete_news(news_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM news WHERE id = %s", (news_id,))
+            return cur.rowcount > 0
+
+
+def _news_row_to_dict(row: dict) -> dict:
+    dt = row["published_at"]
+    return {
+        "id": str(row["id"]),
+        "title": row["title"],
+        "summary": row["summary"],
+        "category": row["category"],
+        "image_url": row["image_url"],
+        "date": _fmt_date(dt),
+        "time": _fmt_time(dt),
+    }
+
+
+def add_event(flavor_id: str, title: str, description: str, location: str,
+              event_type: str, image_url: str, starts_at) -> dict:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO events (flavor_id, title, description, location, event_type, image_url, starts_at)
+                VALUES (%s, %s, %s, %s, %s, %s, COALESCE(%s::timestamptz, now()))
+                RETURNING id, title, description, location, event_type, image_url, starts_at
+                """,
+                (flavor_id, title, description, location, event_type, image_url, starts_at),
+            )
+            return _event_row_to_dict(cur.fetchone())
+
+
+def list_events(flavor_id: str, limit: int = 50) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, title, description, location, event_type, image_url, starts_at
+                FROM events WHERE flavor_id = %s ORDER BY starts_at DESC LIMIT %s
+                """,
+                (flavor_id, limit),
+            )
+            return [_event_row_to_dict(r) for r in cur.fetchall()]
+
+
+def delete_event(event_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM events WHERE id = %s", (event_id,))
+            return cur.rowcount > 0
+
+
+def _event_row_to_dict(row: dict) -> dict:
+    dt = row["starts_at"]
+    return {
+        "id": str(row["id"]),
+        "title": row["title"],
+        "description": row["description"],
+        "location": row["location"],
+        "type": row["event_type"],
+        "image_url": row["image_url"],
+        "date": _fmt_date(dt),
+        "time": _fmt_time(dt),
+    }
 
 
 def _seed_prompts_if_empty() -> None:

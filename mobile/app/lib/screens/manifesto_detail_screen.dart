@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../models/manifesto_plan.dart';
 
 class ManifestoDetailScreen extends StatelessWidget {
@@ -11,7 +12,7 @@ class ManifestoDetailScreen extends StatelessWidget {
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -22,7 +23,7 @@ class ManifestoDetailScreen extends StatelessWidget {
             // ── White content panel ─────────────────────────────────
             // Title + ministry header (grey bg)
             Container(
-              color: const Color(0xFFEAEBEC),
+              color: AppColors.surfaceAlt,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,21 +36,21 @@ class ManifestoDetailScreen extends StatelessWidget {
                           plan.title,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18, fontWeight: FontWeight.w600,
-                            color: const Color(0xFF242424), height: 1.3,
+                            color: AppColors.textPrimary, height: 1.3,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           plan.ministry,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14, color: const Color(0xFF242424), height: 1.3,
+                            fontSize: 14, color: AppColors.textPrimary, height: 1.3,
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.ios_share_rounded, size: 18, color: Color(0xFF242424)),
+                  Icon(Icons.ios_share_rounded, size: 18, color: AppColors.textPrimary),
                 ],
               ),
             ),
@@ -61,7 +62,7 @@ class ManifestoDetailScreen extends StatelessWidget {
                 plan.description,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: const Color(0xFF242424).withValues(alpha: 0.8),
+                  color: AppColors.textPrimary.withValues(alpha: 0.8),
                   height: 1.71,
                 ),
               ),
@@ -159,7 +160,7 @@ class _MilestonesHeader extends StatelessWidget {
       children: [
         Text('Milestones',
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF242424),
+            fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary,
           ),
         ),
       ],
@@ -217,7 +218,7 @@ class _MilestoneTimeline extends StatelessWidget {
                           m.title.toUpperCase(),
                           style: GoogleFonts.bebasNeue(
                             fontSize: 22,
-                            color: const Color(0xFF242424),
+                            color: AppColors.textPrimary,
                             letterSpacing: 0.2,
                             height: 1.1,
                           ),
@@ -243,7 +244,7 @@ class _MilestoneTimeline extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0xFFCA3527), width: 2),
-                        color: i == 0 ? const Color(0xFFCA3527) : Colors.white,
+                        color: i == 0 ? const Color(0xFFCA3527) : AppColors.bg,
                       ),
                     ),
                     // Line below dot (or transparent if last)
@@ -264,7 +265,7 @@ class _MilestoneTimeline extends StatelessWidget {
                       m.description,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: const Color(0xFF242424).withValues(alpha: 0.8),
+                        color: AppColors.textPrimary.withValues(alpha: 0.8),
                         height: 1.42,
                       ),
                     ),

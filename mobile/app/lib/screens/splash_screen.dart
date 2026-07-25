@@ -17,10 +17,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _hideUI();
     _controller = VideoPlayerController.asset('assets/images/splashvideo.mov')
       ..initialize().then((_) {
         if (mounted) {
+          // The video platform view can restore the bars as it attaches, so
+          // hide them again once it is actually on screen.
+          _hideUI();
           setState(() => _initialized = true);
           _controller.setLooping(false);
           _controller.setVolume(1.0);
@@ -43,6 +46,12 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  /// Fully hides the status + navigation bars (no clock, wifi or battery over
+  /// the splash video). immersiveSticky still flashes them on some devices.
+  void _hideUI() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+  }
+
   void _restoreUI() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
@@ -58,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFFAB0001),
       body: _initialized
           ? SizedBox.expand(
               child: FittedBox(

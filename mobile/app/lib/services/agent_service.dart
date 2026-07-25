@@ -7,6 +7,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
+import 'device_session.dart';
 
 class AgentService {
   static String get _baseUrl => AppConfig.apiBaseUrl;
@@ -17,8 +18,12 @@ class AgentService {
 
   static Future<Map<String, String>> _headers() async {
     final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    // X-Device-Id lets members / polls work before login and be adopted onto
+    // the account on login so they sync across devices.
+    final device = await DeviceSession.deviceId();
     return {
       'Content-Type': 'application/json',
+      'X-Device-Id': device,
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
@@ -177,14 +182,36 @@ class AgentService {
     required String title,
     String description = '',
     String category = 'General',
+    File? file,
   }) async {
     try {
-      final r = await _client.post(
-        Uri.parse('$_baseUrl/complaints'),
-        headers: await _headers(),
-        body: jsonEncode({'title': title, 'description': description, 'category': category}),
-      ).timeout(const Duration(seconds: 15));
+      final req = http.MultipartRequest('POST', Uri.parse('$_baseUrl/complaints'));
+      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (token != null) req.headers['Authorization'] = 'Bearer $token';
+      req.headers['X-Device-Id'] = await DeviceSession.deviceId();
+      req.fields['title'] = title;
+      req.fields['description'] = description;
+      req.fields['category'] = category;
+      if (file != null) {
+        req.files.add(await http.MultipartFile.fromPath('file', file.path));
+      }
+      final streamed = await req.send().timeout(const Duration(seconds: 45));
+      final r = await http.Response.fromStream(streamed);
       if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
+  }
+
+  // Downloads a complaint's attachment (authed). Returns bytes + mime, or null.
+  static Future<({List<int> bytes, String mime})?> complaintAttachment(String complaintId) async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/complaints/$complaintId/attachment'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 30));
+      if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
+        return (bytes: r.bodyBytes, mime: r.headers['content-type'] ?? 'application/octet-stream');
+      }
     } catch (_) {}
     return null;
   }
@@ -235,6 +262,219 @@ class AgentService {
       }
     } catch (_) {}
     return [];
+  }
+
+  // â”€â”€ Community polls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static Future<Map<String, dynamic>?> createPoll({
+    required String question,
+    required List<String> options,
+    int durationDays = 2,
+  }) async {
+    try {
+      final r = await _client.post(
+        Uri.parse('$_baseUrl/polls'),
+        headers: await _headers(),
+        body: jsonEncode({
+          'question': question,
+          'options': options,
+          'duration_days': durationDays,
+          'flavor_id': AppConfig.flavorName,
+        }),
+      ).timeout(const Duration(seconds: 20));
+      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
+  }
+
+  // ── Forum (shared across every user) ────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> listForumPosts(
+      {String status = '', bool mine = false}) async {
+    try {
+      final q = 'flavor_id=${AppConfig.flavorName}'
+          '${status.isEmpty ? '' : '&status=$status'}'
+          '${mine ? '&mine=true' : ''}';
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/forum/posts?$q'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        final list = (jsonDecode(r.body) as Map)['posts'] as List<dynamic>;
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  /// Absolute URL of a post's uploaded attachment (image/video).
+  static String forumMediaUrl(String postId) =>
+      '$_baseUrl/forum/posts/$postId/media';
+
+  static Future<Map<String, dynamic>?> createForumPost({
+    required String text,
+    required String userName,
+    String status = 'approved',
+    File? file,
+  }) async {
+    try {
+      final req = http.MultipartRequest('POST', Uri.parse('$_baseUrl/forum/posts'));
+      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (token != null) req.headers['Authorization'] = 'Bearer $token';
+      req.headers['X-Device-Id'] = await DeviceSession.deviceId();
+      req.fields['text'] = text;
+      req.fields['user_name'] = userName;
+      req.fields['status'] = status;
+      req.fields['flavor_id'] = AppConfig.flavorName;
+      if (file != null) {
+        req.files.add(await http.MultipartFile.fromPath('file', file.path));
+      }
+      final streamed = await req.send().timeout(const Duration(seconds: 45));
+      final r = await http.Response.fromStream(streamed);
+      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<void> deleteForumPost(String postId) async {
+    try {
+      await _client.delete(
+        Uri.parse('$_baseUrl/forum/posts/$postId'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+    } catch (_) {}
+  }
+
+  static Future<void> setForumPostStatus(String postId, String status) async {
+    try {
+      await _client.post(
+        Uri.parse('$_baseUrl/forum/posts/$postId/status?status=$status'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+    } catch (_) {}
+  }
+
+  /// Returns `{liked, like_count}` — null when the call failed.
+  static Future<Map<String, dynamic>?> toggleForumLike(String postId) async {
+    try {
+      final r = await _client.post(
+        Uri.parse('$_baseUrl/forum/posts/$postId/like'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        return jsonDecode(r.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<List<Map<String, dynamic>>> listForumComments(String postId) async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/forum/posts/$postId/comments'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        final list = (jsonDecode(r.body) as Map)['comments'] as List<dynamic>;
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  static Future<Map<String, dynamic>?> addForumComment(
+      String postId, String text, String userName) async {
+    try {
+      final r = await _client.post(
+        Uri.parse('$_baseUrl/forum/posts/$postId/comments'),
+        headers: await _headers(),
+        body: jsonEncode({'text': text, 'user_name': userName}),
+      ).timeout(const Duration(seconds: 20));
+      if (r.statusCode == 200) {
+        return jsonDecode(r.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<List<Map<String, dynamic>>> listToolkit(String kind) async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/toolkit?flavor_id=${AppConfig.flavorName}'
+            '&kind=${Uri.encodeQueryComponent(kind)}'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        final list = (jsonDecode(r.body) as Map)['items'] as List<dynamic>;
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  static Future<List<Map<String, dynamic>>> listPolls() async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/polls?flavor_id=${AppConfig.flavorName}'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        final list = (jsonDecode(r.body) as Map)['polls'] as List<dynamic>;
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  static Future<bool> votePoll(int pollId, int optionIndex) async {
+    try {
+      final r = await _client.post(
+        Uri.parse('$_baseUrl/polls/$pollId/vote'),
+        headers: await _headers(),
+        body: jsonEncode({'option_index': optionIndex}),
+      ).timeout(const Duration(seconds: 15));
+      return r.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<int> pollsParticipated() async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/polls/participated'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) return (jsonDecode(r.body) as Map)['count'] as int? ?? 0;
+    } catch (_) {}
+    return 0;
+  }
+
+  // â”€â”€ News + Events (admin-published content) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static Future<List<Map<String, dynamic>>> listNews() async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/news?flavor_id=${AppConfig.flavorName}'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        final list = (jsonDecode(r.body) as Map)['news'] as List<dynamic>;
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  static Future<List<Map<String, dynamic>>> listEvents() async {
+    try {
+      final r = await _client.get(
+        Uri.parse('$_baseUrl/events?flavor_id=${AppConfig.flavorName}'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) {
+        final list = (jsonDecode(r.body) as Map)['events'] as List<dynamic>;
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return const [];
   }
 
   // â”€â”€ Speech-to-text via /stt/transcribe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import 'policy_leader_detail_screen.dart';
 
 // ─── Shared data models ───────────────────────────────────────────────────────
@@ -562,7 +563,7 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6F6F6),
+        backgroundColor: AppColors.bg,
         // The candidate list scrolls on its own; keep the fixed hero + search
         // header from overflowing when the keyboard opens on short screens
         resizeToAvoidBottomInset: false,
@@ -576,9 +577,9 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFDEDEDE)),
+                  border: Border.all(color: AppColors.border),
                   boxShadow: const [
                     BoxShadow(color: Color(0x18000000), blurRadius: 4),
                   ],
@@ -586,15 +587,15 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
                 child: TextField(
                   onChanged: (v) => setState(() => _searchQuery = v),
                   style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14, color: const Color(0xFF242424)),
+                      fontSize: 14, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Search by name, constituency or role…',
                     hintStyle: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: const Color(0xFF999999),
+                      color: AppColors.textMuted,
                     ),
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        color: Color(0xFF888888), size: 20),
+                    prefixIcon: Icon(Icons.search_rounded,
+                        color: AppColors.textMuted, size: 20),
                     border: InputBorder.none,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -624,12 +625,12 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
                       decoration: BoxDecoration(
                         color: isActive
                             ? const Color(0xFFE40101)
-                            : Colors.white,
+                            : AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isActive
                               ? const Color(0xFFE40101)
-                              : const Color(0xFFDEDEDE),
+                              : AppColors.border,
                         ),
                       ),
                       child: Text(
@@ -639,7 +640,7 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
                           fontWeight: FontWeight.w600,
                           color: isActive
                               ? Colors.white
-                              : const Color(0xFF555555),
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -658,7 +659,7 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
                         'No candidates found',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: const Color(0xFF888888),
+                          color: AppColors.textMuted,
                         ),
                       ),
                     )
@@ -864,7 +865,7 @@ class _DistrictSection extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -908,7 +909,7 @@ class _CandidateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(color: Color(0x10000000), blurRadius: 8, offset: Offset(0, 2)),
@@ -943,7 +944,7 @@ class _CandidateCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1A1A1A),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -952,7 +953,7 @@ class _CandidateCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: const Color(0xFF666666),
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -961,14 +962,14 @@ class _CandidateCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
+                    color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on_outlined,
-                          size: 11, color: Color(0xFF888888)),
+                      Icon(Icons.location_on_outlined,
+                          size: 11, color: AppColors.textMuted),
                       const SizedBox(width: 3),
                       Flexible(
                         child: Text(
@@ -978,7 +979,7 @@ class _CandidateCard extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF555555),
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -989,8 +990,8 @@ class _CandidateCard extends StatelessWidget {
             ),
           ),
           // Arrow
-          const Icon(Icons.chevron_right_rounded,
-              color: Color(0xFFCCCCCC), size: 22),
+          Icon(Icons.chevron_right_rounded,
+              color: AppColors.textMuted, size: 22),
         ],
       ),
     );
@@ -1054,7 +1055,7 @@ class PolicyLeadersScreen extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bg,
         body: Column(
           children: [
             // ── Hero banner ────────────────────────────────────────────────
@@ -1228,7 +1229,7 @@ class _PolicyLeaderCard extends StatelessWidget {
       child: Container(
         height: 113,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
@@ -1279,7 +1280,7 @@ class _PolicyLeaderCard extends StatelessWidget {
                     leader.role,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12, fontWeight: FontWeight.w400,
-                      color: const Color(0xFF242424),
+                      color: AppColors.textPrimary,
                     ),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
@@ -1288,7 +1289,7 @@ class _PolicyLeaderCard extends StatelessWidget {
                     leader.name,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16, fontWeight: FontWeight.w600,
-                      color: const Color(0xFF242424),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],

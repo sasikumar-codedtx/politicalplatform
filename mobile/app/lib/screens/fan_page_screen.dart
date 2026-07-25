@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/app_colors.dart';
 import '../models/fan_post.dart';
 import '../services/fan_post_service.dart';
 import 'create_fan_post_screen.dart';
@@ -42,7 +44,7 @@ class _FanPageScreenState extends State<FanPageScreen>
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFE40101),
         onPressed: () async {
@@ -63,7 +65,7 @@ class _FanPageScreenState extends State<FanPageScreen>
               TabBar(
                 controller: _tabController,
                 labelColor: const Color(0xFFE40101),
-                unselectedLabelColor: const Color(0xFF1A1A1A),
+                unselectedLabelColor: AppColors.textPrimary,
                 indicatorColor: const Color(0xFFE40101),
                 indicatorWeight: 2,
                 labelStyle: GoogleFonts.plusJakartaSans(
@@ -206,7 +208,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Colors.white,
+      color: AppColors.surface,
       child: tabBar,
     );
   }
@@ -228,13 +230,13 @@ class _PostList extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.article_outlined, size: 48, color: Colors.black26),
+            Icon(Icons.article_outlined, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(
               'No posts yet',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
-                color: Colors.black45,
+                color: AppColors.textMuted,
               ),
             ),
           ],
@@ -322,13 +324,31 @@ class _PostCardState extends State<_PostCard> {
     return colors[name.codeUnitAt(0) % colors.length];
   }
 
+  Future<void> _openDetail() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => FanPostDetailScreen(post: widget.post)),
+    );
+    if (!mounted) return;
+    _loadState();
+    widget.onRefresh();
+  }
+
+  void _share() {
+    final post = widget.post;
+    final link = post.linkUrl;
+    Share.share(link == null ? post.text : '${post.text}\n\n$link');
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
 
-    return Container(
+    return GestureDetector(
+      onTap: _openDetail,
+      child: Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -362,33 +382,48 @@ class _PostCardState extends State<_PostCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      post.userName,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1A1A1A),
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            post.userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (post.isOfficial) ...[
+                          const SizedBox(width: 5),
+                          const Icon(Icons.verified_rounded,
+                              size: 15, color: Color(0xFFE40101)),
+                        ],
+                      ],
                     ),
                     Text(
                       post.timeAgo,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: Colors.black45,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert_rounded, color: Colors.black38, size: 20),
+              Icon(Icons.more_vert_rounded, color: AppColors.textMuted, size: 20),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             post.text,
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
               height: 1.5,
             ),
           ),
@@ -403,8 +438,8 @@ class _PostCardState extends State<_PostCard> {
                 fit: BoxFit.cover,
                 errorBuilder: (context, e, s) => Container(
                   height: 200,
-                  color: const Color(0xFFF0F0F0),
-                  child: const Icon(Icons.broken_image_outlined, color: Colors.black26, size: 40),
+                  color: AppColors.surfaceAlt,
+                  child: Icon(Icons.broken_image_outlined, color: AppColors.textMuted, size: 40),
                 ),
               ),
             ),
@@ -419,14 +454,14 @@ class _PostCardState extends State<_PostCard> {
                     Icon(
                       _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       size: 20,
-                      color: _liked ? const Color(0xFFE40101) : Colors.black45,
+                      color: _liked ? const Color(0xFFE40101) : AppColors.textMuted,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '$_likeCount',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -434,41 +469,35 @@ class _PostCardState extends State<_PostCard> {
               ),
               const SizedBox(width: 20),
               GestureDetector(
-                onTap: post.commentsEnabled
-                    ? () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FanPostDetailScreen(post: post),
-                          ),
-                        );
-                        _loadState();
-                        widget.onRefresh();
-                      }
-                    : null,
+                onTap: post.commentsEnabled ? _openDetail : null,
                 child: Row(
                   children: [
                     Icon(
                       Icons.chat_bubble_outline_rounded,
                       size: 20,
-                      color: post.commentsEnabled ? Colors.black45 : Colors.black26,
+                      color: post.commentsEnabled ? AppColors.textMuted : AppColors.border,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '$_commentCount',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: post.commentsEnabled ? Colors.black54 : Colors.black26,
+                        color: post.commentsEnabled ? AppColors.textSecondary : AppColors.border,
                       ),
                     ),
                   ],
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.ios_share_rounded, size: 20, color: Colors.black45),
+              GestureDetector(
+                onTap: _share,
+                child: Icon(Icons.ios_share_rounded,
+                    size: 20, color: AppColors.textMuted),
+              ),
             ],
           ),
         ],
+      ),
       ),
     );
   }

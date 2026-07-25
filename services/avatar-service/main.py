@@ -9,6 +9,7 @@ the browser via its existing audio pipeline. The browser separately fetches
 MVP2 will add WebRTC video tracks + 2D mouth animation. The route surface
 won't change — only the implementation behind /session/speak.
 """
+import os
 import uuid
 from pathlib import Path
 
@@ -36,7 +37,14 @@ PHOTOS_DIR.mkdir(exist_ok=True)
 _registry: dict[str, dict] = {}
 
 
-app = FastAPI(title="Avatar Service", version="0.1.0-mvp1")
+_DOCS = os.getenv("ENABLE_DOCS", "false").strip().lower() in ("1", "true", "yes", "on")
+
+app = FastAPI(
+    title="Avatar Service", version="0.1.0-mvp1",
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
+)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/app_colors.dart';
 import '../models/fan_post.dart';
 import '../models/fan_comment.dart';
 import '../services/fan_post_service.dart';
@@ -123,21 +125,29 @@ class _FanPostDetailScreenState extends State<FanPostDetailScreen> {
         : post.text;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text(
           title,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded, size: 20),
+            onPressed: () => Share.share(post.linkUrl == null
+                ? post.text
+                : '${post.text}\n\n${post.linkUrl}'),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -201,7 +211,7 @@ class _FullPostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -240,14 +250,14 @@ class _FullPostCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1A1A1A),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       post.timeAgo,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: Colors.black45,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -260,7 +270,7 @@ class _FullPostCard extends StatelessWidget {
             post.text,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
               height: 1.6,
             ),
           ),
@@ -274,8 +284,8 @@ class _FullPostCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (context, e, s) => Container(
                   height: 180,
-                  color: const Color(0xFFF0F0F0),
-                  child: const Icon(Icons.broken_image_outlined, color: Colors.black26, size: 40),
+                  color: AppColors.surfaceAlt,
+                  child: Icon(Icons.broken_image_outlined, color: AppColors.textMuted, size: 40),
                 ),
               ),
             ),
@@ -290,21 +300,21 @@ class _FullPostCard extends StatelessWidget {
                     Icon(
                       liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       size: 22,
-                      color: liked ? const Color(0xFFE40101) : Colors.black45,
+                      color: liked ? const Color(0xFFE40101) : AppColors.textMuted,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '$likeCount',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
-                        color: Colors.black54,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.ios_share_rounded, size: 22, color: Colors.black45),
+              Icon(Icons.ios_share_rounded, size: 22, color: AppColors.textMuted),
             ],
           ),
         ],
@@ -338,7 +348,7 @@ class _CommentsSection extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -347,7 +357,7 @@ class _CommentsSection extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0),
+              color: AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -355,7 +365,7 @@ class _CommentsSection extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: Colors.black45,
+                color: AppColors.textMuted,
               ),
             ),
           )
@@ -374,7 +384,7 @@ class _CommentsSection extends StatelessWidget {
                 'No comments yet. Be the first!',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: Colors.black45,
+                  color: AppColors.textMuted,
                 ),
               ),
             ),
@@ -425,7 +435,7 @@ class _CommentItem extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -441,7 +451,7 @@ class _CommentItem extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1A1A1A),
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -450,7 +460,7 @@ class _CommentItem extends StatelessWidget {
                         comment.timeAgo,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
-                          color: Colors.black38,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],
@@ -460,7 +470,7 @@ class _CommentItem extends StatelessWidget {
                     comment.text,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                       height: 1.4,
                     ),
                   ),
@@ -488,7 +498,7 @@ class _CommentInputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: AppColors.surface,
       padding: EdgeInsets.fromLTRB(
         16,
         8,
@@ -500,20 +510,20 @@ class _CommentInputBar extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: TextField(
                 controller: controller,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: const Color(0xFF1A1A1A),
+                  color: AppColors.textPrimary,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Write a comment...',
                   hintStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
-                    color: Colors.black38,
+                    color: AppColors.textMuted,
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(

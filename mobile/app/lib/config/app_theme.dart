@@ -4,19 +4,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_config.dart';
 
 class AppTheme {
-  static ThemeData build(FlavorConfig f) {
+  static ThemeData build(FlavorConfig f, {bool dark = false}) {
     final primary = Color(f.primaryColor);
-    final bg = Color(f.backgroundColor);
-    final surface = Color(f.surfaceColor);
-    final border = Color(f.borderColor);
-    final textPrimary = Color(f.textPrimary);
-    final textSecondary = Color(f.textSecondary);
+    final bg = dark ? const Color(0xFF121212) : const Color(0xFFF6F6F6);
+    final surface = dark ? const Color(0xFF1E1E1E) : Colors.white;
+    final border = dark ? const Color(0xFF303030) : const Color(0xFFEEEEEE);
+    final textPrimary = dark ? const Color(0xFFF3F3F3) : const Color(0xFF1A1A1A);
+    final textSecondary = dark ? const Color(0xFFB5B5B5) : const Color(0xFF4A4949);
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: dark ? Brightness.dark : Brightness.light,
       scaffoldBackgroundColor: bg,
-      colorScheme: ColorScheme.dark(
+      colorScheme: (dark ? ColorScheme.dark : ColorScheme.light)(
         primary: primary,
         secondary: Color(f.accentColor),
         surface: surface,
@@ -24,19 +24,21 @@ class AppTheme {
         onSurface: textPrimary,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: bg,
+        backgroundColor: dark ? bg : Colors.white,
         foregroundColor: textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
         titleTextStyle: GoogleFonts.inter(
           color: textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
       ),
-      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).copyWith(
+      textTheme: GoogleFonts.interTextTheme(
+        (dark ? ThemeData.dark() : ThemeData.light()).textTheme,
+      ).copyWith(
         displayLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w900, color: textPrimary),
         displayMedium: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: textPrimary),
         headlineMedium: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary),

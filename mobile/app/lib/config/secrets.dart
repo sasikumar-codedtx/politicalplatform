@@ -2,7 +2,7 @@
 // Replace values before sharing this project.
 
 class Secrets {
-  static const String youtubeApiKey = 'AIzaSyB8KSgDz3_3amuVPKjaCsrhHq1CHAZl-4w';
+  static const String youtubeApiKey = 'AIzaSyA8hl4jlqIT6Xa3s9rH1VIqSs3X9O5pQk4';
   // TVK official channel handle (without @)
-  static const String youtubeChannelHandle = 'tvkvijay';
+  static const String youtubeChannelHandle = 'TVKVijayHQ-Offl';
 }

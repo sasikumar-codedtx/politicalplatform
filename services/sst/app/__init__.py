@@ -1,12 +1,19 @@
+import os
+
 from fastapi import FastAPI
 
 from app.api.routes import health, transcribe
 from app.core.lifespan import lifespan
 
+_DOCS = os.getenv("ENABLE_DOCS", "false").strip().lower() in ("1", "true", "yes", "on")
+
 app = FastAPI(
     title="STT — Swahili & English",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
 )
 
 app.include_router(health.router)

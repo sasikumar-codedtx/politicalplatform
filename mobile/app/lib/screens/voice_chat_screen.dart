@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
+import '../config/app_colors.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
@@ -390,7 +391,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     final color = Color(f.primaryColor);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -422,7 +423,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               Text(
                 'Tap to speak in your preferred language',
                 style: GoogleFonts.inter(
-                  color: const Color(0xFF999999), fontSize: 12,
+                  color: AppColors.textMuted, fontSize: 12,
                 ),
               ),
               const SizedBox(height: 12),
@@ -439,9 +440,9 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       children: [
         GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
-            child: Icon(Icons.arrow_back, color: Color(0xFF1A1A1A), size: 24),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Icon(Icons.arrow_back, color: AppColors.textPrimary, size: 24),
           ),
         ),
         const SizedBox(width: 12),
@@ -452,7 +453,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               Text(
                 'You are speaking with',
                 style: GoogleFonts.inter(
-                  color: const Color(0xFF1A1A1A),
+                  color: AppColors.textPrimary,
                   fontSize: 15, fontWeight: FontWeight.w500,
                 ),
               ),
@@ -468,7 +469,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               Text(
                 "Hon'ble Chief Minister of Tamil Nadu",
                 style: GoogleFonts.inter(
-                  color: const Color(0xFF666666),
+                  color: AppColors.textSecondary,
                   fontSize: 11, fontWeight: FontWeight.w500,
                 ),
               ),
@@ -502,7 +503,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       return Center(
         child: Text(
           'Tap the mic and start speaking',
-          style: GoogleFonts.inter(color: const Color(0xFF999999), fontSize: 13),
+          style: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 13),
         ),
       );
     }
@@ -556,9 +557,9 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE8E8E8)),
+          border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1)),
           ],
@@ -589,7 +590,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                     text,
                     style: GoogleFonts.inter(
                       fontSize: 13, height: 1.45,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -737,20 +738,20 @@ class _SideButton extends StatelessWidget {
           Container(
             width: 52, height: 52,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE0E0E0)),
+              border: Border.all(color: AppColors.border),
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
               ],
             ),
-            child: Icon(icon, color: const Color(0xFF666666), size: 22),
+            child: Icon(icon, color: AppColors.textSecondary, size: 22),
           ),
           const SizedBox(height: 6),
           Text(
             label,
             style: GoogleFonts.inter(
-              color: const Color(0xFF666666), fontSize: 11, fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500,
             ),
           ),
         ],

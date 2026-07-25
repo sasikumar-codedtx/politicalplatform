@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:file_picker/file_picker.dart';
+import '../config/app_colors.dart';
 import '../services/agent_service.dart';
 import '../widgets/loading_overlay.dart';
 import 'face_capture_screen.dart';
@@ -23,6 +25,17 @@ class _JoinScreenState extends State<JoinScreen> {
   String? _district;
   final _pinCtrl = TextEditingController();
   final _boothCtrl = TextEditingController();
+  String? _kycFileName;
+
+  Future<void> _pickKycDocument() async {
+    final res = await FilePicker.platform.pickFiles(
+      withData: false,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+    final name = res?.files.single.name;
+    if (name != null) setState(() => _kycFileName = name);
+  }
 
   final _genderOptions = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
   final _districtOptions = [
@@ -116,7 +129,7 @@ class _JoinScreenState extends State<JoinScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6F6F6),
+        backgroundColor: AppColors.bg,
         body: LoadingOverlay(
           isLoading: _submitting,
           child: SingleChildScrollView(
@@ -179,8 +192,8 @@ class _JoinScreenState extends State<JoinScreen> {
                                               : _valueStyle,
                                         ),
                                       ),
-                                      const Icon(Icons.calendar_today_outlined,
-                                          color: Colors.black38, size: 18),
+                                      Icon(Icons.calendar_today_outlined,
+                                          color: AppColors.textMuted, size: 18),
                                     ],
                                   ),
                                 ),
@@ -212,9 +225,9 @@ class _JoinScreenState extends State<JoinScreen> {
                                               : _valueStyle,
                                         ),
                                       ),
-                                      const Icon(
+                                      Icon(
                                           Icons.keyboard_arrow_down_rounded,
-                                          color: Colors.black38,
+                                          color: AppColors.textMuted,
                                           size: 18),
                                     ],
                                   ),
@@ -250,8 +263,8 @@ class _JoinScreenState extends State<JoinScreen> {
                                     : _valueStyle,
                               ),
                             ),
-                            const Icon(Icons.keyboard_arrow_down_rounded,
-                                color: Colors.black38, size: 18),
+                            Icon(Icons.keyboard_arrow_down_rounded,
+                                color: AppColors.textMuted, size: 18),
                           ],
                         ),
                       ),
@@ -294,32 +307,57 @@ class _JoinScreenState extends State<JoinScreen> {
                     Text(
                       'Accepted formats: PDF, JPEG, PNG, JPG',
                       style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11, color: Colors.black38),
+                          fontSize: 11, color: AppColors.textMuted),
                     ),
                     const SizedBox(height: 10),
-                    Container(
-                      height: 96,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F0F0),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: const Color(0xFFDDDDDD),
-                          style: BorderStyle.solid,
+                    GestureDetector(
+                      onTap: _pickKycDocument,
+                      child: Container(
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: _kycFileName != null
+                              ? const Color(0xFF9F1D1F).withValues(alpha: 0.06)
+                              : AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _kycFileName != null
+                                ? const Color(0xFF9F1D1F).withValues(alpha: 0.4)
+                                : AppColors.border,
+                          ),
                         ),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.attach_file_rounded,
-                                color: Colors.black38, size: 24),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap to attach document',
-                              style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13, color: Colors.black38),
-                            ),
-                          ],
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _kycFileName != null
+                                    ? Icons.check_circle_rounded
+                                    : Icons.attach_file_rounded,
+                                color: _kycFileName != null
+                                    ? const Color(0xFF9F1D1F)
+                                    : AppColors.textMuted,
+                                size: 24,
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  _kycFileName ?? 'Tap to attach document',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    color: _kycFileName != null
+                                        ? const Color(0xFF9F1D1F)
+                                        : AppColors.textMuted,
+                                    fontWeight: _kycFileName != null
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -378,16 +416,16 @@ class _JoinScreenState extends State<JoinScreen> {
   }
 
   TextStyle get _placeholderStyle => GoogleFonts.plusJakartaSans(
-      fontSize: 14, color: Colors.black38, fontWeight: FontWeight.w400);
+      fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w400);
 
   TextStyle get _valueStyle => GoogleFonts.plusJakartaSans(
-      fontSize: 14, color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w500);
+      fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.w500);
 
   Future<String?> _showPicker(
       BuildContext context, List<String> options, String title) {
     return showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -399,7 +437,7 @@ class _JoinScreenState extends State<JoinScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.black12,
+                color: AppColors.border,
                 borderRadius: BorderRadius.circular(2),
               )),
           const SizedBox(height: 12),
@@ -412,7 +450,7 @@ class _JoinScreenState extends State<JoinScreen> {
               shrinkWrap: true,
               itemCount: options.length,
               separatorBuilder: (context, index) =>
-                  const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                  Divider(height: 1, color: AppColors.border),
               itemBuilder: (ctx, i) => ListTile(
                 title: Text(options[i],
                     style: GoogleFonts.plusJakartaSans(fontSize: 14)),
@@ -539,7 +577,7 @@ class _SectionTitle extends StatelessWidget {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w700,
-        color: const Color(0xFF1A1A1A),
+        color: AppColors.textPrimary,
       ),
     );
   }
@@ -556,7 +594,7 @@ class _FieldLabel extends StatelessWidget {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: const Color(0xFF444444),
+        color: AppColors.textSecondary,
       ),
     );
   }
@@ -590,14 +628,14 @@ class _Field extends StatelessWidget {
           maxLength: maxLength,
           style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
               fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 14, color: Colors.black38),
+                fontSize: 14, color: AppColors.textMuted),
             filled: true,
-            fillColor: const Color(0xFFF0F0F0),
+            fillColor: AppColors.surfaceAlt,
             counterText: '',
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -626,7 +664,7 @@ class _InputBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(10),
       ),
       child: child,

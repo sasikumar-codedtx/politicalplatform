@@ -6,10 +6,12 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
+import '../config/app_colors.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
 import '../services/chat_stream_service.dart';
+import '../services/device_session.dart';
 import 'voice_chat_screen.dart';
 
 const _welcomeTa =
@@ -31,8 +33,12 @@ class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final _player = AudioPlayer();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   List<ChatMessage> _messages = [];
+
+  // Past conversations, shown in the left sidebar (drawer). Cache-first.
+  List<ChatSession> _sessions = [];
 
   // The reply currently being streamed. While non-empty, we render a special
   // "streaming" bubble at the end of the list (no replay icon on it — auto-
@@ -59,27 +65,100 @@ class _ChatScreenState extends State<ChatScreen> {
   int _replayGen = 0;
   String? _replayingContent;
 
+  // Playback control. _voiceOn tracks whether the player is actually emitting
+  // sound (drives the header Stop button). _audioStop is a one-shot signal that
+  // makes the live pump loop bail. _playingContent is the AI message whose
+  // audio is currently playing so its bubble icon can show Stop instead of Play.
+  StreamSubscription<bool>? _playingSub;
+  bool _voiceOn = false;
+  bool _audioStop = false;
+  String? _playingContent;
+
   StreamSubscription<ChatEvent>? _eventSub;
 
   @override
   void initState() {
     super.initState();
+    _playingSub = _player.playingStream.listen((playing) {
+      if (!mounted) return;
+      setState(() {
+        _voiceOn = playing;
+        if (!playing) _playingContent = null;
+      });
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (FirebaseAuth.instance.currentUser == null && mounted) {
         Navigator.of(context).pop();
         return;
       }
       _loadMessages();
+      _loadSessions();
     });
+  }
+
+  // ── Sidebar history ─────────────────────────────────────────────────────────
+  Future<void> _loadSessions() async {
+    final cached = await AgentService.getCachedSessions();
+    if (cached.isNotEmpty && mounted) setState(() => _sessions = cached);
+    try {
+      final sessions = await AgentService.getSessions();
+      if (mounted && sessions.isNotEmpty) setState(() => _sessions = sessions);
+    } catch (_) {}
+  }
+
+  void _openSession(ChatSession session) {
+    Navigator.pop(context); // close the drawer
+    if (session.id == widget.session.id) return;
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => ChatScreen(session: session)));
+  }
+
+  Future<void> _newChat() async {
+    Navigator.pop(context);
+    final id = await DeviceSession.rotate();
+    if (!mounted) return;
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => ChatScreen(
+              session: ChatSession(
+                id: id, title: 'New conversation',
+                createdAt: DateTime.now(), lastMessage: '',
+              ),
+            )));
+  }
+
+  String _formatDate(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays == 0) return 'Today';
+    if (diff.inDays == 1) return 'Yesterday';
+    return '${dt.day}/${dt.month}/${dt.year}';
   }
 
   @override
   void dispose() {
     _eventSub?.cancel();
+    _playingSub?.cancel();
     _controller.dispose();
     _scrollController.dispose();
     _player.dispose();
     super.dispose();
+  }
+
+  // Stop all voice immediately — live streamed sentences AND per-message replay,
+  // regardless of language. Cancels queued audio, supersedes any in-flight
+  // replay fetch, and stops the player. _audioStop makes the live pump loop bail
+  // even as more sentence frames keep arriving on the socket for this turn.
+  Future<void> _stopVoice() async {
+    _audioStop = true;
+    _replayGen++;
+    _audioQueue.clear();
+    try { await _player.stop(); } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _replayingContent = null;
+        _playingContent = null;
+        _voiceOn = false;
+      });
+    }
   }
 
   // ── History load ──────────────────────────────────────────────────────────
@@ -148,6 +227,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.add(userMsg);
       _streamingReply = '';
       _streaming = true;
+      _audioStop = false;
       _audioQueue.clear();
       _streamAudioBuffer.clear();
     });
@@ -228,6 +308,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _playbackPumping = true;
     try {
       while (_audioQueue.isNotEmpty) {
+        if (_audioStop) break;
         final item = _audioQueue.removeAt(0);
         if (item.gen != _streamGen) continue;
         try {
@@ -237,11 +318,14 @@ class _ChatScreenState extends State<ChatScreen> {
           );
           await f.writeAsBytes(item.audio.bytes, flush: true);
           await _player.stop();
-          if (item.gen != _streamGen) continue;
+          if (item.gen != _streamGen || _audioStop) continue;
           await _player.setFilePath(f.path);
           await _player.play();
-          await _player.playerStateStream
-              .firstWhere((s) => s.processingState == ProcessingState.completed);
+          // Wait for the sentence to finish. stop() emits `idle` (not
+          // `completed`), so accept either or a manual stop would hang here.
+          await _player.playerStateStream.firstWhere((s) =>
+              s.processingState == ProcessingState.completed ||
+              s.processingState == ProcessingState.idle);
         } catch (_) {}
       }
     } finally {
@@ -258,7 +342,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _replayMessage(String content) async {
     if (_replayingContent == content) return;
     final myGen = ++_replayGen;
-    setState(() => _replayingContent = content);
+    _audioStop = false;
+    setState(() {
+      _replayingContent = content;
+      _playingContent = content;
+    });
     try { await _player.stop(); } catch (_) {}
     try {
       // Fast path — audio already saved on this device (from the live turn or
@@ -338,7 +426,9 @@ class _ChatScreenState extends State<ChatScreen> {
     final bg = Color(f.backgroundColor);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: bg,
+      drawer: _buildDrawer(color),
       appBar: PreferredSize(
         // PreferredSize does not add the status-bar inset the way AppBar does,
         // so it must be included here or the header's SafeArea eats the height.
@@ -394,8 +484,9 @@ class _ChatScreenState extends State<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: () => Navigator.maybePop(context),
+                icon: const Icon(Icons.menu_rounded, color: Colors.white),
+                tooltip: 'Chat history',
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
               Container(
                 width: 40, height: 40,
@@ -458,9 +549,107 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                tooltip: 'Close',
+                onPressed: () => Navigator.maybePop(context),
+              ),
             ],
           ),
         ),
+        ),
+      ),
+    );
+  }
+
+  // ── History sidebar ─────────────────────────────────────────────────────────
+  Widget _buildDrawer(Color color) {
+    return Drawer(
+      backgroundColor: AppColors.bg,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Text('Chat History',
+                  style: GoogleFonts.inter(
+                    fontSize: 18, fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  )),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: _newChat,
+                child: Container(
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Text('New Chat',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 14, fontWeight: FontWeight.w600,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _sessions.isEmpty
+                  ? Center(
+                      child: Text('No past chats yet',
+                          style: GoogleFonts.inter(
+                            fontSize: 13, color: AppColors.textMuted,
+                          )),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      itemCount: _sessions.length,
+                      itemBuilder: (context, i) {
+                        final s = _sessions[i];
+                        final active = s.id == widget.session.id;
+                        return Material(
+                          color: active
+                              ? color.withValues(alpha: 0.10)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          child: ListTile(
+                            dense: true,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            leading: Icon(Icons.chat_bubble_outline_rounded,
+                                size: 18,
+                                color: active ? color : AppColors.textSecondary),
+                            title: Text(s.title,
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight:
+                                      active ? FontWeight.w700 : FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                )),
+                            subtitle: Text(_formatDate(s.createdAt),
+                                style: GoogleFonts.inter(
+                                  fontSize: 11, color: AppColors.textMuted,
+                                )),
+                            onTap: () => _openSession(s),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -474,9 +663,9 @@ class _ChatScreenState extends State<ChatScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE8E8E8)),
+            border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.04),
@@ -514,7 +703,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       _welcomeTa,
                       style: GoogleFonts.inter(
                         fontSize: 14, height: 1.55,
-                        color: const Color(0xFF1A1A1A),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -567,14 +756,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 colors: [color, Color.lerp(color, Colors.black, 0.18)!],
               )
             : null,
-        color: isUser ? null : Colors.white,
+        color: isUser ? null : AppColors.surface,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(18),
           topRight: const Radius.circular(18),
           bottomLeft: Radius.circular(isUser ? 18 : 4),
           bottomRight: Radius.circular(isUser ? 4 : 18),
         ),
-        border: isUser ? null : Border.all(color: const Color(0xFFE8E8E8)),
+        border: isUser ? null : Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: isUser
@@ -588,7 +777,7 @@ class _ChatScreenState extends State<ChatScreen> {
         msg.content,
         style: GoogleFonts.inter(
           fontSize: 14,
-          color: isUser ? Colors.white : const Color(0xFF1A1A1A),
+          color: isUser ? Colors.white : AppColors.textPrimary,
           height: 1.5,
         ),
       ),
@@ -606,6 +795,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // and falls through to cloud + caches on a miss. Spins while loading
     // so the user knows the tap registered.
     final isLoading = _replayingContent == msg.content;
+    final isPlaying = _playingContent == msg.content && _voiceOn;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -614,12 +804,13 @@ class _ChatScreenState extends State<ChatScreen> {
           bubble,
           const SizedBox(height: 6),
           GestureDetector(
-            onTap: () => _replayMessage(msg.content),
+            onTap: () =>
+                isPlaying ? _stopVoice() : _replayMessage(msg.content),
             child: Container(
               width: 28, height: 28,
               margin: const EdgeInsets.only(left: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: color.withValues(alpha: 0.35), width: 1,
@@ -639,7 +830,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(color),
                       ),
                     )
-                  : Icon(Icons.volume_up_rounded, color: color, size: 14),
+                  : Icon(
+                      isPlaying
+                          ? Icons.stop_rounded
+                          : Icons.volume_up_rounded,
+                      color: color, size: 14,
+                    ),
             ),
           ),
         ],
@@ -662,7 +858,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(18),
               topRight: Radius.circular(18),
@@ -696,7 +892,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       _streamingReply,
                       style: GoogleFonts.inter(
                         fontSize: 14, height: 1.5,
-                        color: const Color(0xFF1A1A1A),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -746,7 +942,7 @@ class _ChatScreenState extends State<ChatScreen> {
         bottom: MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         border: Border(top: BorderSide(color: border)),
         boxShadow: [
           BoxShadow(
@@ -761,16 +957,16 @@ class _ChatScreenState extends State<ChatScreen> {
             child: TextField(
               controller: _controller,
               maxLines: 4, minLines: 1,
-              style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14),
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Type your message...',
                 hintStyle: GoogleFonts.inter(
-                  color: const Color(0xFF999999), fontSize: 14,
+                  color: AppColors.textMuted, fontSize: 14,
                 ),
                 filled: true,
-                fillColor: const Color(0xFFF5F5F5),
+                fillColor: AppColors.surfaceAlt,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
@@ -791,16 +987,27 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          _circleButton(
-            color: color.withValues(alpha: 0.12),
-            iconColor: color,
-            icon: Icons.mic_rounded,
-            onTap: _openVoiceMode,
-          ),
+          // While Vijay is speaking (live stream or a replay), this slot turns
+          // into a Stop button so the user can silence the voice right here at
+          // the mic instead of hunting for a control in the header.
+          _voiceOn
+              ? _circleButton(
+                  color: color,
+                  iconColor: Colors.white,
+                  icon: Icons.stop_rounded,
+                  onTap: _stopVoice,
+                  gradient: true,
+                )
+              : _circleButton(
+                  color: color.withValues(alpha: 0.12),
+                  iconColor: color,
+                  icon: Icons.mic_rounded,
+                  onTap: _openVoiceMode,
+                ),
           const SizedBox(width: 6),
           _circleButton(
-            color: canSend ? color : const Color(0xFFE0E0E0),
-            iconColor: canSend ? Colors.white : const Color(0xFF999999),
+            color: canSend ? color : AppColors.surfaceAlt,
+            iconColor: canSend ? Colors.white : AppColors.textMuted,
             icon: Icons.send_rounded,
             onTap: canSend ? _sendText : null,
             gradient: canSend,

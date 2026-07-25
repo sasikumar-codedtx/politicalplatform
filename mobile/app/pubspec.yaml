@@ -74,6 +74,9 @@ dependencies:
   # Image picker (camera + gallery for Join TVK face capture)
   image_picker: ^1.1.2
 
+  # File picker (attach image/pdf/zip/any to a complaint)
+  file_picker: ^8.1.6
+
   # Live streaming chat (WS /ws/chat) and per-device session IDs
   web_socket_channel: ^3.0.1
   uuid: ^4.5.1
@@ -103,10 +106,16 @@ dev_dependencies:
   # App icon generator
   flutter_launcher_icons: ^0.14.3
 
+# app_icon.png drives every icon. It is ALSO the adaptive foreground so
+# Android 12+ shows the real artwork (no white "legacy icon" box on the system
+# splash); the adaptive background is the flag red so the masked corners blend.
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/vijay_home_hero.png"
+  remove_alpha_ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#AB0001"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
   min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the

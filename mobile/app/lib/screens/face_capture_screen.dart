@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config/app_colors.dart';
 import 'member_id_screen.dart';
 
 // Figma: 1328-9652 — Face/photo capture screen for TVK member ID card
@@ -181,9 +182,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
               bottom: 0,
               child: Container(
                 padding: EdgeInsets.fromLTRB(32, 28, 32, 28 + bottomPad),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: _capturedImage == null
                     ? _CaptureActions(
@@ -300,7 +301,7 @@ class _CaptureActions extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
@@ -308,7 +309,7 @@ class _CaptureActions extends StatelessWidget {
           'Make sure your face is clearly visible and well-lit',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
-            color: Colors.black45,
+            color: AppColors.textMuted,
           ),
           textAlign: TextAlign.center,
         ),
@@ -327,18 +328,18 @@ class _CaptureActions extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: AppColors.surfaceAlt,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                      border: Border.all(color: AppColors.border),
                     ),
-                    child: const Icon(Icons.photo_library_outlined,
-                        size: 22, color: Color(0xFF1A1A1A)),
+                    child: Icon(Icons.photo_library_outlined,
+                        size: 22, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Gallery',
                     style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11, color: Colors.black54),
+                        fontSize: 11, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -378,12 +379,12 @@ class _CaptureActions extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: flashOn
                           ? const Color(0xFFFFF8E1)
-                          : const Color(0xFFF5F5F5),
+                          : AppColors.surfaceAlt,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: flashOn
                             ? const Color(0xFFFFCA00)
-                            : const Color(0xFFEEEEEE),
+                            : AppColors.border,
                       ),
                     ),
                     child: Icon(
@@ -393,14 +394,14 @@ class _CaptureActions extends StatelessWidget {
                       size: 22,
                       color: flashOn
                           ? const Color(0xFFFFCA00)
-                          : const Color(0xFF1A1A1A),
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Flash',
                     style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11, color: Colors.black54),
+                        fontSize: 11, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -430,13 +431,13 @@ class _UsePhotoActions extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           'Your photo will appear on your TVK member ID card',
-          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black45),
+          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
@@ -448,9 +449,9 @@ class _UsePhotoActions extends StatelessWidget {
                 child: Container(
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
+                    color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEEEEEE)),
+                    border: Border.all(color: AppColors.border),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -458,7 +459,7 @@ class _UsePhotoActions extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),

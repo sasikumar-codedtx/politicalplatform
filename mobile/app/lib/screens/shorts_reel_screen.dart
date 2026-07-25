@@ -153,6 +153,13 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
                   );
                 },
               ),
+              // ── Playback progress line (red fill on a dark track) ──────
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: bottomPad + 2,
+                child: _ShortsProgress(controller: _controller),
+              ),
               // ── Back button ────────────────────────────────────────────
               Positioned(
                 top: topPad + 12,
@@ -375,6 +382,34 @@ class _ReelPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Shorts playback progress bar ────────────────────────────────────────────
+// Thin YouTube-shorts style line: dark track, red fill tracking the position.
+
+class _ShortsProgress extends StatelessWidget {
+  final YoutubePlayerController controller;
+  const _ShortsProgress({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final total = controller.metadata.duration.inMilliseconds;
+        final pos = controller.value.position.inMilliseconds;
+        final frac = total > 0 ? (pos / total).clamp(0.0, 1.0) : 0.0;
+        return SizedBox(
+          height: 3,
+          child: LinearProgressIndicator(
+            value: frac,
+            backgroundColor: Colors.white24,
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE40101)),
+          ),
+        );
+      },
     );
   }
 }

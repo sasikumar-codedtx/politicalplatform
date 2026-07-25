@@ -1,194 +1,182 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'dart:io';
+
 import '../models/fan_post.dart';
 import '../models/fan_comment.dart';
+import 'agent_service.dart';
+import 'local_cache.dart';
 
+/// Forum data. Posts, likes and comments live on the backend so every user
+/// sees the same content and the same counts — nothing is seeded or phone-local.
 class FanPostService {
-  static const _postsKey = 'fan_posts';
+  /// `liked` / comment counts that came back with the last list call, so cards
+  /// don't each fire their own request.
+  static final Map<String, ({bool liked, int comments, int likes})> _meta = {};
 
-  static String _commentsKey(String postId) => 'fan_comments_$postId';
-  static String _likesKey(String postId) => 'fan_likes_$postId';
+  static PostMediaType _mediaType(String? v) => switch (v) {
+        'image' => PostMediaType.image,
+        'video' => PostMediaType.video,
+        _ => PostMediaType.none,
+      };
 
-  static List<FanPost> _seedPosts() {
-    final now = DateTime.now();
-    return [
-      FanPost(
-        id: 'seed_1',
-        userId: 'demo1',
-        userName: 'TVK Vijay_Madurai',
-        text:
-            'Attended the community rally today in Madurai — thousands turned up! The energy was incredible. நம் மக்கள் விழிப்புடன் இருக்கிறார்கள். Proud to be part of this movement.',
-        mediaType: PostMediaType.none,
-        status: PostStatus.approved,
-        likeCount: 47,
-        createdAt: now.subtract(const Duration(hours: 2)),
-      ),
-      FanPost(
-        id: 'seed_2',
-        userId: 'demo2',
-        userName: 'Priya Volunteer',
-        text:
-            'Our volunteer team cleaned up the local park this morning. Small acts, big impact. Join us next Sunday!',
-        mediaType: PostMediaType.image,
-        mediaUrl: 'https://picsum.photos/seed/tvk1/400/300',
-        status: PostStatus.approved,
-        likeCount: 31,
-        createdAt: now.subtract(const Duration(hours: 5)),
-      ),
-      FanPost(
-        id: 'seed_3',
-        userId: 'demo3',
-        userName: 'Murugan TN',
-        text:
-            'மாவட்ட கூட்டத்தில் கலந்துகொண்டேன். Attended the district meeting — the leader spoke about real issues affecting our village. நம்பிக்கை அதிகரிக்கிறது. More people should be aware.',
-        mediaType: PostMediaType.none,
-        status: PostStatus.approved,
-        likeCount: 89,
-        createdAt: now.subtract(const Duration(days: 1)),
-      ),
-    ];
+  static PostStatus _status(String? v) => switch (v) {
+        'approved' => PostStatus.approved,
+        'rejected' => PostStatus.rejected,
+        _ => PostStatus.pending,
+      };
+
+  static FanPost _toPost(Map<String, dynamic> j) {
+    final id = j['id'] as String;
+    _meta[id] = (
+      liked: j['liked'] == true,
+      comments: (j['comment_count'] as num?)?.toInt() ?? 0,
+      likes: (j['like_count'] as num?)?.toInt() ?? 0,
+    );
+    // An uploaded attachment is served from our backend (has_media); official
+    // posts carry a remote media_url instead.
+    final remote = (j['media_url'] as String?) ?? '';
+    final media = j['has_media'] == true
+        ? AgentService.forumMediaUrl(id)
+        : (remote.isEmpty ? null : remote);
+    return FanPost(
+      id: id,
+      userId: (j['user_id'] as String?) ?? '',
+      userName: (j['user_name'] as String?) ?? 'TVK Member',
+      text: (j['text'] as String?) ?? '',
+      mediaType: _mediaType(j['media_type'] as String?),
+      mediaUrl: media,
+      status: _status(j['status'] as String?),
+      createdAt:
+          DateTime.tryParse((j['created_at'] as String?) ?? '')?.toLocal() ??
+              DateTime.now(),
+      likeCount: (j['like_count'] as num?)?.toInt() ?? 0,
+      isOfficial: j['is_official'] == true,
+      linkUrl: (j['link_url'] as String?)?.isEmpty ?? true
+          ? null
+          : j['link_url'] as String,
+    );
   }
 
-  static Future<List<FanPost>> getAllPosts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_postsKey);
-    if (raw == null) {
-      final seeds = _seedPosts();
-      await _savePosts(prefs, seeds);
-      return List.from(seeds.reversed);
+  static FanComment _toComment(Map<String, dynamic> j) => FanComment(
+        id: j['id'] as String,
+        postId: (j['post_id'] as String?) ?? '',
+        userId: (j['user_id'] as String?) ?? '',
+        userName: (j['user_name'] as String?) ?? 'TVK Member',
+        text: (j['text'] as String?) ?? '',
+        createdAt:
+            DateTime.tryParse((j['created_at'] as String?) ?? '')?.toLocal() ??
+                DateTime.now(),
+      );
+
+  static String _key(String status, bool mine) =>
+      'forum_${mine ? 'mine' : status.isEmpty ? 'all' : status}';
+
+  /// Cached posts render instantly on open; a background call refreshes them.
+  static Future<List<FanPost>> _fetch({String status = '', bool mine = false}) async {
+    final key = _key(status, mine);
+    final cached = await LocalCache.read(key);
+    if (cached is List && cached.isNotEmpty) {
+      unawaited(_refresh(key, status, mine));
+      return cached.cast<Map<String, dynamic>>().map(_toPost).toList();
     }
-    final list = (jsonDecode(raw) as List)
-        .map((e) => FanPost.fromJson(e as Map<String, dynamic>))
-        .toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
+    final rows = await AgentService.listForumPosts(status: status, mine: mine);
+    if (rows.isNotEmpty) await LocalCache.write(key, rows);
+    return rows.map(_toPost).toList();
   }
 
-  static Future<List<FanPost>> getApprovedPosts() async {
-    final all = await getAllPosts();
-    return all.where((p) => p.status == PostStatus.approved).toList();
+  static Future<void> _refresh(String key, String status, bool mine) async {
+    final rows = await AgentService.listForumPosts(status: status, mine: mine);
+    if (rows.isNotEmpty) {
+      for (final r in rows) {
+        _toPost(r); // keeps liked / comment counts current
+      }
+      await LocalCache.write(key, rows);
+    }
   }
 
-  static Future<List<FanPost>> getMyPosts(String userId) async {
-    final all = await getAllPosts();
-    return all.where((p) => p.userId == userId).toList();
+  static Future<List<FanPost>> getAllPosts() => _fetch();
+
+  static Future<List<FanPost>> getApprovedPosts() => _fetch(status: 'approved');
+
+  static Future<List<FanPost>> getMyPosts(String userId) => _fetch(mine: true);
+
+  static Future<List<FanPost>> getPendingPosts() => _fetch(status: 'pending');
+
+  /// Creates a post with the typed name and an optional file attachment.
+  static Future<void> createPost({
+    required String text,
+    required String userName,
+    File? file,
+    String status = 'approved',
+  }) async {
+    await LocalCache.invalidate(_key('approved', false));
+    await LocalCache.invalidate(_key('', true));
+    await AgentService.createForumPost(
+      text: text, userName: userName, status: status, file: file,
+    );
   }
 
-  static Future<List<FanPost>> getPendingPosts() async {
-    final all = await getAllPosts();
-    return all.where((p) => p.status == PostStatus.pending).toList();
-  }
-
+  /// New posts are created server-side. Editing an existing post is not a
+  /// backend feature yet, so updates to an already-published post are ignored.
   static Future<void> savePost(FanPost post) async {
-    final prefs = await SharedPreferences.getInstance();
-    final all = await getAllPosts();
-    final idx = all.indexWhere((p) => p.id == post.id);
-    if (idx >= 0) {
-      all[idx] = post;
-    } else {
-      all.insert(0, post);
-    }
-    await _savePosts(prefs, all);
+    if (int.tryParse(post.id) != null) return;
+    await LocalCache.invalidate(_key('approved', false));
+    await LocalCache.invalidate(_key('', true));
+    await AgentService.createForumPost(
+      text: post.text,
+      userName: post.userName,
+      status: post.status.name,
+    );
   }
 
   static Future<void> deletePost(String postId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final all = await getAllPosts();
-    all.removeWhere((p) => p.id == postId);
-    await _savePosts(prefs, all);
-    await prefs.remove(_commentsKey(postId));
-    await prefs.remove(_likesKey(postId));
+    _meta.remove(postId);
+    await AgentService.deleteForumPost(postId);
   }
 
-  static Future<void> approvePost(String postId) async {
-    final all = await getAllPosts();
-    final idx = all.indexWhere((p) => p.id == postId);
-    if (idx < 0) return;
-    final post = all[idx];
-    final updated = post.copyWith(
-      text: post.pendingEdit ?? post.text,
-      status: PostStatus.approved,
-      clearPendingEdit: true,
-    );
-    await savePost(updated);
-  }
+  static Future<void> approvePost(String postId) =>
+      AgentService.setForumPostStatus(postId, 'approved');
 
-  static Future<void> rejectPost(String postId) async {
-    final all = await getAllPosts();
-    final idx = all.indexWhere((p) => p.id == postId);
-    if (idx < 0) return;
-    final updated = all[idx].copyWith(
-      status: PostStatus.rejected,
-      clearPendingEdit: true,
-    );
-    await savePost(updated);
-  }
+  static Future<void> rejectPost(String postId) =>
+      AgentService.setForumPostStatus(postId, 'rejected');
 
   static Future<List<FanComment>> getComments(String postId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_commentsKey(postId));
-    if (raw == null) return [];
-    final list = (jsonDecode(raw) as List)
-        .map((e) => FanComment.fromJson(e as Map<String, dynamic>))
-        .toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final rows = await AgentService.listForumComments(postId);
+    final list = rows.map(_toComment).toList();
+    final m = _meta[postId];
+    _meta[postId] =
+        (liked: m?.liked ?? false, comments: list.length, likes: m?.likes ?? 0);
     return list;
   }
 
   static Future<void> addComment(FanComment comment) async {
-    final prefs = await SharedPreferences.getInstance();
-    final existing = await getComments(comment.postId);
-    existing.insert(0, comment);
-    await prefs.setString(
-      _commentsKey(comment.postId),
-      jsonEncode(existing.map((c) => c.toJson()).toList()),
-    );
+    await AgentService.addForumComment(
+        comment.postId, comment.text, comment.userName);
   }
 
   static Future<int> getCommentCount(String postId) async {
-    final comments = await getComments(postId);
-    return comments.length;
+    final cached = _meta[postId];
+    if (cached != null) return cached.comments;
+    return (await getComments(postId)).length;
   }
 
   static Future<bool> isLiked(String postId, String userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_likesKey(postId));
-    if (raw == null) return false;
-    final likes = List<String>.from(jsonDecode(raw) as List);
-    return likes.contains(userId);
+    final cached = _meta[postId];
+    if (cached != null) return cached.liked;
+    return false;
   }
 
+  /// Toggles on the server and returns the new like count.
   static Future<int> toggleLike(String postId, String userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_likesKey(postId));
-    final likes =
-        raw != null ? List<String>.from(jsonDecode(raw) as List) : <String>[];
-
-    if (likes.contains(userId)) {
-      likes.remove(userId);
-    } else {
-      likes.add(userId);
-    }
-
-    await prefs.setString(_likesKey(postId), jsonEncode(likes));
-
-    final all = await getAllPosts();
-    final idx = all.indexWhere((p) => p.id == postId);
-    if (idx >= 0) {
-      final updated = all[idx].copyWith(likeCount: likes.length);
-      await savePost(updated);
-    }
-
-    return likes.length;
-  }
-
-  static Future<void> _savePosts(
-    SharedPreferences prefs,
-    List<FanPost> posts,
-  ) async {
-    await prefs.setString(
-      _postsKey,
-      jsonEncode(posts.map((p) => p.toJson()).toList()),
+    final res = await AgentService.toggleForumLike(postId);
+    final m = _meta[postId];
+    if (res == null) return m?.likes ?? 0;
+    final count = (res['like_count'] as num?)?.toInt() ?? 0;
+    _meta[postId] = (
+      liked: res['liked'] == true,
+      comments: m?.comments ?? 0,
+      likes: count,
     );
+    return count;
   }
 }

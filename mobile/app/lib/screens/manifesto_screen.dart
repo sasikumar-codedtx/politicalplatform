@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../config/app_colors.dart';
 import '../models/manifesto_plan.dart';
 import '../viewmodels/manifesto_viewmodel.dart';
 import 'manifesto_detail_screen.dart';
@@ -35,14 +36,14 @@ class _ManifestoViewState extends State<_ManifestoView> {
     final topPad = MediaQuery.of(context).padding.top;
 
     if (vm.loading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +58,7 @@ class _ManifestoViewState extends State<_ManifestoView> {
                 height: 42,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAEBEC),
+                  color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -79,7 +80,7 @@ class _ManifestoViewState extends State<_ManifestoView> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-                              color: active ? Colors.white : const Color(0xFF242424),
+                              color: active ? Colors.white : AppColors.textPrimary,
                             ),
                           ),
                         ),
@@ -286,7 +287,7 @@ class _YearTimeline extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w400,
-                  color: const Color(0xFF242424),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -308,7 +309,7 @@ class _PlanCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8.5),
@@ -377,7 +378,7 @@ class _PlanCard extends StatelessWidget {
             plan.description,
             style: GoogleFonts.poppins(
               fontSize: 12,
-              color: const Color(0xFF242424).withValues(alpha: 0.8),
+              color: AppColors.textSecondary,
               height: 1.5,
             ),
             maxLines: 3,
@@ -435,17 +436,17 @@ class _InfoChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFDEDEDE), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF242424).withValues(alpha: 0.8), height: 1.4)),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textSecondary, height: 1.4)),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF242424), height: 1.4),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary, height: 1.4),
           ),
         ],
       ),
@@ -533,7 +534,7 @@ class _VisionsTabState extends State<_VisionsTab> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                            color: active ? Colors.white : const Color(0xFF242424),
+                            color: active ? Colors.white : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -558,7 +559,7 @@ class _VisionsTabState extends State<_VisionsTab> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -581,7 +582,7 @@ class _VisionsTabState extends State<_VisionsTab> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF242424),
+                        color: AppColors.textPrimary,
                         letterSpacing: 0.2,
                       ),
                     ),
@@ -589,7 +590,7 @@ class _VisionsTabState extends State<_VisionsTab> {
                     Text(item.description,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
-                        color: const Color(0xFF242424).withValues(alpha: 0.8),
+                        color: AppColors.textSecondary,
                         height: 1.43,
                       ),
                     ),
@@ -629,14 +630,14 @@ class _GoalsTab extends StatelessWidget {
         Text('Ongoing Goal',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
-            color: const Color(0xFF242424), height: 1.3,
+            color: AppColors.textPrimary, height: 1.3,
           ),
         ),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, -7))],
           ),
@@ -658,7 +659,7 @@ class _GoalsTab extends StatelessWidget {
                         Text('75%',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16, fontWeight: FontWeight.w600,
-                            color: const Color(0xFF242424),
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -672,13 +673,13 @@ class _GoalsTab extends StatelessWidget {
                         Text('Solar Classroom Initiative',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14, fontWeight: FontWeight.w600,
-                            color: const Color(0xFF242424), letterSpacing: 0.2,
+                            color: AppColors.textPrimary, letterSpacing: 0.2,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text('Installed solar-powered classrooms in 100 schools, improving digital access for 50,000 students',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12, color: const Color(0xFF242424).withValues(alpha: 0.8),
+                            fontSize: 12, color: AppColors.textSecondary,
                             height: 1.5,
                           ),
                         ),
@@ -725,7 +726,7 @@ class _GoalsTab extends StatelessWidget {
         Text('Achievements',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
-            color: const Color(0xFF242424), height: 1.3,
+            color: AppColors.textPrimary, height: 1.3,
           ),
         ),
         const SizedBox(height: 14),
@@ -754,7 +755,7 @@ class _GoalChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFDEDEDE), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -765,12 +766,12 @@ class _GoalChip extends StatelessWidget {
               color: Colors.black.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 12, color: Colors.black54),
+            child: Icon(icon, size: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(width: 4),
           Text(label, style: GoogleFonts.plusJakartaSans(
             fontSize: 12, fontWeight: FontWeight.w500,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
           )),
         ],
       ),
@@ -887,7 +888,7 @@ class _CircularProgressPainter extends CustomPainter {
     canvas.drawCircle(
       center, radius,
       Paint()
-        ..color = const Color(0xFFEEEEEE)
+        ..color = AppColors.border
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8,
     );

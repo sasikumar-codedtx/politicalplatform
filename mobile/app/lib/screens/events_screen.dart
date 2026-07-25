@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../models/event.dart';
 import '../services/content_service.dart';
 import 'event_detail_screen.dart';
@@ -36,16 +37,16 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
       );
     }
 
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,9 +220,16 @@ class _EventCard extends StatelessWidget {
         height: 168,
         child: Stack(
           children: [
-            // Background image
+            // Background image — admin-published image when present, else the
+            // bundled asset fallback.
             Positioned.fill(
-              child: Image.asset(imagePath, fit: BoxFit.cover),
+              child: event.imageUrl != null
+                  ? Image.network(
+                      event.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, e, s) => Image.asset(imagePath, fit: BoxFit.cover),
+                    )
+                  : Image.asset(imagePath, fit: BoxFit.cover),
             ),
             // Gradient overlay: transparent maroon → #a23435
             Positioned.fill(
@@ -311,7 +319,7 @@ class _DateBox extends StatelessWidget {
       width: 41,
       height: 48,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 4))],
       ),
@@ -348,7 +356,7 @@ class _DateBox extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary,
                     height: 1,
                   ),
                 ),
@@ -357,7 +365,7 @@ class _DateBox extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 8,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: AppColors.textMuted,
                     letterSpacing: 0.2,
                   ),
                 ),

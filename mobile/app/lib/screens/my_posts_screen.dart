@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/app_colors.dart';
 import '../models/fan_post.dart';
 import '../services/fan_post_service.dart';
 import 'create_fan_post_screen.dart';
@@ -54,23 +55,23 @@ class _MyPostsScreenState extends State<MyPostsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text(
           'My Posts',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFFE40101),
-          unselectedLabelColor: const Color(0xFF1A1A1A),
+          unselectedLabelColor: AppColors.textPrimary,
           indicatorColor: const Color(0xFFE40101),
           indicatorWeight: 2,
           labelStyle: GoogleFonts.plusJakartaSans(
@@ -139,14 +140,14 @@ class _MyPostsTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.article_outlined, size: 56, color: Colors.black26),
+            Icon(Icons.article_outlined, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(
               'No posts yet. Tap + to create your first post.',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
-                color: Colors.black45,
+                color: AppColors.textMuted,
               ),
             ),
           ],
@@ -181,7 +182,7 @@ class _MyPostCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         title: Text(
           'Edit Post',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
@@ -191,7 +192,7 @@ class _MyPostCard extends StatelessWidget {
           maxLines: 5,
           decoration: InputDecoration(
             hintText: 'Edit your post...',
-            hintStyle: GoogleFonts.plusJakartaSans(color: Colors.black38),
+            hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -204,7 +205,7 @@ class _MyPostCard extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: GoogleFonts.plusJakartaSans(color: Colors.black54),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
@@ -234,7 +235,7 @@ class _MyPostCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         title: Text(
           'Delete Post',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
@@ -248,7 +249,7 @@ class _MyPostCard extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: GoogleFonts.plusJakartaSans(color: Colors.black54),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
@@ -288,7 +289,7 @@ class _MyPostCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -308,7 +309,7 @@ class _MyPostCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
               height: 1.5,
             ),
           ),
@@ -329,14 +330,14 @@ class _MyPostCard extends StatelessWidget {
                 post.timeAgo,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
-                  color: Colors.black38,
+                  color: AppColors.textMuted,
                 ),
               ),
               const Spacer(),
               if (post.status == PostStatus.approved)
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 20),
-                  color: Colors.black54,
+                  color: AppColors.textSecondary,
                   onPressed: () => _showEditDialog(context),
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
@@ -345,7 +346,7 @@ class _MyPostCard extends StatelessWidget {
               const SizedBox(width: 12),
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                color: Colors.black54,
+                color: AppColors.textSecondary,
                 onPressed: () => _showDeleteDialog(context),
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
@@ -360,7 +361,7 @@ class _MyPostCard extends StatelessWidget {
                         : Icons.speaker_notes_off_outlined,
                     size: 20,
                   ),
-                  color: post.commentsEnabled ? Colors.black54 : Colors.black26,
+                  color: post.commentsEnabled ? AppColors.textSecondary : AppColors.textMuted,
                   onPressed: () async {
                     final updated =
                         post.copyWith(commentsEnabled: !post.commentsEnabled);
@@ -453,7 +454,7 @@ class _AdminTab extends StatelessWidget {
                 'No pending posts',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
-                  color: Colors.black45,
+                  color: AppColors.textMuted,
                 ),
               ),
             ),
@@ -489,7 +490,7 @@ class _AdminCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -508,7 +509,7 @@ class _AdminCard extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
@@ -518,7 +519,7 @@ class _AdminCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
               height: 1.5,
             ),
           ),

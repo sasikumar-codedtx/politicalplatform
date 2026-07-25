@@ -966,12 +966,273 @@ function AvatarCard({ avatar, onDelete }) {
   )
 }
 
+// ── Content CMS (News + Events) ────────────────────────────────────────────
+function CmsView({ flavor, kind }) {
+  const isNews = kind === 'news'
+  const empty = isNews
+    ? { title: '', summary: '', category: 'Party', image_url: '' }
+    : { title: '', description: '', location: '', event_type: 'Rally', image_url: '', starts_at: '' }
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [f, setF] = useState(empty)
+
+  const load = async () => {
+    setLoading(true)
+    try { const r = await fetch(`${API}/${kind}?flavor_id=${flavor}`); setItems((await r.json())[kind] || []) }
+    catch { setItems([]) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [flavor, kind])
+
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }))
+
+  const submit = async e => {
+    e.preventDefault()
+    if (!f.title.trim()) { setToast({ ok: false, text: 'Title is required' }); return }
+    setBusy(true)
+    try {
+      const r = await fetch(`${API}/admin/${kind}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flavor_id: flavor, ...f }),
+      })
+      if (!r.ok) throw new Error((await r.json()).detail || 'Request failed')
+      setToast({ ok: true, text: `${isNews ? 'News' : 'Event'} published` })
+      setF(empty); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+    finally { setBusy(false) }
+  }
+
+  const remove = async (id, title) => {
+    if (!confirm(`Delete "${title}"?`)) return
+    try {
+      const r = await fetch(`${API}/admin/${kind}/${id}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Delete failed')
+      setToast({ ok: true, text: 'Deleted' }); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {toast && <Toast msg={toast} />}
+      <Card>
+        <SectionHeader title={isNews ? 'Publish news' : 'Publish event'} />
+        <div style={{ padding: 16 }}>
+          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Input label="Title" value={f.title} onChange={e => set('title', e.target.value)} required
+              placeholder={isNews ? 'e.g. TVK App Launch' : 'e.g. Youth Wing Rally'} />
+            {isNews ? (
+              <>
+                <Textarea label="Summary" value={f.summary} onChange={e => set('summary', e.target.value)} rows={3} />
+                <Input label="Category" value={f.category} onChange={e => set('category', e.target.value)} placeholder="Party / Event / Policy…" />
+              </>
+            ) : (
+              <>
+                <Textarea label="Description" value={f.description} onChange={e => set('description', e.target.value)} rows={3} />
+                <Input label="Location" value={f.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Coimbatore" />
+                <Input label="Type" value={f.event_type} onChange={e => set('event_type', e.target.value)} placeholder="Rally / Meeting / Convention…" />
+                <Input label="Starts at" type="datetime-local" value={f.starts_at} onChange={e => set('starts_at', e.target.value)} hint="Leave empty for now." />
+              </>
+            )}
+            <Input label="Image URL" value={f.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://… (optional)" />
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <Button type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish'}</Button>
+              <Button type="button" variant="ghost" color={t.muted} onClick={() => setF(empty)}>Reset</Button>
+            </div>
+          </form>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionHeader title={`${isNews ? 'News' : 'Events'} for ${FLAVORS.find(x => x.id === flavor)?.label || flavor}`} />
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Nothing published yet.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {items.map(it => (
+              <div key={it.id} className="hover-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${t.border}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.sidebar }}>{it.title}</div>
+                  <div style={{ fontSize: 11, color: t.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isNews ? (it.summary || '') : [it.location, it.description].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                <Badge color={t.info}>{isNews ? it.category : it.type}</Badge>
+                <span style={{ fontSize: 11, color: t.muted, whiteSpace: 'nowrap' }}>{it.date} · {it.time}</span>
+                <Button size="sm" variant="ghost" color={t.danger} onClick={() => remove(it.id, it.title)}>Delete</Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+function ToolkitCmsView({ flavor }) {
+  const empty = { kind: 'Posters', title: '', image_url: '', link_url: '', subtitle: '' }
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [f, setF] = useState(empty)
+
+  const load = async () => {
+    setLoading(true)
+    try { const r = await fetch(`${API}/toolkit?flavor_id=${flavor}`); setItems((await r.json()).items || []) }
+    catch { setItems([]) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [flavor])
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }))
+
+  const submit = async e => {
+    e.preventDefault()
+    if (!f.image_url.trim() && !f.title.trim()) { setToast({ ok: false, text: 'Image URL or title required' }); return }
+    setBusy(true)
+    try {
+      const r = await fetch(`${API}/admin/toolkit`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flavor_id: flavor, ...f }),
+      })
+      if (!r.ok) throw new Error((await r.json()).detail || 'Request failed')
+      setToast({ ok: true, text: 'Toolkit item published' })
+      setF({ ...empty, kind: f.kind }); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+    finally { setBusy(false) }
+  }
+
+  const remove = async (id, title) => {
+    if (!confirm(`Delete "${title || id}"?`)) return
+    try {
+      const r = await fetch(`${API}/admin/toolkit/${id}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Delete failed')
+      setToast({ ok: true, text: 'Deleted' }); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+  }
+
+  const kinds = ['Posters', 'Media', 'Slogans', 'Hashtags']
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {toast && <Toast msg={toast} />}
+      <Card>
+        <SectionHeader title="Publish campaign toolkit item" />
+        <div style={{ padding: 16 }}>
+          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: t.muted }}>Kind</label>
+            <select value={f.kind} onChange={e => set('kind', e.target.value)}
+              style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.border}`, fontSize: 13 }}>
+              {kinds.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+            <Input label="Title" value={f.title} onChange={e => set('title', e.target.value)} placeholder="Optional caption" />
+            <Input label="Image URL" value={f.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://… poster / thumbnail" />
+            <Input label="Link URL" value={f.link_url} onChange={e => set('link_url', e.target.value)} hint="For Media: YouTube URL or video id." />
+            <Input label="Subtitle" value={f.subtitle} onChange={e => set('subtitle', e.target.value)} placeholder="Optional (channel / meta)" />
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <Button type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish'}</Button>
+              <Button type="button" variant="ghost" color={t.muted} onClick={() => setF({ ...empty, kind: f.kind })}>Reset</Button>
+            </div>
+          </form>
+        </div>
+      </Card>
+      <Card>
+        <SectionHeader title={`Toolkit for ${FLAVORS.find(x => x.id === flavor)?.label || flavor}`} />
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Nothing published yet — the app shows built-in samples.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {items.map(it => (
+              <div key={it.id} className="hover-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${t.border}` }}>
+                {it.image_url && <img src={it.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover' }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.sidebar }}>{it.title || '(no title)'}</div>
+                  <div style={{ fontSize: 11, color: t.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.subtitle || it.link_url || ''}</div>
+                </div>
+                <Badge color={t.info}>{it.kind}</Badge>
+                <Button size="sm" variant="ghost" color={t.danger} onClick={() => remove(it.id, it.title)}>Delete</Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+function ComplaintsView() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const STATUSES = ['Pending', 'In-Progress', 'Resolved']
+
+  const load = async () => {
+    setLoading(true)
+    try { const r = await fetch(`${API}/admin/complaints`); setItems((await r.json()).complaints || []) }
+    catch { setItems([]) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [])
+
+  const setStatus = async (id, status) => {
+    try {
+      const r = await fetch(`${API}/admin/complaints/${id}/status?status=${encodeURIComponent(status)}`, { method: 'POST' })
+      if (!r.ok) throw new Error('Update failed')
+      setToast({ ok: true, text: `Marked ${status}` }); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+  }
+
+  const color = s => s === 'Resolved' ? t.success : s === 'In-Progress' ? t.info : t.danger
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {toast && <Toast msg={toast} />}
+      <Card>
+        <SectionHeader title="Citizen complaints" />
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>No complaints raised yet.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {items.map(it => (
+              <div key={it.id} className="hover-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${t.border}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.sidebar }}>{it.title}</div>
+                  <div style={{ fontSize: 11, color: t.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {[it.category, it.description].filter(Boolean).join(' · ')}
+                    {it.has_attachment ? ` · 📎 ${it.attachment_name || 'attachment'}` : ''}
+                  </div>
+                </div>
+                <Badge color={color(it.status)}>{it.status}</Badge>
+                <select value={it.status} onChange={e => setStatus(it.id, e.target.value)}
+                  style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${t.border}`, fontSize: 12 }}>
+                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
 // ── Sidebar ──────────────────────────────────────────────────────────────
 const NAV = [
   { section: 'KNOWLEDGE BASE' },
   { id: 'documents', icon: '📚', label: 'Documents' },
   { id: 'test', icon: '🔍', label: 'Test Retrieval' },
   { id: 'audit', icon: '📋', label: 'Audit Log' },
+  { section: 'CONTENT (CMS)' },
+  { id: 'news', icon: '📰', label: 'News' },
+  { id: 'events', icon: '📅', label: 'Events' },
+  { id: 'toolkit', icon: '🎨', label: 'Campaign Toolkit' },
+  { id: 'complaints', icon: '📮', label: 'Complaints' },
   { section: 'AVATAR' },
   { id: 'avatars', icon: '🧑', label: 'Avatars' },
   { section: 'PROMPT CONFIG' },
@@ -1086,10 +1347,14 @@ export default function App() {
           {page === 'audit' && <AuditLogView />}
           {page === 'prompts' && <PromptsView />}
           {page === 'avatars' && <AvatarsView flavor={flavor} />}
+          {page === 'news' && <CmsView flavor={flavor} kind="news" />}
+          {page === 'events' && <CmsView flavor={flavor} kind="events" />}
+          {page === 'toolkit' && <ToolkitCmsView flavor={flavor} />}
+          {page === 'complaints' && <ComplaintsView />}
         </main>
 
-        {/* Floating Add Content button — only on document-management pages */}
-        {page !== 'prompts' && page !== 'avatars' && <AddFab onClick={() => setShowAdd(true)} />}
+        {/* Floating Add Content button — only on the knowledge-base document pages */}
+        {['documents', 'test', 'audit'].includes(page) && <AddFab onClick={() => setShowAdd(true)} />}
 
         {/* Add Content modal */}
         {showAdd && (

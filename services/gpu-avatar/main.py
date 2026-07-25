@@ -18,6 +18,7 @@ Frames are produced at 25 fps. Browser embeds the stream URL inside an
 `<img>` tag — no JavaScript decoder needed.
 """
 import io
+import os
 import time
 import uuid
 import wave
@@ -56,7 +57,14 @@ def _gc_tasks() -> None:
         _tasks.pop(t, None)
 
 
-app = FastAPI(title="GPU Avatar Service", version="0.1.0-mock")
+_DOCS = os.getenv("ENABLE_DOCS", "false").strip().lower() in ("1", "true", "yes", "on")
+
+app = FastAPI(
+    title="GPU Avatar Service", version="0.1.0-mock",
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
+)
 
 app.add_middleware(
     CORSMiddleware,

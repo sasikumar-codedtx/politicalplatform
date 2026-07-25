@@ -19,3 +19,4 @@ services/admin-ui/node_modules/
 # Ignore all node_modules globally
 node_modules/*
 .env
+API_REFERENCE.MD

@@ -226,8 +226,13 @@ async def lifespan(app: FastAPI):
     _shutdown_children()
 
 
+# The gateway is a dumb reverse proxy, so we never serve its own Swagger.
+# Leaving /docs, /redoc and /openapi.json unregistered lets the catch-all
+# proxy them straight to the agent — so http://localhost:9000/docs shows the
+# agent's real API docs (when ENABLE_DOCS=true), not the gateway's empty one.
 app = FastAPI(title="Political Platform Gateway", version="1.0.0",
-              lifespan=lifespan)
+              lifespan=lifespan,
+              docs_url=None, redoc_url=None, openapi_url=None)
 
 app.add_middleware(
     CORSMiddleware,

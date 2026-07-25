@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../config/app_config.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
@@ -87,19 +88,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     final flavor = AppConfig.current;
     final primary = Color(flavor.primaryColor);
-    final bg = Color(flavor.backgroundColor);
-    final surface = Color(flavor.surfaceColor);
-    final border = Color(flavor.borderColor);
+    final bg = AppColors.bg;
+    final surface = AppColors.surface;
+    final border = AppColors.border;
 
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 1,
         automaticallyImplyLeading: false,
-        title: Text('Ask Honorable CM Sir', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF1A1A1A))),
+        title: Text('Ask Honorable CM Sir', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.textPrimary)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(color: border, height: 1),
@@ -141,11 +142,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), shape: BoxShape.circle),
                             child: Icon(Icons.chat_bubble_outline_rounded, color: primary, size: 20),
                           ),
-                          title: Text(session.title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFF1A1A1A)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          title: Text(session.title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: session.lastMessage.isNotEmpty
-                              ? Text(session.lastMessage, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF666666)), maxLines: 1, overflow: TextOverflow.ellipsis)
+                              ? Text(session.lastMessage, style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)
                               : null,
-                          trailing: Text(_formatDate(session.createdAt), style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF999999))),
+                          trailing: Text(_formatDate(session.createdAt), style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted)),
                           onTap: () => _openChat(session),
                         ),
                       ),
@@ -192,9 +193,9 @@ class _EmptyState extends StatelessWidget {
               child: Icon(Icons.chat_bubble_outline_rounded, size: 44, color: primary),
             ),
             const SizedBox(height: 20),
-            Text('Chat with ${flavor.leaderName.split(' ')[0]}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
+            Text('Chat with ${flavor.leaderName.split(' ')[0]}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
-            Text('Ask about policies, schemes, or anything you want your CM to know.', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF666666), height: 1.6), textAlign: TextAlign.center),
+            Text('Ask about policies, schemes, or anything you want your CM to know.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.6), textAlign: TextAlign.center),
             const SizedBox(height: 28),
             ElevatedButton.icon(
               onPressed: onStart,
