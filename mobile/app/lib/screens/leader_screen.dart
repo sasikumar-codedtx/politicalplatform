@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../config/app_colors.dart';
 import '../models/leader.dart';
 import '../viewmodels/leader_viewmodel.dart';
 
@@ -32,24 +33,24 @@ class _LeaderViewState extends State<_LeaderView> {
     final vm = context.watch<LeaderViewModel>();
 
     if (vm.loading || vm.leader == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
       );
     }
 
     final leader = vm.leader!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       // ── iOS-style navigation bar ─────────────────────────────────
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Color(0xFF1A1A1A), size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -57,12 +58,12 @@ class _LeaderViewState extends State<_LeaderView> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.5),
-          child: Container(height: 0.5, color: const Color(0xFFEEEEEE)),
+          child: Container(height: 0.5, color: AppColors.border),
         ),
       ),
       body: SingleChildScrollView(
@@ -99,7 +100,7 @@ class _LeaderViewState extends State<_LeaderView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
-                            color: isActive ? Colors.white : const Color(0xFF1A1A1A),
+                            color: isActive ? Colors.white : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -250,9 +251,9 @@ class _AboutContent extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
             ),
             child: Column(
@@ -288,7 +289,7 @@ class _AboutContent extends StatelessWidget {
           // Major Campaigns
           Text(
             'Major Campaigns',
-            style: GoogleFonts.plusJakartaSans(fontSize: 16, color: const Color(0xFF1A1A1A)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 16),
           _CampaignItem(
@@ -326,7 +327,7 @@ class _InfoRow extends StatelessWidget {
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: Colors.black54,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -335,7 +336,7 @@ class _InfoRow extends StatelessWidget {
               value,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -355,13 +356,13 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, color: const Color(0xFF1A1A1A))),
+        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, color: AppColors.textPrimary)),
         const SizedBox(height: 8),
         Text(
           body,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
             height: 22 / 14,
           ),
         ),
@@ -393,7 +394,7 @@ class _CampaignItem extends StatelessWidget {
           text,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
             height: 22 / 14,
           ),
         ),
@@ -417,9 +418,9 @@ class _AchievementsContent extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
             ),
             child: Row(
@@ -450,7 +451,7 @@ class _AchievementsContent extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1A1A1A),
+                          color: AppColors.textPrimary,
                           height: 1.4,
                         ),
                       ),
@@ -459,7 +460,7 @@ class _AchievementsContent extends StatelessWidget {
                         a.description,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary,
                           height: 1.5,
                         ),
                       ),
@@ -489,7 +490,7 @@ class _MediaContent extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          color: const Color(0xFFEEEEEE),
+          color: AppColors.surfaceAlt,
           child: const Center(
             child: _PlayButton(),
           ),

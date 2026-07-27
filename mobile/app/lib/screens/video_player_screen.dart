@@ -21,6 +21,77 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   bool _hasError = false;
   bool _isLoading = true;
 
+  // Double-tap seek feedback ("⏪ 10s" / "⏩ 10s" flash).
+  bool _showSeek = false;
+  bool _seekForward = false;
+
+  // Our own fullscreen (instead of the plugin's) so the double-tap seek overlay
+  // stays on top of the player in landscape too.
+  bool _fullscreen = false;
+
+  void _toggleFullscreen() {
+    setState(() => _fullscreen = !_fullscreen);
+    if (_fullscreen) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  // The double-tap-to-seek layers, reused in portrait and fullscreen so seeking
+  // works the same in both. translucent → single taps still reach the controls.
+  List<Widget> _seekLayers() => [
+        if (!widget.video.isLive)
+          Positioned.fill(
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onDoubleTap: () => _seek(false),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onDoubleTap: () => _seek(true),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (_showSeek)
+          Positioned.fill(
+            child: Align(
+              alignment:
+                  _seekForward ? Alignment.centerRight : Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: _SeekBadge(forward: _seekForward),
+              ),
+            ),
+          ),
+      ];
+
+  void _seek(bool forward) {
+    if (widget.video.isLive) return; // seeking a live stream is meaningless
+    final pos = _controller.value.position;
+    var target = forward
+        ? pos + const Duration(seconds: 10)
+        : pos - const Duration(seconds: 10);
+    if (target < Duration.zero) target = Duration.zero;
+    _controller.seekTo(target);
+    setState(() { _showSeek = true; _seekForward = forward; });
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _showSeek = false);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +125,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void dispose() {
     _controller.removeListener(_onControllerUpdate);
     _controller.dispose();
+    // Leave the app upright again if we exit while still in fullscreen.
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
@@ -73,9 +147,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return YoutubePlayerBuilder(
-      onExitFullScreen: () {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      },
       player: YoutubePlayer(
         controller: _controller,
         showVideoProgressIndicator: !_hasError,
@@ -84,10 +155,62 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           playedColor: Color(0xFFE40101),
           handleColor: Color(0xFFE40101),
         ),
+        // Custom bottom controls WITHOUT the plugin's FullScreenButton — our
+        // own fullscreen keeps the double-tap seek overlay working in landscape.
+        bottomActions: [
+          const SizedBox(width: 10),
+          CurrentPosition(),
+          const SizedBox(width: 8),
+          ProgressBar(
+            isExpanded: true,
+            colors: const ProgressBarColors(
+              playedColor: Color(0xFFE40101),
+              handleColor: Color(0xFFE40101),
+            ),
+          ),
+          RemainingDuration(),
+          IconButton(
+            icon: Icon(
+              _fullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+              color: Colors.white,
+            ),
+            onPressed: _toggleFullscreen,
+          ),
+        ],
       ),
       builder: (context, player) {
         final topPad = MediaQuery.of(context).padding.top;
         final bottomPad = MediaQuery.of(context).padding.bottom;
+
+        // Fullscreen (landscape): just the player + the seek overlay + an exit.
+        if (_fullscreen) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Stack(
+              children: [
+                Center(child: player),
+                ..._seekLayers(),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: GestureDetector(
+                    onTap: _toggleFullscreen,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.fullscreen_exit_rounded,
+                          color: Colors.white, size: 22),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return Scaffold(
           backgroundColor: Colors.black,
@@ -155,6 +278,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 Stack(
                   children: [
                     player,
+                    // Double-tap the left/right half to skip 10s (like YouTube).
+                    ..._seekLayers(),
                     if (_isLoading && !_hasError)
                       Positioned.fill(
                         child: const Center(
@@ -352,6 +477,34 @@ class _EmbedBlockedFallback extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeekBadge extends StatelessWidget {
+  final bool forward;
+  const _SeekBadge({required this.forward});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(forward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded,
+              color: Colors.white, size: 22),
+          const SizedBox(width: 6),
+          Text('10s',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white,
+              )),
         ],
       ),
     );

@@ -1,22 +1,27 @@
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../config/app_colors.dart';
+import '../models/chat_session.dart';
+import '../services/device_session.dart';
+import 'chat_screen.dart';
+import 'phone_login_screen.dart';
 import '../models/news_item.dart';
 import '../models/event.dart';
 import '../models/poll.dart';
 import '../models/youtube_video.dart';
 import '../viewmodels/home_viewmodel.dart';
-import '../services/youtube_service.dart';
 import 'news_screen.dart';
-import 'news_detail_screen.dart';
 import 'manifesto_screen.dart';
 import 'events_screen.dart';
 import 'event_detail_screen.dart';
 import 'polls_screen.dart';
 import 'video_player_screen.dart';
 import 'youtube_hub_screen.dart';
+import 'shorts_reel_screen.dart';
 import 'fan_page_screen.dart';
 import 'policy_leaders_screen.dart';
 import 'policy_leader_detail_screen.dart';
@@ -64,9 +69,9 @@ class _HomeViewState extends State<_HomeView> {
     }
 
     if (vm.loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(
           child: CircularProgressIndicator(color: Color(0xFFE40101)),
         ),
       );
@@ -75,7 +80,8 @@ class _HomeViewState extends State<_HomeView> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light, // white status-bar icons on dark hero
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: AppColors.bg,
+        floatingActionButton: const _AskAiButton(),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,14 +145,7 @@ class _HomeViewState extends State<_HomeView> {
               _TvkShortsRow(shorts: vm.recentShorts),
               const SizedBox(height: 20),
 
-              // ── 7. TVK Television ─────────────────────────────────
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: _LiveStreamCard(),
-              ),
-              const SizedBox(height: 20),
-
-              // ── 8. Daily Polls ────────────────────────────────────
+              // ── 7. Daily Polls ────────────────────────────────────
               if (vm.dailyPoll != null) ...[
                 _SectionHeader(
                   label: 'Daily Polls',
@@ -210,10 +209,72 @@ class _HomeViewState extends State<_HomeView> {
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _LiveStreamBanner(),
+                child: _LiveStreamBanner(live: vm.liveBanner),
               ),
               const SizedBox(height: 32),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Floating "Ask TVK AI" button ─────────────────────────────────────────────
+// Fixed bottom-right of Home (stays put while the page scrolls). Vijay's face
+// in a red ring; opens the AI chat (login required).
+
+class _AskAiButton extends StatelessWidget {
+  const _AskAiButton();
+
+  Future<void> _open(BuildContext context) async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      await Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      if (FirebaseAuth.instance.currentUser == null) return;
+    }
+    final id = await DeviceSession.rotate();
+    if (!context.mounted) return;
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => ChatScreen(
+              session: ChatSession(
+                id: id, title: 'New conversation',
+                createdAt: DateTime.now(), lastMessage: '',
+              ),
+            )));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const red = Color(0xFFE40101);
+    return GestureDetector(
+      onTap: () => _open(context),
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          shape: BoxShape.circle,
+          border: Border.all(color: red, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: red.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: Image.asset(
+            'assets/images/av1.png',
+            width: 56,
+            height: 56,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stack) => Container(
+              width: 56,
+              height: 56,
+              color: red.withValues(alpha: 0.1),
+              child: const Icon(Icons.mic_rounded, color: red, size: 26),
+            ),
           ),
         ),
       ),
@@ -585,7 +646,7 @@ class _LiveBannerDialog extends StatelessWidget {
               ],
             ),
             Container(
-              color: Colors.white,
+              color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,7 +666,7 @@ class _LiveBannerDialog extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                       height: 1.35,
                     ),
                     maxLines: 2,
@@ -615,7 +676,7 @@ class _LiveBannerDialog extends StatelessWidget {
                   Text(
                     video.channelTitle,
                     style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12, color: Colors.black54),
+                        fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 14),
                   SizedBox(
@@ -669,7 +730,7 @@ class _LiveBannerDialog extends StatelessWidget {
                         'Skip for now',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -777,7 +838,7 @@ class _CampaignSongCard extends StatelessWidget {
             clipBehavior: Clip.hardEdge,
             children: [
               // White background
-              Container(color: Colors.white),
+              Container(color: AppColors.surface),
               // Red decorative glow behind leader
               Positioned(
                 right: 0,
@@ -817,11 +878,11 @@ class _CampaignSongCard extends StatelessWidget {
                 bottom: 0,
                 width: 80,
                 child: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
-                      colors: [Colors.white, Colors.transparent],
+                      colors: [AppColors.surface, Colors.transparent],
                     ),
                   ),
                 ),
@@ -885,9 +946,9 @@ class _CampaignSongCard extends StatelessWidget {
                                 ).createShader(const Rect.fromLTWH(0, 0, 60, 30)),
                             ),
                           ),
-                          const TextSpan(
+                          TextSpan(
                             text: '\nCampaign Song',
-                            style: TextStyle(color: Color(0xFF111214)),
+                            style: TextStyle(color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -950,7 +1011,7 @@ class _SectionHeader extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
                 letterSpacing: 0.2,
               ),
             ),
@@ -1010,11 +1071,7 @@ class _LatestUpdatesHScrollState extends State<_LatestUpdatesHScroll> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _LatestNewsCard(
                 item: items[index],
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => NewsDetailScreen(item: items[index])),
-                ),
+                onTap: () => openNewsItem(context, items[index]),
               ),
             ),
           ),
@@ -1429,7 +1486,7 @@ class _DeckNavBtn extends StatelessWidget {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -1547,7 +1604,7 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF242424),
+                  color: AppColors.textPrimary,
                 ),
               ),
               GestureDetector(
@@ -1907,7 +1964,7 @@ class _ManifestoCinematic extends StatelessWidget {
         clipBehavior: Clip.hardEdge,
         children: [
           // White base
-          Positioned.fill(child: Container(color: Colors.white)),
+          Positioned.fill(child: Container(color: AppColors.surface)),
 
           // Combined image — full bleed, fills the card
           Positioned.fill(
@@ -1915,7 +1972,7 @@ class _ManifestoCinematic extends StatelessWidget {
               'assets/images/combined.png',
               fit: BoxFit.cover,
               alignment: Alignment.center,
-              errorBuilder: (_, e, s) => Container(color: const Color(0xFFF5F5F5)),
+              errorBuilder: (_, e, s) => Container(color: AppColors.bg),
             ),
           ),
 
@@ -2011,8 +2068,14 @@ class _TvkShortsRow extends StatelessWidget {
           final video = hasReal ? shorts[i] : null;
 
           return GestureDetector(
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => hasReal
+                    ? ShortsReelScreen(videos: shorts, initialIndex: i)
+                    : const YoutubeHubScreen(),
+              ),
+            ),
             child: Container(
               width: 154,
               margin: const EdgeInsets.only(right: 12),
@@ -2090,9 +2153,9 @@ class _PollsInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8, offset: const Offset(0, 2)),
@@ -2117,13 +2180,13 @@ class _PollsInfoCard extends StatelessWidget {
                 Text('Polls',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15, fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                     )),
                 const SizedBox(height: 2),
                 Text(
                   "TVK's Daily Polls Updates. Voice your opinion every day — our choices help shape tomorrow.",
                   style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12, color: Colors.black54, height: 1.4),
+                      fontSize: 12, color: AppColors.textSecondary, height: 1.4),
                   maxLines: 2, overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -2166,9 +2229,9 @@ class _PollCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -2184,7 +2247,7 @@ class _PollCard extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: AppColors.textPrimary,
               height: 1.4,
             ),
           ),
@@ -2198,9 +2261,9 @@ class _PollCard extends StatelessWidget {
                 child: Container(
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFCCCCCC), width: 1),
+                    border: Border.all(color: AppColors.border, width: 1),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -2216,7 +2279,7 @@ class _PollCard extends StatelessWidget {
                           border: isSelected
                               ? null
                               : Border.all(
-                                  color: const Color(0xFFCCCCCC), width: 1),
+                                  color: AppColors.border, width: 1),
                         ),
                         child: isSelected
                             ? const Icon(Icons.check_rounded,
@@ -2230,7 +2293,7 @@ class _PollCard extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF5E5D5D),
+                            color: AppColors.textSecondary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2248,7 +2311,7 @@ class _PollCard extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: voted
-                    ? const Color(0xFFEEEEEE)
+                    ? AppColors.surfaceAlt
                     : const Color(0xFF9F1D1F),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -2258,7 +2321,7 @@ class _PollCard extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: voted ? const Color(0xFF1A1A1A) : Colors.white,
+                  color: voted ? AppColors.textPrimary : Colors.white,
                 ),
               ),
             ),
@@ -2274,13 +2337,13 @@ class _PollCard extends StatelessWidget {
                         text: '${poll.totalVotes} responses',
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
-                            color: Colors.black,
+                            color: AppColors.textPrimary,
                             fontWeight: FontWeight.w500),
                       ),
                       TextSpan(
                         text: ' | ',
                         style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13, color: const Color(0xFF888686)),
+                            fontSize: 13, color: AppColors.textMuted),
                       ),
                       TextSpan(
                         text: '02 Days left',
@@ -2506,14 +2569,34 @@ class _EventCard extends StatelessWidget {
           height: 171,
           child: Stack(
             children: [
-              // Background image — rally/event photo
+              // Background image — real event photo from the backend when set,
+              // else the bundled rally asset (same pattern as News/TVK media).
               Positioned.fill(
-                child: Image.asset(
-                  imgPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: const Color(0xFF8B1A1A)),
-                ),
+                child: (event.imageUrl != null && event.imageUrl!.isNotEmpty)
+                    ? Image.network(
+                        event.imageUrl!,
+                        fit: BoxFit.cover,
+                        // Hold the bundled rally photo while the network image
+                        // loads so the card never flashes empty on a new device.
+                        loadingBuilder: (context, child, progress) =>
+                            progress == null
+                                ? child
+                                : Image.asset(imgPath, fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stack) =>
+                                        Container(color: const Color(0xFF8B1A1A))),
+                        errorBuilder: (context, error, stackTrace) => Image.asset(
+                          imgPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stack) =>
+                              Container(color: const Color(0xFF8B1A1A)),
+                        ),
+                      )
+                    : Image.asset(
+                        imgPath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Container(color: const Color(0xFF8B1A1A)),
+                      ),
               ),
               // Dark red gradient overlay (bottom half)
               Positioned.fill(
@@ -2652,373 +2735,20 @@ class _EventCard extends StatelessWidget {
   }
 }
 
-// ─── Live Stream Card ─────────────────────────────────────────────────────────
-
-class _LiveStreamCard extends StatefulWidget {
-  const _LiveStreamCard();
-
-  @override
-  State<_LiveStreamCard> createState() => _LiveStreamCardState();
-}
-
-class _LiveStreamCardState extends State<_LiveStreamCard> {
-  YouTubeVideo? _liveVideo;
-  YouTubeVideo? _upcomingVideo;
-  YouTubeVideo? _recentVideo;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLive();
-  }
-
-  Future<void> _checkLive() async {
-    final live = await YouTubeService.getLiveStream();
-    final upcoming =
-        live == null ? await YouTubeService.getUpcomingLive() : null;
-    final recent = live == null
-        ? await YouTubeService.getVideos(count: 1)
-            .then((v) => v.isNotEmpty ? v.first : null)
-        : null;
-    if (mounted) {
-      setState(() {
-        _liveVideo = live;
-        _upcomingVideo = upcoming;
-        _recentVideo = recent;
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: 130,
-          color: const Color(0xFFF0F0F0),
-          child: const Center(
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Color(0xFFE40101))),
-        ),
-      );
-    }
-
-    if (_liveVideo != null) {
-      return GestureDetector(
-        onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => VideoPlayerScreen(video: _liveVideo!))),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: SizedBox(
-            height: 180,
-            child: Stack(fit: StackFit.expand, children: [
-              Image.network(_liveVideo!.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, e, s) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF440000), Color(0xFF1A0000)]),
-                        ),
-                      )),
-              Container(
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45))),
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFE40101),
-                      borderRadius: BorderRadius.circular(4)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                            color: Colors.white, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    Text('LIVE',
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            letterSpacing: 0.5)),
-                  ]),
-                ),
-              ),
-              const Center(
-                  child: Icon(Icons.play_circle_filled_rounded,
-                      size: 56, color: Colors.white)),
-              Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
-                child: Row(children: [
-                  Expanded(
-                      child: Text(_liveVideo!.title,
-                          style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                              height: 1.3),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFFE40101),
-                        borderRadius: BorderRadius.circular(6)),
-                    child: Text('Watch Live',
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white)),
-                  ),
-                ]),
-              ),
-            ]),
-          ),
-        ),
-      );
-    }
-
-    if (_upcomingVideo != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2))
-            ],
-          ),
-          child: Row(children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                  color: const Color(0xFFE40101).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.live_tv_rounded,
-                  color: Color(0xFFE40101), size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Upcoming Live',
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          color: const Color(0xFFE40101),
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(_upcomingVideo!.title,
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          color: const Color(0xFF1A1A1A),
-                          fontWeight: FontWeight.w500),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  Text('Set a reminder',
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11, color: Colors.black38)),
-                ],
-              ),
-            ),
-            const Icon(Icons.notifications_outlined,
-                color: Color(0xFFE40101), size: 22),
-          ]),
-        ),
-      );
-    }
-
-    if (_recentVideo != null) {
-      return GestureDetector(
-        onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => VideoPlayerScreen(video: _recentVideo!))),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: SizedBox(
-            height: 180,
-            child: Stack(fit: StackFit.expand, children: [
-              Image.network(_recentVideo!.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, e, s) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF1A1A2E), Color(0xFF0D0D0D)]),
-                        ),
-                      )),
-              Container(
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3))),
-              const Center(
-                  child: Icon(Icons.play_circle_filled_rounded,
-                      size: 56, color: Colors.white)),
-              Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
-                child: Row(children: [
-                  Expanded(
-                      child: Text(_recentVideo!.title,
-                          style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                              height: 1.3),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                          color: const Color(0xFFE40101),
-                          borderRadius: BorderRadius.circular(6)),
-                      child: Text('View All',
-                          style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white)),
-                    ),
-                  ),
-                ]),
-              ),
-            ]),
-          ),
-        ),
-      );
-    }
-
-    // Fallback: Figma TVK Television banner (1328:9113)
-    return GestureDetector(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 120,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0xFF8B0000), Color(0xFFCC0000)],
-            ),
-          ),
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              // Single combined TV image — right side
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 200,
-                child: Image.asset(
-                  'assets/images/tvfull.png',
-                  fit: BoxFit.contain,
-                  alignment: Alignment.centerRight,
-                  errorBuilder: (_, e, s) => const SizedBox.shrink(),
-                ),
-              ),
-              // Text content (left)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 150, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'TVK TELEVISION',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "CLICK THE \"TV\" CHECK",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.85),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    RichText(
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: "TVK'S ",
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          TextSpan(
-                            text: 'LATEST NEWS',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Live Streaming Banner ────────────────────────────────────────────────────
 // Figma "Live Streaming" section — shows latest live or fallback card
 
 class _LiveStreamBanner extends StatelessWidget {
-  const _LiveStreamBanner();
+  // Null when the channel is not currently live — the banner then shows a
+  // calm "No live currently" state instead of a fake LIVE badge.
+  final YouTubeVideo? live;
+  const _LiveStreamBanner({this.live});
 
   @override
   Widget build(BuildContext context) {
+    if (live == null) return const _NoLiveBanner();
+
+    final v = live!;
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
@@ -3026,9 +2756,9 @@ class _LiveStreamBanner extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background
-            Image.asset(
-              'assets/images/news_update_1.png',
+            // Background — real live thumbnail
+            Image.network(
+              v.thumbnailUrl,
               fit: BoxFit.cover,
               errorBuilder: (_, e, s) => Container(
                 decoration: const BoxDecoration(
@@ -3062,23 +2792,6 @@ class _LiveStreamBanner extends StatelessWidget {
                 ]),
               ),
             ),
-            // Viewers badge
-            Positioned(
-              top: 12, left: 72,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.people_rounded, color: Colors.white, size: 12),
-                  const SizedBox(width: 4),
-                  Text('2.5k Watching', style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
-                ]),
-              ),
-            ),
             // Bottom content
             Positioned(
               left: 16, right: 16, bottom: 14,
@@ -3086,7 +2799,7 @@ class _LiveStreamBanner extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Venue Inspection for State-Level Political Conference',
+                      v.title,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13, fontWeight: FontWeight.w600,
                         color: Colors.white, height: 1.3,
@@ -3097,7 +2810,7 @@ class _LiveStreamBanner extends StatelessWidget {
                   const SizedBox(width: 12),
                   GestureDetector(
                     onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
+                        MaterialPageRoute(builder: (_) => VideoPlayerScreen(video: v))),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
@@ -3114,6 +2827,63 @@ class _LiveStreamBanner extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Shown in the "Live Streaming" section when the channel is offline — no fake
+// LIVE badge, no invented viewer count.
+class _NoLiveBanner extends StatelessWidget {
+  const _NoLiveBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
+      child: Container(
+        height: 120,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 16),
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.videocam_off_rounded,
+                  color: Color(0xFF9F1D1F), size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('No live currently',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15, fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      )),
+                  const SizedBox(height: 4),
+                  Text('Browse past streams and videos',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12, color: AppColors.textSecondary,
+                      )),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+            const SizedBox(width: 8),
           ],
         ),
       ),

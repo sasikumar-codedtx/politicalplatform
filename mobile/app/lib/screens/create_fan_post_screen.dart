@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../models/fan_post.dart';
+import 'package:file_picker/file_picker.dart';
+import '../config/app_colors.dart';
 import '../services/fan_post_service.dart';
+import '../services/profile_service.dart';
 
 class CreateFanPostScreen extends StatefulWidget {
   const CreateFanPostScreen({super.key});
@@ -13,72 +15,64 @@ class CreateFanPostScreen extends StatefulWidget {
 
 class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
   final _textController = TextEditingController();
-  final _mediaUrlController = TextEditingController();
-  int _selectedMediaChip = -1;
+  final _nameController = TextEditingController();
+  File? _attachment;
+  String? _attachmentName;
   bool _submitting = false;
 
-  String get _userId =>
-      FirebaseAuth.instance.currentUser?.phoneNumber ?? 'anonymous';
-
-  String get _userName =>
-      FirebaseAuth.instance.currentUser?.phoneNumber?.replaceAll('+91', '') ??
-      'User';
+  String get _userName {
+    final n = _nameController.text.trim();
+    return n.isEmpty ? 'TVK Member' : n;
+  }
 
   @override
   void initState() {
     super.initState();
     _textController.addListener(() => setState(() {}));
+    _nameController.addListener(() => setState(() {}));
+    // Prefill the name from the saved profile when available.
+    final saved = ProfileService.displayName.value;
+    if (saved.trim().isNotEmpty && saved != 'Member') _nameController.text = saved;
   }
 
   @override
   void dispose() {
     _textController.dispose();
-    _mediaUrlController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
-  void _toggleMediaChip(int index) => setState(() {
-        _selectedMediaChip = _selectedMediaChip == index ? -1 : index;
-        _mediaUrlController.clear();
+  Future<void> _pickAttachment() async {
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.media, // images + videos
+      withData: false,
+    );
+    final path = res?.files.single.path;
+    if (path != null) {
+      setState(() {
+        _attachment = File(path);
+        _attachmentName = res!.files.single.name;
       });
+    }
+  }
+
+  bool get _canPost =>
+      _textController.text.trim().isNotEmpty || _attachment != null;
 
   Future<void> _submit() async {
-    final text = _textController.text.trim();
-    if (text.isEmpty || _submitting) return;
-
+    if (!_canPost || _submitting) return;
     setState(() => _submitting = true);
 
-    PostMediaType mediaType = PostMediaType.none;
-    String? mediaUrl;
-    final urlText = _mediaUrlController.text.trim();
-    if (_selectedMediaChip == 0 && urlText.isNotEmpty) {
-      mediaType = PostMediaType.image;
-      mediaUrl = urlText;
-    } else if (_selectedMediaChip == 1 && urlText.isNotEmpty) {
-      mediaType = PostMediaType.video;
-      mediaUrl = urlText;
-    }
-
-    final post = FanPost(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userId: _userId,
+    await FanPostService.createPost(
+      text: _textController.text.trim(),
       userName: _userName,
-      text: text,
-      mediaType: mediaType,
-      mediaUrl: mediaUrl,
-      status: PostStatus.pending,
-      createdAt: DateTime.now(),
+      file: _attachment,
     );
-
-    await FanPostService.savePost(post);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Post submitted for review!',
-            style: GoogleFonts.plusJakartaSans(),
-          ),
+          content: Text('Post published!', style: GoogleFonts.plusJakartaSans()),
           backgroundColor: const Color(0xFF388E3C),
         ),
       );
@@ -89,20 +83,20 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final hasText = _textController.text.trim().isNotEmpty;
+    final hasText = _canPost;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text(
           'Create Post',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         actions: [
@@ -115,7 +109,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                 fontWeight: FontWeight.w700,
                 color: hasText
                     ? const Color(0xFFE40101)
-                    : Colors.black26,
+                    : AppColors.textMuted,
               ),
             ),
           ),
@@ -129,36 +123,36 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundColor: const Color(0xFFE40101),
-                        child: Text(
-                          _userName.isNotEmpty
-                              ? _userName.substring(0, 1).toUpperCase()
-                              : 'U',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
+                  // Name — shown as the poster (not the phone number)
+                  Text(
+                    'Your Name',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15, color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Enter your name',
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 15, color: AppColors.textMuted),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.border),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Posting as $_userName',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1A1A1A),
-                          ),
-                        ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE40101)),
                       ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   TextField(
@@ -167,14 +161,14 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                     maxLines: 8,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                       height: 1.5,
                     ),
                     decoration: InputDecoration(
                       hintText: "What's on your mind?",
                       hintStyle: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
-                        color: Colors.black38,
+                        color: AppColors.textMuted,
                       ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
@@ -182,86 +176,51 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                   ),
                   const Divider(height: 32),
                   Text(
-                    'Add Media (optional)',
+                    'Add Photo or Video (optional)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _MediaChip(
-                        label: 'Image URL',
-                        selected: _selectedMediaChip == 0,
-                        onTap: () => _toggleMediaChip(0),
-                      ),
-                      const SizedBox(width: 10),
-                      _MediaChip(
-                        label: 'Video URL',
-                        selected: _selectedMediaChip == 1,
-                        onTap: () => _toggleMediaChip(1),
-                      ),
-                    ],
-                  ),
-                  if (_selectedMediaChip >= 0) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _mediaUrlController,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: _selectedMediaChip == 0
-                            ? 'Enter image URL...'
-                            : 'Enter video URL...',
-                        hintStyle: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          color: Colors.black38,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.black12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE40101)),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: Color(0xFFF57F17),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Your post will be reviewed before appearing on the community wall.',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              color: const Color(0xFFF57F17),
-                              height: 1.4,
-                            ),
+                  if (_attachment == null)
+                    GestureDetector(
+                      onTap: _pickAttachment,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 22),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.border,
+                            style: BorderStyle.solid,
                           ),
                         ),
-                      ],
+                        child: Column(
+                          children: [
+                            const Icon(Icons.add_photo_alternate_outlined,
+                                size: 30, color: Color(0xFFE40101)),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap to attach an image or video',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    _AttachmentPreview(
+                      file: _attachment!,
+                      name: _attachmentName ?? 'attachment',
+                      onRemove: () => setState(() {
+                        _attachment = null;
+                        _attachmentName = null;
+                      }),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -309,38 +268,57 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
   }
 }
 
-class _MediaChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+class _AttachmentPreview extends StatelessWidget {
+  final File file;
+  final String name;
+  final VoidCallback onRemove;
+  const _AttachmentPreview(
+      {required this.file, required this.name, required this.onRemove});
 
-  const _MediaChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+  bool get _isImage {
+    final n = name.toLowerCase();
+    return n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.png') ||
+        n.endsWith('.gif') || n.endsWith('.webp');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE40101) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? const Color(0xFFE40101) : Colors.black26,
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: _isImage
+                ? Image.file(file, width: 54, height: 54, fit: BoxFit.cover)
+                : Container(
+                    width: 54, height: 54,
+                    color: AppColors.surfaceAlt,
+                    child: const Icon(Icons.videocam_rounded,
+                        color: Color(0xFFE40101)),
+                  ),
           ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : const Color(0xFF1A1A1A),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13, fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
-        ),
+          IconButton(
+            icon: Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+            onPressed: onRemove,
+          ),
+        ],
       ),
     );
   }

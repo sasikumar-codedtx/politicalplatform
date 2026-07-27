@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../models/news_item.dart';
 
 class NewsDetailScreen extends StatelessWidget {
@@ -9,15 +10,15 @@ class NewsDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       // ── iOS-style navigation bar with back button ────────────────
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Color(0xFF1A1A1A), size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -25,12 +26,12 @@ class NewsDetailScreen extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF1A1A1A),
+            color: AppColors.textPrimary,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.5),
-          child: Container(height: 0.5, color: const Color(0xFFEEEEEE)),
+          child: Container(height: 0.5, color: AppColors.border),
         ),
       ),
       body: SingleChildScrollView(
@@ -68,13 +69,13 @@ class NewsDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      const Icon(Icons.calendar_today_outlined, size: 13, color: Colors.black38),
+                      Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textMuted),
                       const SizedBox(width: 4),
-                      Text(item.date, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
+                      Text(item.date, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
                       const SizedBox(width: 10),
-                      const Icon(Icons.access_time_rounded, size: 13, color: Colors.black38),
+                      Icon(Icons.access_time_rounded, size: 13, color: AppColors.textMuted),
                       const SizedBox(width: 4),
-                      Text(item.time, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
+                      Text(item.time, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -84,7 +85,7 @@ class NewsDetailScreen extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                       height: 1.4,
                       letterSpacing: 0.2,
                     ),
@@ -96,13 +97,13 @@ class NewsDetailScreen extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                       height: 1.6,
                     ),
                   ),
                   const SizedBox(height: 20),
                   // Divider
-                  Container(height: 1, color: const Color(0xFFEEEEEE)),
+                  Container(height: 1, color: AppColors.border),
                   const SizedBox(height: 20),
                   // Article body
                   ..._bodyParagraphs(item).map((para) => Padding(
@@ -111,7 +112,7 @@ class NewsDetailScreen extends StatelessWidget {
                       para,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
-                        color: Colors.black54,
+                        color: AppColors.textSecondary,
                         height: 1.7,
                       ),
                     ),
@@ -121,18 +122,18 @@ class NewsDetailScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+                      border: Border.all(color: AppColors.border, width: 1),
                       boxShadow: [
                         BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
                       ],
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.ios_share_rounded, color: Color(0xFF1A1A1A), size: 20),
+                        Icon(Icons.ios_share_rounded, color: AppColors.textPrimary, size: 20),
                         const SizedBox(width: 10),
-                        Text('Share this article', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A))),
+                        Text('Share this article', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                         const Spacer(),
                         _ActionIcon(icon: Icons.thumb_up_outlined),
                         const SizedBox(width: 16),
@@ -233,6 +234,6 @@ class _ActionIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(icon, color: Colors.black54, size: 20);
+    return Icon(icon, color: AppColors.textSecondary, size: 20);
   }
 }

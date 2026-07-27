@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
+import '../services/agent_service.dart';
 import 'create_poll_screen.dart';
+import 'complaints_screen.dart';
 
 class PollsScreen extends StatefulWidget {
   final int initialTab; // 0=Polls, 1=Complaints, 2=Donation
@@ -12,33 +15,75 @@ class PollsScreen extends StatefulWidget {
 
 class _PollsScreenState extends State<PollsScreen> {
   late int _tab = widget.initialTab; // 0=Polls, 1=Complaints, 2=Donation
-  // Selected option per poll card
+
+  List<Map<String, dynamic>> _polls = const [];
+  List<Map<String, dynamic>> _complaints = const [];
+  bool _loading = true;
+
+  // Selected option + submitted + live response count, keyed by poll id.
   final Map<int, int?> _selected = {};
   final Set<int> _submitted = {};
+  final Map<int, int> _responses = {};
 
-  static const _polls = [
-    _PollData(
-      question: 'Which area should be prioritized for immediate development in your locality?',
-      options: ['Roads & Infrastructure', 'Drinking Water Supply', 'Government School Renovation'],
-      responses: 12,
-      daysLeft: 2,
-    ),
-    _PollData(
-      question: 'For job creation in your region, which is a better idea?',
-      options: ['More startups through govt grants', 'Attract manufacturing companies', 'Strengthen career support in colleges'],
-      responses: 2,
-      daysLeft: 10,
-    ),
-  ];
-
-  void _select(int pollIdx, int optIdx) {
-    if (_submitted.contains(pollIdx)) return;
-    setState(() => _selected[pollIdx] = optIdx);
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
 
-  void _submit(int pollIdx) {
-    if (_selected[pollIdx] == null) return;
-    setState(() => _submitted.add(pollIdx));
+  Future<void> _load() async {
+    final results = await Future.wait([
+      AgentService.listPolls(),
+      AgentService.getComplaints(),
+    ]);
+    final polls = results[0];
+    if (!mounted) return;
+    setState(() {
+      _polls = polls;
+      _complaints = results[1];
+      _loading = false;
+      _selected.clear();
+      _submitted.clear();
+      _responses.clear();
+      for (final p in polls) {
+        final id = p['id'] as int;
+        _responses[id] = (p['responses'] as int?) ?? 0;
+        final my = p['my_vote'] as int?;
+        if (my != null) {
+          _selected[id] = my;
+          _submitted.add(id);
+        }
+      }
+    });
+  }
+
+  void _select(int pollId, int optIdx) {
+    if (_submitted.contains(pollId)) return;
+    setState(() => _selected[pollId] = optIdx);
+  }
+
+  Future<void> _submit(int pollId) async {
+    final opt = _selected[pollId];
+    if (opt == null || _submitted.contains(pollId)) return;
+    setState(() => _submitted.add(pollId));
+    final ok = await AgentService.votePoll(pollId, opt);
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _responses[pollId] = (_responses[pollId] ?? 0) + 1);
+    } else {
+      setState(() => _submitted.remove(pollId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not submit your vote. Please try again.')),
+      );
+    }
+  }
+
+  Future<void> _createPoll() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CreatePollScreen()),
+    );
+    if (created == true) _load();
   }
 
   @override
@@ -46,7 +91,7 @@ class _PollsScreenState extends State<PollsScreen> {
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           // ── App Bar ──────────────────────────────────────────────
@@ -73,51 +118,58 @@ class _PollsScreenState extends State<PollsScreen> {
                   ),
                   const SizedBox(height: 20),
                   if (_tab == 0) ...[
-                    // Poll cards
-                    ...List.generate(_polls.length, (i) => Padding(
-                      padding: EdgeInsets.only(bottom: i < _polls.length - 1 ? 12 : 0),
-                      child: _PollCard(
-                        poll: _polls[i],
-                        selectedOption: _selected[i],
-                        submitted: _submitted.contains(i),
-                        onSelect: (opt) => _select(i, opt),
-                        onSubmit: () => _submit(i),
-                      ),
-                    )),
+                    _CreatePollButton(onTap: _createPoll),
+                    const SizedBox(height: 12),
+                    if (_loading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 40),
+                        child: Center(child: CircularProgressIndicator(color: Color(0xFF9F1D1F))),
+                      )
+                    else if (_polls.isEmpty)
+                      _InfoCard(text: 'No polls yet. Create the first one!')
+                    else
+                      ...List.generate(_polls.length, (i) {
+                        final p = _polls[i];
+                        final id = p['id'] as int;
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: i < _polls.length - 1 ? 12 : 0),
+                          child: _PollCard(
+                            question: p['question'] as String? ?? '',
+                            options: ((p['options'] as List?) ?? const []).cast<String>(),
+                            responses: _responses[id] ?? 0,
+                            daysLeft: (p['days_left'] as int?) ?? 0,
+                            selectedOption: _selected[id],
+                            submitted: _submitted.contains(id),
+                            onSelect: (opt) => _select(id, opt),
+                            onSubmit: () => _submit(id),
+                          ),
+                        );
+                      }),
                   ] else if (_tab == 2) ...[
-                    GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePollScreen())),
-                      child: Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF9F1D1F),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                            Text('Create New Poll',
-                                style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                          ],
-                        ),
-                      ),
-                    ),
+                    const _DonationComingSoon(),
                   ] else ...[
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFEFEFEF)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('No complaints yet.',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF4A4949))),
-                    ),
+                    _CreateComplaintButton(onTap: _openComplaints),
+                    const SizedBox(height: 12),
+                    if (_loading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 40),
+                        child: Center(child: CircularProgressIndicator(color: Color(0xFF9F1D1F))),
+                      )
+                    else if (_complaints.isEmpty)
+                      _InfoCard(text: 'No complaints yet.')
+                    else
+                      ...List.generate(_complaints.length, (i) {
+                        final c = _complaints[i];
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: i < _complaints.length - 1 ? 12 : 0),
+                          child: _ComplaintCard(
+                            title: c['title'] as String? ?? '',
+                            description: c['description'] as String? ?? '',
+                            category: c['category'] as String? ?? '',
+                            status: c['status'] as String? ?? 'Pending',
+                          ),
+                        );
+                      }),
                   ],
                 ],
               ),
@@ -125,6 +177,242 @@ class _PollsScreenState extends State<PollsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openComplaints() async {
+    await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => const ComplaintsScreen()));
+    _load(); // refresh in case one was registered
+  }
+}
+
+// ─── Complaints ─────────────────────────────────────────────────────────────
+
+class _CreateComplaintButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CreateComplaintButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFF9F1D1F),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text('Register Complaint',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComplaintCard extends StatelessWidget {
+  final String title, description, category, status;
+  const _ComplaintCard({
+    required this.title,
+    required this.description,
+    required this.category,
+    required this.status,
+  });
+
+  Color get _statusColor => switch (status.toLowerCase()) {
+        'resolved' => const Color(0xFF2E7D32),
+        'in-progress' || 'in progress' => const Color(0xFFF57F17),
+        _ => const Color(0xFF9F1D1F),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15, fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(status,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12, fontWeight: FontWeight.w700,
+                      color: _statusColor)),
+              ),
+            ],
+          ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(description,
+                maxLines: 2, overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, color: AppColors.textSecondary)),
+          ],
+          if (category.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.folder_outlined, size: 15, color: AppColors.textMuted),
+                const SizedBox(width: 6),
+                Text(category,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13, color: AppColors.textMuted)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Create Poll Button ─────────────────────────────────────────────────────────
+
+class _CreatePollButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CreatePollButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFF9F1D1F),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text('Create New Poll',
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Donation (welfare contribution) — coming soon ──────────────────────────────
+
+class _DonationComingSoon extends StatelessWidget {
+  const _DonationComingSoon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9D8D8),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.volunteer_activism_rounded, color: Color(0xFF9F1D1F), size: 28),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Welfare Contribution',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Contribute an amount towards TVK welfare initiatives. Secure payments are coming soon.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              height: 1.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'Coming soon',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF9F1D1F),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Info / empty card ──────────────────────────────────────────────────────────
+
+class _InfoCard extends StatelessWidget {
+  final String text;
+  const _InfoCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      alignment: Alignment.center,
+      child: Text(text,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary)),
     );
   }
 }
@@ -166,14 +454,20 @@ class _FilterChip extends StatelessWidget {
 // ─── Poll Card ────────────────────────────────────────────────────────────────
 
 class _PollCard extends StatelessWidget {
-  final _PollData poll;
+  final String question;
+  final List<String> options;
+  final int responses;
+  final int daysLeft;
   final int? selectedOption;
   final bool submitted;
   final ValueChanged<int> onSelect;
   final VoidCallback onSubmit;
 
   const _PollCard({
-    required this.poll,
+    required this.question,
+    required this.options,
+    required this.responses,
+    required this.daysLeft,
     required this.selectedOption,
     required this.submitted,
     required this.onSelect,
@@ -185,37 +479,39 @@ class _PollCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFEFEFEF)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Question
           Text(
-            poll.question,
+            question,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: AppColors.textPrimary,
               height: 1.4,
             ),
           ),
           const SizedBox(height: 10),
           // Options
           Column(
-            children: List.generate(poll.options.length, (i) {
+            children: List.generate(options.length, (i) {
               final isSelected = selectedOption == i;
               return Padding(
-                padding: EdgeInsets.only(bottom: i < poll.options.length - 1 ? 8 : 0),
+                padding: EdgeInsets.only(bottom: i < options.length - 1 ? 8 : 0),
                 child: GestureDetector(
                   onTap: () => onSelect(i),
                   child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    constraints: const BoxConstraints(minHeight: 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFCCCCCC)),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF9F1D1F) : AppColors.border,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -229,7 +525,7 @@ class _PollCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                             border: isSelected
                                 ? null
-                                : Border.all(color: const Color(0xFFCCCCCC)),
+                                : Border.all(color: AppColors.border),
                           ),
                           child: isSelected
                               ? const Icon(Icons.check, size: 13, color: Colors.white)
@@ -238,11 +534,11 @@ class _PollCard extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            poll.options[i],
+                            options[i],
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF5E5D5D),
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -260,12 +556,12 @@ class _PollCard extends StatelessWidget {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: submitted ? const Color(0xFFEEEEEE) : const Color(0xFF9F1D1F),
+                color: submitted ? AppColors.surfaceAlt : const Color(0xFF9F1D1F),
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
               child: Text(
-                'Submit',
+                submitted ? 'Voted' : 'Submit',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -286,10 +582,10 @@ class _PollCard extends StatelessWidget {
                   text: TextSpan(
                     style: GoogleFonts.plusJakartaSans(fontSize: 14),
                     children: [
-                      TextSpan(text: '${poll.responses} responses ', style: const TextStyle(color: Colors.black)),
-                      const TextSpan(text: '| ', style: TextStyle(color: Color(0xFF888686))),
+                      TextSpan(text: '$responses responses ', style: TextStyle(color: AppColors.textPrimary)),
+                      TextSpan(text: '| ', style: TextStyle(color: AppColors.textMuted)),
                       TextSpan(
-                        text: ' ${poll.daysLeft} Days left',
+                        text: daysLeft > 0 ? ' $daysLeft Days left' : ' Closed',
                         style: const TextStyle(color: Color(0xFFDD2D2D)),
                       ),
                     ],
@@ -327,22 +623,6 @@ class _PollCard extends StatelessWidget {
   }
 }
 
-// ─── Poll Data ────────────────────────────────────────────────────────────────
-
-class _PollData {
-  final String question;
-  final List<String> options;
-  final int responses;
-  final int daysLeft;
-
-  const _PollData({
-    required this.question,
-    required this.options,
-    required this.responses,
-    required this.daysLeft,
-  });
-}
-
 // ─── Shared App Bar ───────────────────────────────────────────────────────────
 
 class _AppBar extends StatelessWidget {
@@ -354,13 +634,13 @@ class _AppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: AppColors.surface,
       padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 8),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back_rounded, size: 24, color: Colors.black),
+            child: Icon(Icons.arrow_back_rounded, size: 24, color: AppColors.textPrimary),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -369,11 +649,10 @@ class _AppBar extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
-          const Icon(Icons.translate_rounded, size: 24, color: Colors.black),
         ],
       ),
     );

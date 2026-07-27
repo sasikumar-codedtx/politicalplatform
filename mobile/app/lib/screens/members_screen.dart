@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../services/agent_service.dart';
 import '../widgets/loading_overlay.dart';
 import 'join_screen.dart';
@@ -50,20 +51,20 @@ class _MembersScreenState extends State<MembersScreen> {
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.bg,
       body: LoadingOverlay(
         isLoading: _loading,
         child: Column(
           children: [
             Container(
-              color: Colors.white,
+              color: AppColors.surface,
               padding: EdgeInsets.fromLTRB(12, topPad + 8, 20, 12),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                   Expanded(
                     child: Text(
@@ -73,7 +74,7 @@ class _MembersScreenState extends State<MembersScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -128,9 +129,9 @@ class _MemberRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -165,7 +166,7 @@ class _MemberRow extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -175,15 +176,15 @@ class _MemberRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded,
-                color: Colors.black38, size: 22),
+            Icon(Icons.chevron_right_rounded,
+                color: AppColors.textMuted, size: 22),
           ],
         ),
       ),
@@ -203,14 +204,14 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.badge_outlined, size: 56, color: Colors.black26),
+            Icon(Icons.badge_outlined, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 14),
             Text(
               'No membership yet',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A1A),
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
@@ -219,7 +220,7 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: Colors.black54,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 20),

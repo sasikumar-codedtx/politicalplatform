@@ -1,9 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../models/news_item.dart';
+import '../models/youtube_video.dart';
 import '../services/content_service.dart';
 import 'news_detail_screen.dart';
+import 'video_player_screen.dart';
+
+// A news item sourced from YouTube plays in the video player; a CMS article
+// opens the detail screen.
+void openNewsItem(BuildContext context, NewsItem item) {
+  if (item.isVideo) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => VideoPlayerScreen(
+        video: YouTubeVideo(
+          videoId: item.videoId!,
+          title: item.title,
+          thumbnailUrl: item.imageUrl ?? '',
+          channelTitle: item.summary,
+          publishedAt: '',
+        ),
+      ),
+    ));
+  } else {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => NewsDetailScreen(item: item),
+    ));
+  }
+}
 
 // ─── Filter constants ─────────────────────────────────────────────────────────
 const _kCategories = ['All', 'Party', 'Event', 'Policy', 'Agriculture'];
@@ -79,7 +104,7 @@ class _NewsScreenState extends State<NewsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -104,7 +129,7 @@ class _NewsScreenState extends State<NewsScreen> {
                       Container(
                         width: 40, height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.black12,
+                          color: AppColors.border,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -115,7 +140,7 @@ class _NewsScreenState extends State<NewsScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF1A1A1A),
+                                color: AppColors.textPrimary,
                               )),
                           const Spacer(),
                           if (hasActive)
@@ -137,7 +162,7 @@ class _NewsScreenState extends State<NewsScreen> {
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                Divider(height: 1, color: AppColors.border),
 
                 // Active filter chips
                 if (hasActive)
@@ -243,7 +268,7 @@ class _NewsScreenState extends State<NewsScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverToBoxAdapter(
@@ -422,9 +447,9 @@ class _NewsBody extends StatelessWidget {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFDEDEDE)),
+                        border: Border.all(color: AppColors.border),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x29000000),
@@ -435,16 +460,16 @@ class _NewsBody extends StatelessWidget {
                       child: TextField(
                         onChanged: onSearchChanged,
                         style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14, color: const Color(0xFF242424)),
+                            fontSize: 14, color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           hintText: 'Search',
                           hintStyle: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF242424).withValues(alpha: 0.5),
+                            color: AppColors.textPrimary.withValues(alpha: 0.5),
                           ),
-                          prefixIcon: const Icon(Icons.search_rounded,
-                              color: Color(0xFF888888), size: 20),
+                          prefixIcon: Icon(Icons.search_rounded,
+                              color: AppColors.textMuted, size: 20),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
@@ -463,12 +488,12 @@ class _NewsBody extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: hasActiveAdvancedFilter
                             ? const Color(0xFFE40101)
-                            : Colors.white,
+                            : AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: hasActiveAdvancedFilter
                               ? const Color(0xFFE40101)
-                              : const Color(0xFFDEDEDE),
+                              : AppColors.border,
                         ),
                         boxShadow: const [
                           BoxShadow(color: Color(0x18000000), blurRadius: 4),
@@ -482,7 +507,7 @@ class _NewsBody extends StatelessWidget {
                             size: 20,
                             color: hasActiveAdvancedFilter
                                 ? Colors.white
-                                : const Color(0xFF555555),
+                                : AppColors.textSecondary,
                           ),
                           if (hasActiveAdvancedFilter)
                             Positioned(
@@ -505,7 +530,7 @@ class _NewsBody extends StatelessWidget {
               // Category filter chips
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAEBEC),
+                  color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(4),
@@ -537,7 +562,7 @@ class _NewsBody extends StatelessWidget {
                                     : FontWeight.w400,
                                 color: isActive
                                     ? Colors.white
-                                    : const Color(0xFF242424),
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -573,7 +598,7 @@ class _NewsBody extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF555555),
+                        color: AppColors.textSecondary,
                         decoration: TextDecoration.underline,
                       )),
                 ),
@@ -589,14 +614,14 @@ class _NewsBody extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.newspaper_outlined,
-                          size: 48, color: Color(0xFFCCCCCC)),
+                      Icon(Icons.newspaper_outlined,
+                          size: 48, color: AppColors.textMuted),
                       const SizedBox(height: 12),
                       Text(
                         'No news found',
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
-                            color: const Color(0xFF888888)),
+                            color: AppColors.textMuted),
                       ),
                     ],
                   ),
@@ -604,16 +629,11 @@ class _NewsBody extends StatelessWidget {
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   itemCount: news.length,
-                  separatorBuilder: (context, i) => const Divider(
-                      height: 20, thickness: 0.5, color: Color(0xFFEEEEEE)),
+                  separatorBuilder: (context, i) => Divider(
+                      height: 20, thickness: 0.5, color: AppColors.border),
                   itemBuilder: (context, i) => _NewsCard(
                     item: news[i],
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NewsDetailScreen(item: news[i]),
-                      ),
-                    ),
+                    onTap: () => openNewsItem(context, news[i]),
                   ),
                 ),
         ),
@@ -683,7 +703,7 @@ class _SheetFilterSection extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF444444),
+              color: AppColors.textSecondary,
               letterSpacing: 0.3,
             )),
         const SizedBox(height: 10),
@@ -701,12 +721,12 @@ class _SheetFilterSection extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isActive
                       ? const Color(0xFFE40101)
-                      : const Color(0xFFF5F5F5),
+                      : AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isActive
                         ? const Color(0xFFE40101)
-                        : const Color(0xFFE0E0E0),
+                        : AppColors.border,
                   ),
                 ),
                 child: Text(
@@ -717,7 +737,7 @@ class _SheetFilterSection extends StatelessWidget {
                         isActive ? FontWeight.w700 : FontWeight.w500,
                     color: isActive
                         ? Colors.white
-                        : const Color(0xFF444444),
+                        : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -744,19 +764,29 @@ class _NewsCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Thumbnail
+          // Thumbnail (with a play badge when the item is a video)
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: SizedBox(
               width: 96,
               height: 96,
-              child: item.imageUrl != null
-                  ? Image.network(
-                      item.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stack) => _ThumbPlaceholder(item),
-                    )
-                  : _ThumbPlaceholder(item),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  item.imageUrl != null
+                      ? Image.network(
+                          item.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stack) => _ThumbPlaceholder(item),
+                        )
+                      : _ThumbPlaceholder(item),
+                  if (item.isVideo)
+                    const Center(
+                      child: Icon(Icons.play_circle_fill_rounded,
+                          color: Colors.white, size: 34),
+                    ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -776,14 +806,14 @@ class _NewsCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF242424),
+                          color: AppColors.textPrimary,
                           height: 1.4,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.share_outlined,
-                        size: 16, color: Color(0xFF888888)),
+                    Icon(Icons.share_outlined,
+                        size: 16, color: AppColors.textMuted),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -794,7 +824,7 @@ class _NewsCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF242424),
+                    color: AppColors.textPrimary,
                     height: 1.4,
                   ),
                 ),
@@ -802,8 +832,8 @@ class _NewsCard extends StatelessWidget {
                 // Date + time row
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 12, color: Color(0xFF888888)),
+                    Icon(Icons.calendar_today_outlined,
+                        size: 12, color: AppColors.textMuted),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
@@ -813,20 +843,20 @@ class _NewsCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF242424).withValues(alpha: 0.8),
+                          color: AppColors.textPrimary.withValues(alpha: 0.8),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Icon(Icons.access_time_rounded,
-                        size: 12, color: Color(0xFF888888)),
+                    Icon(Icons.access_time_rounded,
+                        size: 12, color: AppColors.textMuted),
                     const SizedBox(width: 4),
                     Text(
                       item.time,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF242424).withValues(alpha: 0.8),
+                        color: AppColors.textPrimary.withValues(alpha: 0.8),
                       ),
                     ),
                   ],

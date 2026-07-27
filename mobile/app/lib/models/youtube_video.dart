@@ -44,6 +44,26 @@ class YouTubeVideo {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'videoId': videoId,
+        'title': title,
+        'thumbnailUrl': thumbnailUrl,
+        'channelTitle': channelTitle,
+        'publishedAt': publishedAt,
+        'isLive': isLive,
+        'isShort': isShort,
+      };
+
+  factory YouTubeVideo.fromJson(Map<String, dynamic> json) => YouTubeVideo(
+        videoId: json['videoId'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        thumbnailUrl: json['thumbnailUrl'] as String? ?? '',
+        channelTitle: json['channelTitle'] as String? ?? '',
+        publishedAt: json['publishedAt'] as String? ?? '',
+        isLive: json['isLive'] as bool? ?? false,
+        isShort: json['isShort'] as bool? ?? false,
+      );
+
   String get youtubeUrl => 'https://www.youtube.com/watch?v=$videoId';
 
   String get formattedDate {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config/app_colors.dart';
 import '../services/profile_service.dart';
 import '../services/agent_service.dart';
 import '../widgets/profile_avatar.dart';
@@ -59,15 +60,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     if (mounted) setState(() => _loading = true);
     final complaints = await AgentService.getComplaints();
-    if (mounted) setState(() { _complaintCount = complaints.length; _loading = false; });
-    // Polls-participated and donation totals need their own backend counters
-    // (not built yet); they stay 0 per user until those endpoints exist.
+    final pollsParticipated = await AgentService.pollsParticipated();
+    if (mounted) {
+      setState(() {
+        _complaintCount = complaints.length;
+        _pollsCount = pollsParticipated;
+        _loading = false;
+      });
+    }
+    // Donation total needs its own backend counter (welfare contributions are
+    // "coming soon"); it stays 0 per user until that endpoint exists.
   }
 
   Future<void> _pickAvatar() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -131,36 +139,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _openLanguageSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            for (final lang in ['English', 'தமிழ் (Tamil)', 'हिंदी (Hindi)'])
-              ListTile(
-                leading: const Icon(Icons.translate_rounded, color: Color(0xFF9F1D1F)),
-                title: Text(lang, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Language set to $lang')),
-                  );
-                },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _go(Widget screen) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
 
@@ -169,14 +147,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.bg,
       body: LoadingOverlay(
         isLoading: _loading,
         child: Column(
         children: [
           // ── App Bar ──────────────────────────────────────────────
           Container(
-            color: Colors.white,
+            color: AppColors.surface,
             padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 8),
             child: Row(
               children: [
@@ -186,18 +164,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
                 GestureDetector(
                   onTap: () => _go(const SettingsScreen()),
-                  child: const Icon(Icons.settings_outlined, size: 24, color: Colors.black),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: _openLanguageSheet,
-                  child: const Icon(Icons.translate_rounded, size: 24, color: Colors.black),
+                  child: Icon(Icons.settings_outlined, size: 24, color: AppColors.textPrimary),
                 ),
               ],
             ),
@@ -307,7 +280,7 @@ class _ProfileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(4, 4))],
       ),
@@ -327,11 +300,11 @@ class _ProfileCard extends StatelessWidget {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           shape: BoxShape.circle,
                           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.09), blurRadius: 6, offset: const Offset(0, 2))],
                         ),
-                        child: const Icon(Icons.edit_rounded, size: 18, color: Color(0xFF4A4949)),
+                        child: Icon(Icons.edit_rounded, size: 18, color: AppColors.textSecondary),
                       ),
                     ),
                   ],
@@ -347,7 +320,7 @@ class _ProfileCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF111111),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -362,7 +335,7 @@ class _ProfileCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF4A4949),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -470,7 +443,7 @@ class _StatBox extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 93),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 4, offset: const Offset(0, 1))],
         ),
@@ -489,7 +462,7 @@ class _StatBox extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -509,7 +482,7 @@ class _AreaPulseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(4, 4))],
       ),
@@ -518,7 +491,7 @@ class _AreaPulseCard extends StatelessWidget {
         children: [
           Text(
             'Chennai- Ward 42',
-            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF111111)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 12),
           Container(
@@ -625,7 +598,7 @@ class _MemberCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(4, 4))],
       ),
@@ -640,7 +613,7 @@ class _MemberCard extends StatelessWidget {
                   height: 46,
                   child: Image.asset(imagePath, fit: BoxFit.cover,
                       errorBuilder: (context, error, stack) =>
-                          Container(color: const Color(0xFFEEEEEE), child: const Icon(Icons.person_rounded, color: Color(0xFF9F1D1F)))),
+                          Container(color: AppColors.surfaceAlt, child: const Icon(Icons.person_rounded, color: Color(0xFF9F1D1F)))),
                 ),
               ),
               const SizedBox(width: 12),
@@ -648,8 +621,8 @@ class _MemberCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
-                    Text(role, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF4A4949))),
+                    Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    Text(role, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -672,7 +645,7 @@ class _MemberCard extends StatelessWidget {
               const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF9F1D1F)),
               const SizedBox(width: 6),
               Text('Active since : $activeSince',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
             ],
           ),
           const SizedBox(height: 8),
@@ -722,7 +695,7 @@ class _AboutTvkCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 16, offset: const Offset(4, 4))],
       ),
@@ -742,12 +715,12 @@ class _AboutTvkCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 'தமிழக வெற்றிக் கழகம்',
-                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF111111)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 2),
               Text(
                 'பிறப்பொக்கும் எல்லா உயிர்க்கும் !',
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF4A4949)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -792,7 +765,7 @@ class _InfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w500, color: const Color(0xFF111111))),
+        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
         Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w500, color: const Color(0xFF9F1D1F))),
       ],
     );
@@ -812,7 +785,7 @@ class _SectionTitle extends StatelessWidget {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 18,
         fontWeight: FontWeight.w600,
-        color: Colors.black,
+        color: AppColors.textPrimary,
       ),
     );
   }

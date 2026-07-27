@@ -1,0 +1,22 @@
+fastapi
+uvicorn
+httpx
+python-dotenv
+pydantic
+psycopg2-binary
+python-multipart
+pypdf
+beautifulsoup4
+lxml
+youtube-transcript-api
+firebase-admin
+edge-tts
+websockets
+# gateway/run.py uses fastapi+uvicorn+httpx (already above) plus websockets
+edge-tts
+python-dotenv
+numpy
+pillow
+pydantic-settings>=2.3.0
+faster-whisper>=1.0.0
+psutil

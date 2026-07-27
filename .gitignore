@@ -6,7 +6,7 @@ services/admin-ui/build/
 services/admin-ui/dist/
 
 # Python virtual env
-services/venv/
+venv/
 
 # Avatar runtime cache (GLBs + uploaded photos)
 services/agent/data/
@@ -15,7 +15,7 @@ services/web-avatar/node_modules/
 
 # Ignore all node_modules inside admin-ui
 services/admin-ui/node_modules/
-
-# Ignore all node_modules globally
-node_modules/*
 .env
+API_REFERENCE.MD
+node_modules/
+package-lock.json

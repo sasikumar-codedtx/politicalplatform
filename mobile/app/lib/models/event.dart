@@ -6,6 +6,7 @@ class PartyEvent {
   final String time;
   final String type;
   final String description;
+  final String? imageUrl;
 
   const PartyEvent({
     required this.id,
@@ -15,5 +16,6 @@ class PartyEvent {
     required this.time,
     required this.type,
     required this.description,
+    this.imageUrl,
   });
 }

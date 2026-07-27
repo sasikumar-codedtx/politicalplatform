@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 import '../services/profile_service.dart';
 
 /// Round avatar backed by [ProfileService]. Shows the user's saved photo when
@@ -29,20 +30,20 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
         if (path != null) {
           return CircleAvatar(
             radius: widget.radius,
-            backgroundColor: const Color(0xFFEEEEEE),
+            backgroundColor: AppColors.surfaceAlt,
             backgroundImage: FileImage(File(path)),
           );
         }
         if (widget.fallbackAsset != null) {
           return CircleAvatar(
             radius: widget.radius,
-            backgroundColor: const Color(0xFFEEEEEE),
+            backgroundColor: AppColors.surfaceAlt,
             backgroundImage: AssetImage(widget.fallbackAsset!),
           );
         }
         return CircleAvatar(
           radius: widget.radius,
-          backgroundColor: const Color(0xFFEEEEEE),
+          backgroundColor: AppColors.surfaceAlt,
           child: Icon(Icons.person_rounded, size: widget.radius, color: const Color(0xFF9F1D1F)),
         );
       },

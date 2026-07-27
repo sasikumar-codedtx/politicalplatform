@@ -16,9 +16,22 @@ from persona import get_persona
 from prompts import get_prompt
 from pypdf import PdfReader
 from guard import check_injection, role_anchor
+from complaint_agent import try_raise_complaint
+from youtube_posts import fetch_channel_posts
 from db import (
     init_db,
     audit,
+    forum_actor,
+    list_forum_posts,
+    add_forum_post,
+    delete_forum_post,
+    set_forum_post_status,
+    delete_forum_post_admin,
+    toggle_forum_like,
+    list_forum_comments,
+    add_forum_comment,
+    get_forum_media,
+    upsert_official_post,
     upsert_document,
     list_documents,
     delete_document,
@@ -42,9 +55,25 @@ from db import (
     get_profile_avatar,
     add_complaint,
     list_complaints,
+    list_all_complaints,
+    set_complaint_status,
+    get_complaint_attachment,
     add_member,
     list_members,
     get_member,
+    add_poll,
+    list_polls,
+    vote_poll,
+    count_polls_participated,
+    add_news,
+    list_news,
+    delete_news,
+    add_event,
+    list_events,
+    delete_event,
+    list_toolkit_items,
+    add_toolkit_item,
+    delete_toolkit_item,
 )
 import uuid as _uuid
 from seed_prompts import SEED_PROMPTS, CATEGORY_ORDER, CATEGORY_LABELS
@@ -75,10 +104,15 @@ def _embed_and_store(flavor_id: str, title: str, text: str, source: str | None) 
     return ids
 
 
+_DOCS = os.getenv("ENABLE_DOCS", "false").strip().lower() in ("1", "true", "yes", "on")
+
 app = FastAPI(
     title="Political Leader Agent API",
     description="AI agent — citizens talk to their political leader",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
 )
 
 app.add_middleware(
@@ -501,22 +535,57 @@ def profile_avatar_get(authorization: str | None = Header(default=None)):
 
 
 @app.post("/complaints")
-def complaints_create(req: ComplaintCreate, authorization: str | None = Header(default=None)):
-    uid = _require_uid(authorization)
-    title = req.title.strip()
+async def complaints_create(
+    title: str = Form(...),
+    description: str = Form(""),
+    category: str = Form("General"),
+    file: UploadFile | None = File(default=None),
+    authorization: str | None = Header(default=None),
+    x_device_id: str | None = Header(default=None),
+):
+    # Same identity rule as members/polls: uid when logged in, else the device,
+    # adopted onto the account on login. Storing a NULL uid made the list query
+    # match nothing, so raised complaints never came back.
+    uid, device_id = _identity(authorization, x_device_id)
+    title = title.strip()
     if not title:
         raise HTTPException(status_code=400, detail="title is required")
-    row = add_complaint(uid, title, req.description.strip(), req.category.strip() or "General")
+    data, name, mime = None, "", ""
+    if file is not None:
+        data = await file.read()
+        if data:
+            name = file.filename or "attachment"
+            mime = file.content_type or "application/octet-stream"
+        else:
+            data = None
+    row = add_complaint(uid, device_id, title, description.strip(),
+                        category.strip() or "General",
+                        attachment=data, attachment_name=name, attachment_mime=mime)
     audit("complaint_created", entity_type="complaint", entity_id=str(row["id"]),
-          metadata={"category": row["category"]})
+          metadata={"category": row["category"], "has_attachment": row["has_attachment"]})
     return row
 
 
 @app.get("/complaints")
-def complaints_list(authorization: str | None = Header(default=None)):
-    uid = _require_uid(authorization)
-    items = list_complaints(uid)
+def complaints_list(authorization: str | None = Header(default=None),
+                    x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    items = list_complaints(uid, device_id)
     return {"complaints": items, "count": len(items)}
+
+
+@app.get("/complaints/{complaint_id}/attachment")
+def complaint_attachment(complaint_id: int,
+                         authorization: str | None = Header(default=None),
+                         x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    result = get_complaint_attachment(uid, device_id, complaint_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no attachment")
+    data, mime, name = result
+    return _Response(content=data, media_type=mime,
+                     headers={"Content-Disposition": f'inline; filename="{name}"',
+                              "Cache-Control": "no-store"})
 
 
 class MemberCreate(BaseModel):
@@ -530,12 +599,21 @@ class MemberCreate(BaseModel):
     booth: str = ""
 
 
+# Members + polls allow anonymous (device-scoped) access — a citizen can join
+# / vote before logging in, and the data is adopted onto their account on login.
+# So these resolve the uid softly (never 401) and fall back to the device id.
+def _identity(authorization: str | None, x_device_id: str | None) -> tuple[str, str]:
+    uid = verify_token(authorization)[0] or ""
+    return uid, (x_device_id or "").strip()
+
+
 @app.post("/members")
-def member_create(req: MemberCreate, authorization: str | None = Header(default=None)):
-    uid = _require_uid(authorization)
+def member_create(req: MemberCreate, authorization: str | None = Header(default=None),
+                  x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
     if not req.name.strip():
         raise HTTPException(status_code=400, detail="name is required")
-    row = add_member(uid, req.name.strip(), req.email.strip(), req.mobile.strip(),
+    row = add_member(uid, device_id, req.name.strip(), req.email.strip(), req.mobile.strip(),
                      req.dob.strip(), req.gender.strip(), req.district.strip(),
                      req.pin.strip(), req.booth.strip())
     audit("member_joined", entity_type="member", entity_id=row["member_id"])
@@ -543,19 +621,387 @@ def member_create(req: MemberCreate, authorization: str | None = Header(default=
 
 
 @app.get("/members")
-def members_list(authorization: str | None = Header(default=None)):
-    uid = _require_uid(authorization)
-    items = list_members(uid)
+def members_list(authorization: str | None = Header(default=None),
+                 x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    items = list_members(uid, device_id)
     return {"members": items, "count": len(items)}
 
 
 @app.get("/members/me")
-def member_me(authorization: str | None = Header(default=None)):
-    uid = _require_uid(authorization)
-    row = get_member(uid)
+def member_me(authorization: str | None = Header(default=None),
+              x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    row = get_member(uid, device_id)
     if row is None:
         raise HTTPException(status_code=404, detail="not a member yet")
     return row
+
+
+# ── Community polls ───────────────────────────────────────────────────────────
+
+class PollCreate(BaseModel):
+    question: str
+    options: list[str]
+    duration_days: int = 2
+    flavor_id: str | None = None
+
+
+class PollVote(BaseModel):
+    option_index: int
+
+
+@app.post("/polls")
+def poll_create(req: PollCreate, authorization: str | None = Header(default=None),
+                x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    question = req.question.strip()
+    options = [o.strip() for o in req.options if o.strip()]
+    if not question or len(options) < 2:
+        raise HTTPException(status_code=400, detail="question and at least 2 options required")
+    row = add_poll(req.flavor_id or "", question, options,
+                   max(1, req.duration_days), uid or device_id)
+    audit("poll_created", entity_type="poll", entity_id=str(row["id"]))
+    return row
+
+
+@app.get("/polls")
+def polls_list(flavor_id: str | None = None,
+               authorization: str | None = Header(default=None),
+               x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    items = list_polls(flavor_id or "", uid, device_id)
+    return {"polls": items, "count": len(items)}
+
+
+@app.post("/polls/{poll_id}/vote")
+def poll_vote(poll_id: int, req: PollVote,
+              authorization: str | None = Header(default=None),
+              x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    voter = uid or device_id
+    if not voter:
+        raise HTTPException(status_code=400, detail="device id or login required")
+    vote_poll(poll_id, voter, req.option_index)
+    return {"status": "ok"}
+
+
+@app.get("/polls/participated")
+def polls_participated(authorization: str | None = Header(default=None),
+                       x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    return {"count": count_polls_participated(uid, device_id)}
+
+
+# ── Forum (community wall) ────────────────────────────────────────────────────
+# Posts, likes and comments live on the server so every user sees the same
+# counts. Identity is the uid when logged in, else the device id.
+
+class ForumPostCreate(BaseModel):
+    text: str
+    user_name: str = ""
+    media_type: str = "none"
+    media_url: str = ""
+    status: str = "approved"
+    flavor_id: str | None = None
+
+
+class ForumCommentCreate(BaseModel):
+    text: str
+    user_name: str = ""
+
+
+# The channel's Posts tab is mirrored into the forum as official posts so they
+# can be liked and commented on with our own system.
+_YT_POSTS_HANDLE = os.getenv("YOUTUBE_POSTS_HANDLE", "TVKVijayHQ-Offl")
+_FORUM_SYNC_TTL = 1800
+_forum_synced: dict[str, float] = {}
+
+
+def _needs_official_sync(flavor_id: str) -> bool:
+    return _time.time() - _forum_synced.get(flavor_id, 0) >= _FORUM_SYNC_TTL
+
+
+def _sync_official_posts(flavor_id: str) -> None:
+    """Runs in the background — fetching the channel page takes ~1s and must
+    never sit in front of the forum response."""
+    if not _needs_official_sync(flavor_id):
+        return
+    _forum_synced[flavor_id] = _time.time()
+    try:
+        for p in fetch_channel_posts(_YT_POSTS_HANDLE):
+            upsert_official_post(flavor_id, p["external_id"], p["user_name"],
+                                 p["text"], p["media_type"], p["media_url"],
+                                 p["link_url"], p["created_at"])
+    except Exception:
+        pass  # channel posts are a bonus — never break the forum over them
+
+
+def _forum_identity(authorization: str | None, x_device_id: str | None) -> str:
+    uid, device_id = _identity(authorization, x_device_id)
+    actor = forum_actor(uid, device_id)
+    if not actor:
+        raise HTTPException(status_code=400, detail="device id or login required")
+    return actor
+
+
+@app.get("/forum/posts")
+def forum_posts_list(background_tasks: BackgroundTasks,
+                     flavor_id: str | None = None, status: str = "",
+                     mine: bool = False,
+                     authorization: str | None = Header(default=None),
+                     x_device_id: str | None = Header(default=None)):
+    uid, device_id = _identity(authorization, x_device_id)
+    actor = forum_actor(uid, device_id)
+    items = list_forum_posts(flavor_id or "", actor, status, mine)
+    if not mine and _needs_official_sync(flavor_id or ""):
+        if not items:
+            # Fresh device / empty forum — pull the channel posts NOW so the
+            # first load isn't blank, then re-query.
+            _sync_official_posts(flavor_id or "")
+            items = list_forum_posts(flavor_id or "", actor, status, mine)
+        else:
+            background_tasks.add_task(_sync_official_posts, flavor_id or "")
+    return {"posts": items, "count": len(items)}
+
+
+@app.post("/forum/posts")
+async def forum_post_create(
+    text: str = Form(""),
+    user_name: str = Form(""),
+    status: str = Form("approved"),
+    flavor_id: str | None = Form(default=None),
+    file: UploadFile | None = File(default=None),
+    authorization: str | None = Header(default=None),
+    x_device_id: str | None = Header(default=None),
+):
+    actor = _forum_identity(authorization, x_device_id)
+    body = text.strip()
+    data, mime = None, ""
+    if file is not None:
+        data = await file.read()
+        if data:
+            mime = file.content_type or "application/octet-stream"
+        else:
+            data = None
+    if not body and data is None:
+        raise HTTPException(status_code=400, detail="text or attachment required")
+    row = add_forum_post(flavor_id or "", actor,
+                         user_name.strip() or "TVK Member", body,
+                         "none", "", status.strip() or "approved",
+                         media=data, media_mime=mime)
+    audit("forum_post_created", entity_type="forum_post", entity_id=row["id"])
+    return row
+
+
+@app.get("/forum/posts/{post_id}/media")
+def forum_post_media(post_id: int):
+    result = get_forum_media(post_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no media")
+    data, mime = result
+    return _Response(content=data, media_type=mime,
+                     headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.delete("/forum/posts/{post_id}")
+def forum_post_delete(post_id: int,
+                      authorization: str | None = Header(default=None),
+                      x_device_id: str | None = Header(default=None)):
+    actor = _forum_identity(authorization, x_device_id)
+    delete_forum_post(post_id, actor)
+    return {"status": "ok"}
+
+
+@app.post("/forum/posts/{post_id}/status")
+def forum_post_status(post_id: int, status: str,
+                      x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    if status not in ("approved", "pending", "rejected"):
+        raise HTTPException(status_code=400, detail="bad status")
+    set_forum_post_status(post_id, status)
+    return {"status": "ok"}
+
+
+@app.post("/forum/posts/{post_id}/like")
+def forum_post_like(post_id: int,
+                    authorization: str | None = Header(default=None),
+                    x_device_id: str | None = Header(default=None)):
+    actor = _forum_identity(authorization, x_device_id)
+    return toggle_forum_like(post_id, actor)
+
+
+@app.get("/forum/posts/{post_id}/comments")
+def forum_comments_list(post_id: int):
+    items = list_forum_comments(post_id)
+    return {"comments": items, "count": len(items)}
+
+
+@app.post("/forum/posts/{post_id}/comments")
+def forum_comment_create(post_id: int, req: ForumCommentCreate,
+                         authorization: str | None = Header(default=None),
+                         x_device_id: str | None = Header(default=None)):
+    actor = _forum_identity(authorization, x_device_id)
+    body = req.text.strip()
+    if not body:
+        raise HTTPException(status_code=400, detail="text required")
+    return add_forum_comment(post_id, actor,
+                             req.user_name.strip() or "TVK Member", body)
+
+
+# ── News + Events (admin CMS) ─────────────────────────────────────────────────
+# Public GET (per flavor); admin writes. There is no app-layer admin auth today,
+# so this adds an opt-in guard: if ADMIN_KEY is set in the env, write routes
+# require a matching X-Admin-Key header; if unset (local dev), writes are open.
+_ADMIN_KEY = os.getenv("ADMIN_KEY", "").strip()
+
+
+def _require_admin(x_admin_key: str | None) -> None:
+    if _ADMIN_KEY and (x_admin_key or "").strip() != _ADMIN_KEY:
+        raise HTTPException(status_code=401, detail="admin key required")
+
+
+class NewsCreate(BaseModel):
+    title: str
+    summary: str = ""
+    category: str = "Party"
+    image_url: str = ""
+    flavor_id: str | None = None
+
+
+class EventCreate(BaseModel):
+    title: str
+    description: str = ""
+    location: str = ""
+    event_type: str = "Event"
+    image_url: str = ""
+    starts_at: str | None = None  # ISO 8601; defaults to now() when omitted
+    flavor_id: str | None = None
+
+
+@app.get("/news")
+def news_list(flavor_id: str | None = None):
+    items = list_news(flavor_id or "")
+    return {"news": items, "count": len(items)}
+
+
+@app.post("/admin/news")
+def news_create(req: NewsCreate, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    title = req.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    row = add_news(req.flavor_id or "", title, req.summary.strip(),
+                   req.category.strip() or "Party", req.image_url.strip())
+    audit("news_created", entity_type="news", entity_id=row["id"])
+    return row
+
+
+@app.delete("/admin/news/{news_id}")
+def news_delete(news_id: int, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    delete_news(news_id)
+    return {"status": "ok"}
+
+
+@app.get("/events")
+def events_list(flavor_id: str | None = None):
+    items = list_events(flavor_id or "")
+    return {"events": items, "count": len(items)}
+
+
+@app.post("/admin/events")
+def event_create(req: EventCreate, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    title = req.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    starts_at = (req.starts_at or "").strip() or None
+    row = add_event(req.flavor_id or "", title, req.description.strip(),
+                    req.location.strip(), req.event_type.strip() or "Event",
+                    req.image_url.strip(), starts_at)
+    audit("event_created", entity_type="event", entity_id=row["id"])
+    return row
+
+
+@app.delete("/admin/events/{event_id}")
+def event_delete(event_id: int, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    delete_event(event_id)
+    return {"status": "ok"}
+
+
+# ── Forum (admin) ─────────────────────────────────────────────────────────────
+
+@app.get("/admin/forum")
+def admin_forum_list(flavor_id: str | None = None,
+                     x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    items = list_forum_posts(flavor_id or "", "", "", False)
+    return {"posts": items, "count": len(items)}
+
+
+@app.delete("/admin/forum/{post_id}")
+def admin_forum_delete(post_id: int, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    delete_forum_post_admin(post_id)
+    return {"status": "ok"}
+
+
+# ── Complaints (admin) ────────────────────────────────────────────────────────
+
+@app.get("/admin/complaints")
+def admin_complaints_list(x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    items = list_all_complaints()
+    return {"complaints": items, "count": len(items)}
+
+
+@app.post("/admin/complaints/{complaint_id}/status")
+def admin_complaint_status(complaint_id: int, status: str,
+                           x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    if status not in ("Pending", "In-Progress", "Resolved"):
+        raise HTTPException(status_code=400, detail="bad status")
+    set_complaint_status(complaint_id, status)
+    return {"status": "ok"}
+
+
+# ── Campaign toolkit (admin CMS) ──────────────────────────────────────────────
+
+class ToolkitCreate(BaseModel):
+    kind: str = "Posters"          # Posters | Media | Slogans | Hashtags
+    title: str = ""
+    image_url: str = ""
+    link_url: str = ""
+    subtitle: str = ""
+    flavor_id: str | None = None
+
+
+@app.get("/toolkit")
+def toolkit_list(flavor_id: str | None = None, kind: str = ""):
+    items = list_toolkit_items(flavor_id or "", kind.strip())
+    return {"items": items, "count": len(items)}
+
+
+@app.post("/admin/toolkit")
+def toolkit_create(req: ToolkitCreate, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    kind = req.kind.strip() or "Posters"
+    if not req.image_url.strip() and not req.title.strip():
+        raise HTTPException(status_code=400, detail="image_url or title required")
+    row = add_toolkit_item(req.flavor_id or "", kind, req.title.strip(),
+                           req.image_url.strip(), req.link_url.strip(),
+                           req.subtitle.strip())
+    audit("toolkit_created", entity_type="toolkit", entity_id=row["id"])
+    return row
+
+
+@app.delete("/admin/toolkit/{item_id}")
+def toolkit_delete(item_id: int, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    delete_toolkit_item(item_id)
+    return {"status": "ok"}
 
 
 # ── Admin / RAG routes ───────────────────────────────────────────────────────
@@ -878,6 +1324,23 @@ async def _ws_handle_turn(ws: WebSocket, first: dict):
         except Exception:
             pass
         await ws.send_json({"type": "done", "reply": blocked})
+        return
+
+    # Autonomous complaint intake — if the user is reporting a civic problem,
+    # file it and reply with the confirmation instead of a normal chat answer.
+    complaint_reply = try_raise_complaint(message, flavor_id, uid)
+    if complaint_reply:
+        add_message(session_id, "user", message)
+        add_message(session_id, "assistant", complaint_reply)
+        await ws.send_json({"type": "token", "text": complaint_reply})
+        try:
+            audio, mime = await synth_one(complaint_reply)
+            await ws.send_json({"type": "audio", "index": 0, "text": complaint_reply,
+                                "mime": mime, "size": len(audio)})
+            await ws.send_bytes(audio)
+        except Exception:
+            pass
+        await ws.send_json({"type": "done", "reply": complaint_reply})
         return
 
     try:

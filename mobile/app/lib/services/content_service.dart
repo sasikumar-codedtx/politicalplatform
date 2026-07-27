@@ -3,41 +3,119 @@ import '../models/news_item.dart';
 import '../models/leader.dart';
 import '../models/manifesto_plan.dart';
 import '../models/event.dart';
+import '../models/youtube_video.dart';
+import 'dart:async';
+import 'agent_service.dart';
+import 'local_cache.dart';
+import 'youtube_service.dart';
 
-// All methods return mock data now.
-// To wire real API: replace the return value in each method only.
-// ViewModels do not need to change.
+// News + Events are admin-published (backend CMS) via AgentService; the rest
+// (leader, manifesto, visions) are still curated mock data. News/Events fall
+// back to the mock set while the backend has nothing published yet, so the
+// app is never blank. ViewModels do not need to change.
 class ContentService {
   static final String _flavor = AppConfig.flavorName;
 
+  /// Backend rows served from disk first so the screen paints immediately,
+  /// with a background refresh for the next open.
+  static Future<List<Map<String, dynamic>>> _cmsRows(
+    String key,
+    Future<List<Map<String, dynamic>>> Function() fetch,
+  ) async {
+    final cached = await LocalCache.read(key);
+    if (cached is List && cached.isNotEmpty) {
+      unawaited(fetch().then((rows) {
+        if (rows.isNotEmpty) LocalCache.write(key, rows);
+      }));
+      return cached.cast<Map<String, dynamic>>();
+    }
+    final rows = await fetch();
+    if (rows.isNotEmpty) await LocalCache.write(key, rows);
+    return rows;
+  }
+
   // ── NEWS ─────────────────────────────────────────────────────────
+  // Merged feed: admin-published CMS items first, then the channel's recent
+  // YouTube uploads (as playable video cards). Falls back to the curated mock
+  // only when BOTH sources are empty, so the app is never blank.
+  // (Instagram would plug in here as a third source once a token exists.)
   static Future<List<NewsItem>> getNews() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    final results = await Future.wait([
+      _cmsRows('cms_news', AgentService.listNews),
+      YouTubeService.getVideos(count: 12),
+    ]);
+    final rows = results[0] as List<Map<String, dynamic>>;
+    final videos = results[1] as List<YouTubeVideo>;
+
+    final cms = rows.map((m) => NewsItem(
+      id: m['id'].toString(),
+      title: m['title'] as String? ?? '',
+      summary: m['summary'] as String? ?? '',
+      category: m['category'] as String? ?? '',
+      date: m['date'] as String? ?? '',
+      time: m['time'] as String? ?? '',
+      imageUrl: (m['image_url'] as String?)?.isNotEmpty == true
+          ? m['image_url'] as String
+          : null,
+    )).toList();
+
+    final yt = videos.map((v) => NewsItem(
+      id: 'yt_${v.videoId}',
+      title: v.title,
+      summary: v.channelTitle,
+      category: 'Video',
+      date: v.formattedDate,
+      time: '',
+      imageUrl: v.thumbnailUrl.isNotEmpty ? v.thumbnailUrl : null,
+      videoId: v.videoId,
+      source: 'youtube',
+    )).toList();
+
+    final merged = [...cms, ...yt];
+    if (merged.isNotEmpty) return merged;
     return _isTvk ? _tvkNews : _incNews;
   }
 
   // ── LEADER ───────────────────────────────────────────────────────
   static Future<Leader> getLeader() async {
-    await Future.delayed(const Duration(milliseconds: 200));
     return _isTvk ? _tvkLeader : _incLeader;
   }
 
   // ── MANIFESTO ────────────────────────────────────────────────────
   static Future<List<ManifestoPlan>> getManifestoPlans() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     return _isTvk ? _tvkPlans : _incPlans;
   }
 
   static Future<List<ManifestoVision>> getManifestoVisions() async {
-    await Future.delayed(const Duration(milliseconds: 200));
     return _isTvk ? _tvkVisions : _incVisions;
   }
 
   // ── EVENTS ───────────────────────────────────────────────────────
   static Future<List<PartyEvent>> getEvents() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    final rows = await _cmsRows('cms_events', AgentService.listEvents);
+    if (rows.isNotEmpty) {
+      return rows.map((m) => PartyEvent(
+        id: m['id'].toString(),
+        title: m['title'] as String? ?? '',
+        location: m['location'] as String? ?? '',
+        date: m['date'] as String? ?? '',
+        time: m['time'] as String? ?? '',
+        type: m['type'] as String? ?? 'Event',
+        description: m['description'] as String? ?? '',
+        imageUrl: (m['image_url'] as String?)?.isNotEmpty == true
+            ? m['image_url'] as String
+            : null,
+      )).toList();
+    }
     return _isTvk ? _tvkEvents : _incEvents;
   }
+
+  // ── CAMPAIGN TOOLKIT ─────────────────────────────────────────────
+  // Admin-published posters / media / slogans / hashtags. Cache-first;
+  // returns an empty list when nothing is published, and the toolkit screen
+  // falls back to its built-in static content so it is never blank.
+  static Future<List<Map<String, dynamic>>> getToolkit(String kind) =>
+      _cmsRows('cms_toolkit_$kind', () => AgentService.listToolkit(kind));
 
   static bool get _isTvk => _flavor == 'tn-tvk';
 

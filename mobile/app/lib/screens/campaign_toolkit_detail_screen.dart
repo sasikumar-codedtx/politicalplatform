@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../config/app_colors.dart';
+import '../services/content_service.dart';
+import '../services/youtube_service.dart';
+import '../models/youtube_video.dart';
+import 'video_player_screen.dart';
+
 // ─── Campaign Toolkit Detail Screen ───────────────────────────────────────────
 // Figma: 1328-3063 (Posters), 1328-3127 (Media/Audios), 1328-3084 (Media/Videos),
 //        1328-3206 (Slogans), 1328-3284 (Hashtags)
@@ -32,7 +38,7 @@ class _CampaignToolkitDetailScreenState
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6F6F6),
+        backgroundColor: AppColors.bg,
         body: Column(
           children: [
             _Header(
@@ -91,7 +97,7 @@ class _Header extends StatelessWidget {
     final headerH = topPad + 216.0;
 
     return Container(
-      color: Colors.white,
+      color: AppColors.surface,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -192,9 +198,9 @@ class _Header extends StatelessWidget {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFDEDEDE)),
+                border: Border.all(color: AppColors.border),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x29000000),
@@ -206,15 +212,15 @@ class _Header extends StatelessWidget {
               child: Row(
                 children: [
                   const SizedBox(width: 16),
-                  const Icon(Icons.search_rounded,
-                      size: 20, color: Color(0xFF888888)),
+                  Icon(Icons.search_rounded,
+                      size: 20, color: AppColors.textMuted),
                   const SizedBox(width: 10),
                   Text(
                     'Search',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF242424).withValues(alpha: 0.5),
+                      color: AppColors.textPrimary.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -231,7 +237,7 @@ class _Header extends StatelessWidget {
                 height: 42,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAEBEC),
+                  color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -280,7 +286,7 @@ class _MediaTabBtn extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-              color: active ? Colors.white : const Color(0xFF242424),
+              color: active ? Colors.white : AppColors.textPrimary,
             ),
           ),
         ),
@@ -291,8 +297,65 @@ class _MediaTabBtn extends StatelessWidget {
 
 // ─── POSTERS BODY — staggered 2-col masonry grid ──────────────────────────────
 
-class _PostersBody extends StatelessWidget {
+class _PostersBody extends StatefulWidget {
   const _PostersBody();
+
+  @override
+  State<_PostersBody> createState() => _PostersBodyState();
+}
+
+class _PostersBodyState extends State<_PostersBody> {
+  List<Map<String, dynamic>>? _items;
+
+  @override
+  void initState() {
+    super.initState();
+    ContentService.getToolkit('Posters').then((v) {
+      if (mounted) setState(() => _items = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _items;
+    // Admin-published posters take over when present; otherwise the built-in
+    // Figma masonry below is shown so the screen is never empty.
+    if (items != null && items.isNotEmpty) {
+      return GridView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: items.length,
+        itemBuilder: (context, i) {
+          final url = items[i]['image_url'] as String? ?? '';
+          final gallery = [
+            for (final m in items)
+              _PosterImg(url: m['image_url'] as String? ?? ''),
+          ];
+          return GestureDetector(
+            onTap: () => _openGallery(context, gallery, i),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, e, s) => Container(color: AppColors.surfaceAlt),
+              ),
+            ),
+          );
+        },
+      );
+    }
+    return const _StaticPostersBody();
+  }
+}
+
+class _StaticPostersBody extends StatelessWidget {
+  const _StaticPostersBody();
 
   // Left column: 3 cards, all 264px tall (matches Figma Thalapathy5/1/7)
   static const _leftItems = [
@@ -310,6 +373,10 @@ class _PostersBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Combined gallery list (left column then right) so the fullscreen swipe
+    // can page through every poster.
+    final all = [..._leftItems, ..._rightItems];
+    final gallery = [for (final it in all) _PosterImg(asset: it.$1)];
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
       children: [
@@ -326,6 +393,8 @@ class _PostersBody extends StatelessWidget {
                   child: _PosterCard(
                     asset: _leftItems[i].$1,
                     height: _leftItems[i].$2,
+                    gallery: gallery,
+                    galleryIndex: i,
                   ),
                 )),
               ),
@@ -341,6 +410,8 @@ class _PostersBody extends StatelessWidget {
                   child: _PosterCard(
                     asset: _rightItems[i].$1,
                     height: _rightItems[i].$2,
+                    gallery: gallery,
+                    galleryIndex: _leftItems.length + i,
                   ),
                 )),
               ),
@@ -355,19 +426,29 @@ class _PostersBody extends StatelessWidget {
 class _PosterCard extends StatelessWidget {
   final String asset;
   final double height;
-  const _PosterCard({required this.asset, required this.height});
+  final List<_PosterImg> gallery;
+  final int galleryIndex;
+  const _PosterCard({
+    required this.asset,
+    required this.height,
+    required this.gallery,
+    required this.galleryIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        height: height,
-        child: Image.asset(
-          asset,
-          fit: BoxFit.cover,
-          errorBuilder: (_, e, s) => Container(
-            color: const Color(0xFFEEEEEE),
+    return GestureDetector(
+      onTap: () => _openGallery(context, gallery, galleryIndex),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          height: height,
+          child: Image.asset(
+            asset,
+            fit: BoxFit.cover,
+            errorBuilder: (_, e, s) => Container(
+              color: AppColors.surfaceAlt,
+            ),
           ),
         ),
       ),
@@ -375,11 +456,246 @@ class _PosterCard extends StatelessWidget {
   }
 }
 
+// One gallery image — a network url OR a bundled asset.
+class _PosterImg {
+  final String? url;
+  final String? asset;
+  const _PosterImg({this.url, this.asset});
+}
+
+// Opens the posters full-screen as a swipeable gallery: swipe left → next,
+// swipe right → previous. Each page is zoomable.
+void _openGallery(BuildContext context, List<_PosterImg> images, int index) {
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => _PosterGallery(images: images, initialIndex: index),
+  ));
+}
+
+class _PosterGallery extends StatefulWidget {
+  final List<_PosterImg> images;
+  final int initialIndex;
+  const _PosterGallery({required this.images, required this.initialIndex});
+
+  @override
+  State<_PosterGallery> createState() => _PosterGalleryState();
+}
+
+class _PosterGalleryState extends State<_PosterGallery> {
+  late final PageController _pc = PageController(initialPage: widget.initialIndex);
+  late int _current = widget.initialIndex;
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pc,
+            itemCount: widget.images.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (context, i) {
+              final img = widget.images[i];
+              return InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Center(
+                  child: img.url != null
+                      ? Image.network(img.url!, fit: BoxFit.contain,
+                          errorBuilder: (_, e, s) => const Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.white38, size: 60))
+                      : Image.asset(img.asset!, fit: BoxFit.contain),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+          if (widget.images.length > 1)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+              left: 0, right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text('${_current + 1} / ${widget.images.length}',
+                      style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white, fontSize: 13)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Copies text to the clipboard and confirms — works on mobile and desktop/Mac
+// (the copy itself always worked; there was just no feedback).
+void _copy(BuildContext context, String text) {
+  Clipboard.setData(ClipboardData(text: text));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Copied to clipboard', style: GoogleFonts.plusJakartaSans()),
+      backgroundColor: const Color(0xFF1A1A1A),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 1),
+    ),
+  );
+}
+
 // ─── MEDIA BODY — Audios list + Videos list ───────────────────────────────────
 
-class _MediaBody extends StatelessWidget {
+class _MediaBody extends StatefulWidget {
   final int tab;
   const _MediaBody({required this.tab});
+
+  @override
+  State<_MediaBody> createState() => _MediaBodyState();
+}
+
+class _MediaBodyState extends State<_MediaBody> {
+  List<Map<String, dynamic>>? _items;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  // Merge admin-published media (first) with the channel's real YouTube videos,
+  // so new items added in admin AND new uploads both appear and play.
+  Future<void> _load() async {
+    final results = await Future.wait([
+      ContentService.getToolkit('Media'),
+      YouTubeService.getVideos(count: 20),
+    ]);
+    final admin = results[0] as List<Map<String, dynamic>>;
+    final videos = results[1] as List<YouTubeVideo>;
+    final yt = videos.map((v) => {
+      'title': v.title,
+      'image_url': v.thumbnailUrl,
+      'subtitle': v.channelTitle,
+      'link_url': v.videoId,
+    }).toList();
+    if (mounted) setState(() => _items = [...admin, ...yt]);
+  }
+
+  void _openLink(Map<String, dynamic> item) {
+    final link = (item['link_url'] as String? ?? '');
+    // Accept a full YouTube URL or a bare video id.
+    final id = RegExp(r'(?:v=|youtu\.be/|/)([\w-]{11})').firstMatch(link)?.group(1)
+        ?? (link.length == 11 ? link : '');
+    if (id.isEmpty) return;
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => VideoPlayerScreen(
+        video: YouTubeVideo(
+          videoId: id,
+          title: item['title'] as String? ?? '',
+          thumbnailUrl: item['image_url'] as String? ?? '',
+          channelTitle: item['subtitle'] as String? ?? '',
+          publishedAt: '',
+        ),
+      ),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _items;
+    if (items != null && items.isNotEmpty) {
+      return ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        itemCount: items.length,
+        separatorBuilder: (context, i) => const SizedBox(height: 16),
+        itemBuilder: (context, i) {
+          final item = items[i];
+          return GestureDetector(
+            onTap: () => _openLink(item),
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Container(
+                  width: 60, height: 47,
+                  clipBehavior: Clip.hardEdge,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.black12,
+                  ),
+                  child: Stack(fit: StackFit.expand, children: [
+                    Image.network(item['image_url'] as String? ?? '',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, e, s) =>
+                            Container(color: AppColors.surfaceAlt)),
+                    Center(
+                      child: Container(
+                        width: 20, height: 20,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFE40101), shape: BoxShape.circle),
+                        child: const Icon(Icons.play_arrow_rounded,
+                            color: Colors.white, size: 14),
+                      ),
+                    ),
+                  ]),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item['title'] as String? ?? '',
+                          maxLines: 2, overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14, fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          )),
+                      if ((item['subtitle'] as String? ?? '').isNotEmpty)
+                        Text(item['subtitle'] as String,
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12, color: AppColors.textSecondary,
+                            )),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+    return _StaticMediaBody(tab: widget.tab);
+  }
+}
+
+class _StaticMediaBody extends StatelessWidget {
+  final int tab;
+  const _StaticMediaBody({required this.tab});
 
   static const _audioItems = [
     ('Unga Vijay maanadu song',    '1.6M views', '8 months ago', 'assets/images/campaign1.png'),
@@ -420,7 +736,7 @@ class _MediaBody extends StatelessWidget {
                   children: [
                     Image.asset(item.$4, fit: BoxFit.cover,
                         errorBuilder: (_, e, s) =>
-                            Container(color: const Color(0xFFDDDDDD))),
+                            Container(color: AppColors.surfaceAlt)),
                     Center(
                       child: Container(
                         width: 20, height: 20,
@@ -446,7 +762,7 @@ class _MediaBody extends StatelessWidget {
                       // Figma: Manrope Medium 14px
                       style: GoogleFonts.manrope(
                         fontSize: 14, fontWeight: FontWeight.w500,
-                        color: const Color(0xFF1B1409),
+                        color: AppColors.textPrimary,
                       ),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
@@ -456,25 +772,26 @@ class _MediaBody extends StatelessWidget {
                         Text(item.$2,
                             style: GoogleFonts.manrope(
                                 fontSize: 12, fontWeight: FontWeight.w500,
-                                color: const Color(0xFF525252))),
+                                color: AppColors.textSecondary)),
                         const SizedBox(width: 6),
                         Container(
                           width: 4, height: 4,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF525252), shape: BoxShape.circle),
+                          decoration: BoxDecoration(
+                            color: AppColors.textSecondary,
+                            shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 6),
                         Text(item.$3,
                             style: GoogleFonts.manrope(
                                 fontSize: 12, fontWeight: FontWeight.w500,
-                                color: const Color(0xFF525252))),
+                                color: AppColors.textSecondary)),
                       ],
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert_rounded,
-                  size: 20, color: Color(0xFF888888)),
+              Icon(Icons.more_vert_rounded,
+                  size: 20, color: AppColors.textMuted),
             ],
           );
         },
@@ -511,7 +828,7 @@ class _VideoCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(asset, fit: BoxFit.cover,
-                errorBuilder: (_, e, s) => Container(color: const Color(0xFFDDDDDD))),
+                errorBuilder: (_, e, s) => Container(color: AppColors.surfaceAlt)),
             // Bottom gradient
             Positioned(
               left: 0, right: 0, bottom: 0,
@@ -584,7 +901,7 @@ class _SlogansBody extends StatelessWidget {
           'Best Slogans',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
-            color: const Color(0xFF242424),
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 16),
@@ -606,13 +923,13 @@ class _SloganRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: const BorderRadius.only(
           topRight: Radius.circular(10),
           bottomLeft: Radius.circular(10),
           bottomRight: Radius.circular(10),
         ),
-        border: Border.all(color: const Color(0xFFDEDEDE)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -621,15 +938,15 @@ class _SloganRow extends StatelessWidget {
             child: Text(
               text,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 12, color: const Color(0xFF242424),
+                fontSize: 12, color: AppColors.textPrimary,
               ),
             ),
           ),
           const SizedBox(width: 12),
           GestureDetector(
-            onTap: () => Clipboard.setData(ClipboardData(text: text)),
-            child: const Icon(Icons.copy_rounded,
-                size: 20, color: Color(0xFF888888)),
+            onTap: () => _copy(context, text),
+            child: Icon(Icons.copy_rounded,
+                size: 20, color: AppColors.textMuted),
           ),
         ],
       ),
@@ -655,7 +972,7 @@ class _HashtagsBody extends StatelessWidget {
           'Best Hashtags',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
-            color: const Color(0xFF242424),
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 16),
@@ -679,7 +996,7 @@ class _HashtagBlock extends StatelessWidget {
       children: [
         // Red "Copy" tab — top-left, rounded top corners
         GestureDetector(
-          onTap: () => Clipboard.setData(ClipboardData(text: text)),
+          onTap: () => _copy(context, text),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
             decoration: const BoxDecoration(
@@ -703,19 +1020,19 @@ class _HashtagBlock extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: const BorderRadius.only(
               topRight: Radius.circular(10),
               bottomLeft: Radius.circular(10),
               bottomRight: Radius.circular(10),
             ),
-            border: Border.all(color: const Color(0xFFDEDEDE)),
+            border: Border.all(color: AppColors.border),
           ),
           child: Text(
             text,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12, height: 1.5,
-              color: const Color(0xFF242424),
+              color: AppColors.textPrimary,
             ),
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_colors.dart';
 import '../services/profile_service.dart';
 import 'phone_login_screen.dart';
 
@@ -30,7 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _langIdx = p.getInt('app_language') ?? _langIdx;
       _notificationsOn = p.getBool('pref_notifications') ?? _notificationsOn;
-      _darkModeOn = p.getBool('pref_dark_mode') ?? _darkModeOn;
+      _darkModeOn = ThemeController.isDark.value;
     });
   }
 
@@ -46,12 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setDarkMode(bool v) async {
     setState(() => _darkModeOn = v);
-    (await SharedPreferences.getInstance()).setBool('pref_dark_mode', v);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Dark mode ${v ? 'on' : 'off'} — applies app-wide in a future update.')),
-      );
-    }
+    await ThemeController.set(v); // flips the whole app immediately
   }
 
   void _editProfile() {
@@ -60,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
@@ -113,10 +109,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(title, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
-        content: Text(body, style: GoogleFonts.plusJakartaSans(color: const Color(0xFF4A4949), height: 1.5)),
+        content: Text(body, style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, height: 1.5)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
         ],
@@ -128,11 +124,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('Delete Account', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
         content: Text('This permanently deletes your account. This cannot be undone.',
-            style: GoogleFonts.plusJakartaSans(color: const Color(0xFF4A4949))),
+            style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
@@ -165,16 +161,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('Sign Out',
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF111111))),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         content: Text('Are you sure you want to sign out?',
-            style: GoogleFonts.plusJakartaSans(color: const Color(0xFF4A4949))),
+            style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF4A4949))),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -197,18 +193,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           // ── App Bar ──────────────────────────────────────────────
           Container(
-            color: Colors.white,
+            color: AppColors.surface,
             padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 8),
             child: Row(
               children: [
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_rounded, size: 24, color: Colors.black),
+                  child: Icon(Icons.arrow_back_rounded, size: 24, color: AppColors.textPrimary),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -217,7 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -265,9 +261,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFEBEBEB)),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,9 +277,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 Text('Language',
                                     style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF111111))),
+                                        fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                                 Text('Switch between languages.',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF4A4949))),
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                               ],
                             ),
                           ],
@@ -348,7 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: 'Learn more about the app.',
                     onTap: () => _showInfoDialog(
                       'About My TVK',
-                      'My TVK is the official citizen platform of Tamilaga Vettri Kazhagam — chat with the leader, track projects and news, join as a member, and raise complaints.\n\nFounded 2023 · Leader: Thiru Vijay',
+                      'My TVK is the official citizen platform of Tamilaga Vettri Kazhagam — chat with the leader, track projects and news, join as a member, and raise complaints.\n\nFounded on 2 February 2024 by Leader: Thiru Vijay',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -387,7 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: _ActionButton(
                               label: 'Delete account',
-                              color: const Color(0xFF4A4949),
+                              color: AppColors.textSecondary,
                               onTap: _confirmDeleteAccount,
                             ),
                           ),
@@ -467,13 +463,13 @@ class _SettingsTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFEBEBEB)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF111111)),
+            Icon(icon, size: 18, color: AppColors.textPrimary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -481,10 +477,10 @@ class _SettingsTile extends StatelessWidget {
                 children: [
                   Text(title,
                       style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF111111))),
+                          fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                   Text(subtitle,
                       style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF4A4949))),
+                          fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -517,13 +513,13 @@ class _ToggleTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFEBEBEB)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF111111)),
+          Icon(icon, size: 18, color: AppColors.textPrimary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -531,10 +527,10 @@ class _ToggleTile extends StatelessWidget {
               children: [
                 Text(title,
                     style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF111111))),
+                        fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                 Text(subtitle,
                     style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF4A4949))),
+                        fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
               ],
             ),
           ),

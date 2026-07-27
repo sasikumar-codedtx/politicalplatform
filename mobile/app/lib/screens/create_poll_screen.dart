@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
+import '../services/agent_service.dart';
 
 class CreatePollScreen extends StatefulWidget {
   const CreatePollScreen({super.key});
@@ -15,6 +17,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     TextEditingController(),
   ];
   int _durationDays = 2;
+  bool _submitting = false;
   static const _durations = [1, 2, 3, 5, 7];
 
   @override
@@ -41,8 +44,29 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     });
   }
 
-  void _submit() {
-    Navigator.pop(context);
+  Future<void> _submit() async {
+    if (_submitting) return;
+    setState(() => _submitting = true);
+    final options = _options.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+    final created = await AgentService.createPoll(
+      question: _questionController.text.trim(),
+      options: options,
+      durationDays: _durationDays,
+    );
+    if (!mounted) return;
+    if (created == null) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not create poll. Check your connection.',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    Navigator.pop(context, true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Poll created successfully!', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
@@ -58,29 +82,29 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           // App bar
           Container(
             padding: EdgeInsets.only(left: 16, right: 16, top: 16 + topPad, bottom: 16),
-            color: Colors.white,
+            color: AppColors.surface,
             child: Row(
               children: [
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     width: 40, height: 40,
-                    decoration: BoxDecoration(color: const Color(0xFFF0F0F0), shape: BoxShape.circle),
-                    child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1A1A1A), size: 18),
+                    decoration: BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                    child: Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary, size: 18),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text('Create Poll', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+                Text('Create Poll', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
               ],
             ),
           ),
-          Container(height: 1, color: const Color(0xFFEEEEEE)),
+          Container(height: 1, color: AppColors.border),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -92,9 +116,9 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+                      border: Border.all(color: AppColors.border, width: 1),
                       boxShadow: [
                         BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
                       ],
@@ -103,10 +127,10 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                     child: TextField(
                       controller: _questionController,
                       maxLines: 3,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF1A1A1A), height: 1.5),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textPrimary, height: 1.5),
                       decoration: InputDecoration.collapsed(
                         hintText: 'Ask a question to the community...',
-                        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black38),
+                        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textMuted),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -131,9 +155,9 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                       child: Container(
                         height: 46,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFEEEEEE), width: 1, style: BorderStyle.solid),
+                          border: Border.all(color: AppColors.border, width: 1, style: BorderStyle.solid),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -157,10 +181,10 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: _durationDays == d ? const Color(0xFFE40101).withValues(alpha: 0.15) : Colors.white,
+                          color: _durationDays == d ? const Color(0xFFE40101).withValues(alpha: 0.15) : AppColors.surface,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: _durationDays == d ? const Color(0xFFE40101) : const Color(0xFFEEEEEE),
+                            color: _durationDays == d ? const Color(0xFFE40101) : AppColors.border,
                             width: 1,
                           ),
                         ),
@@ -169,7 +193,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: _durationDays == d ? const Color(0xFFE40101) : Colors.black54,
+                            color: _durationDays == d ? const Color(0xFFE40101) : AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -189,27 +213,32 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
           // Submit button
           Container(
             padding: EdgeInsets.only(left: 16, right: 16, bottom: 16 + bottomPad, top: 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFEEEEEE), width: 1)),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.border, width: 1)),
             ),
             child: GestureDetector(
-              onTap: _canSubmit ? _submit : null,
+              onTap: (_canSubmit && !_submitting) ? _submit : null,
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  color: _canSubmit ? const Color(0xFFE40101) : const Color(0xFFF0F0F0),
+                  color: _canSubmit ? const Color(0xFFE40101) : AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  'Publish Poll',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: _canSubmit ? Colors.white : Colors.black38,
-                  ),
-                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 22, height: 22,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(
+                        'Publish Poll',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _canSubmit ? Colors.white : AppColors.textMuted,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -218,7 +247,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     );
   }
 
-  TextStyle get _labelStyle => GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A));
+  TextStyle get _labelStyle => GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary);
 }
 
 class _OptionField extends StatelessWidget {
@@ -240,9 +269,9 @@ class _OptionField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
         ],
@@ -263,10 +292,10 @@ class _OptionField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF1A1A1A)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary),
               decoration: InputDecoration.collapsed(
                 hintText: 'Option ${index + 1}',
-                hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black38),
+                hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textMuted),
               ),
               onChanged: onChanged,
             ),
@@ -276,7 +305,7 @@ class _OptionField extends StatelessWidget {
               onTap: onRemove,
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Icon(Icons.close_rounded, color: Colors.black38, size: 18),
+                child: Icon(Icons.close_rounded, color: AppColors.textMuted, size: 18),
               ),
             ),
         ],
@@ -303,9 +332,9 @@ class _ToggleSettingState extends State<_ToggleSetting> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
         ],
@@ -316,9 +345,9 @@ class _ToggleSettingState extends State<_ToggleSetting> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A1A))),
+                Text(widget.label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
-                Text(widget.subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
+                Text(widget.subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
               ],
             ),
           ),
@@ -327,7 +356,7 @@ class _ToggleSettingState extends State<_ToggleSetting> {
             onChanged: (v) => setState(() => _value = v),
             activeThumbColor: const Color(0xFFE40101),
             trackColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected) ? const Color(0xFFE40101).withValues(alpha: 0.3) : const Color(0xFFEEEEEE)),
+              s.contains(WidgetState.selected) ? const Color(0xFFE40101).withValues(alpha: 0.3) : AppColors.border),
           ),
         ],
       ),

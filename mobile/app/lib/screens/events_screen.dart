@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
+import '../widgets/sticky_header.dart';
 import '../models/event.dart';
 import '../services/content_service.dart';
 import 'event_detail_screen.dart';
@@ -36,149 +38,75 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE40101))),
       );
     }
 
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Header(topPad: topPad),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: List.generate(_events.length, (i) => Padding(
+      backgroundColor: AppColors.bg,
+      // Sticky/collapsing header: the flag hero collapses under a pinned bar
+      // (back + title stay visible) while the event list scrolls — same
+      // sliver pattern as News/Forum.
+      body: CustomScrollView(
+        slivers: [
+          SliverHeroBar(
+            expandedHeight: 216 + topPad,
+            background: const _EventsHeroBg(),
+            title: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFFE40101), Color(0xFF7E0101)],
+              ).createShader(bounds),
+              child: Text('Nearby Events',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 26, color: Colors.white, letterSpacing: 0.2)),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => Padding(
                   padding: EdgeInsets.only(bottom: i < _events.length - 1 ? 16 : 0),
                   child: _EventCard(
                     event: _events[i],
                     imagePath: _eventImages[i % _eventImages.length],
                   ),
-                )),
+                ),
+                childCount: _events.length,
               ),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  final double topPad;
-  const _Header({required this.topPad});
+// Flag hero background for the collapsing app bar.
+class _EventsHeroBg extends StatelessWidget {
+  const _EventsHeroBg();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 234 + topPad,
-      child: Stack(
-        children: [
-          // TVK flag image
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: SizedBox(
-              height: 216 + topPad,
-              child: Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset('assets/images/tvk_flag.png', fit: BoxFit.cover),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: [0.0, 0.4, 1.0],
+              colors: [Colors.transparent, Colors.transparent, Colors.black],
             ),
           ),
-          // Gradient: transparent at top → black at bottom
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.4, 1.0],
-                  colors: [Colors.transparent, Colors.transparent, Colors.black],
-                ),
-              ),
-            ),
-          ),
-          // Back button
-          Positioned(
-            top: topPad + 14,
-            left: 16,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25)),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white, size: 16),
-              ),
-            ),
-          ),
-          // Title + location row at bottom
-          Positioned(
-            bottom: 0,
-            left: 16,
-            right: 16,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [Color(0xFFE40101), Color(0xFF7E0101)],
-                    ).createShader(bounds),
-                    child: Text(
-                      'Nearby Events',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.bebasNeue(
-                        fontSize: 34,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Tirupur',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          color: Colors.white,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -219,9 +147,16 @@ class _EventCard extends StatelessWidget {
         height: 168,
         child: Stack(
           children: [
-            // Background image
+            // Background image — admin-published image when present, else the
+            // bundled asset fallback.
             Positioned.fill(
-              child: Image.asset(imagePath, fit: BoxFit.cover),
+              child: event.imageUrl != null
+                  ? Image.network(
+                      event.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, e, s) => Image.asset(imagePath, fit: BoxFit.cover),
+                    )
+                  : Image.asset(imagePath, fit: BoxFit.cover),
             ),
             // Gradient overlay: transparent maroon → #a23435
             Positioned.fill(
@@ -311,7 +246,7 @@ class _DateBox extends StatelessWidget {
       width: 41,
       height: 48,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 4))],
       ),
@@ -348,7 +283,7 @@ class _DateBox extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary,
                     height: 1,
                   ),
                 ),
@@ -357,7 +292,7 @@ class _DateBox extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 8,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: AppColors.textMuted,
                     letterSpacing: 0.2,
                   ),
                 ),

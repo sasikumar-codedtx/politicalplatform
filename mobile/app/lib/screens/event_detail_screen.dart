@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import '../models/event.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -36,7 +37,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final event = widget.event;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           Expanded(
@@ -68,7 +69,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         // Title
                         Text(
                           event.title,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A), height: 1.4, letterSpacing: 0.2),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.4, letterSpacing: 0.2),
                         ),
                         const SizedBox(height: 20),
                         // Date + time + location cards
@@ -93,9 +94,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+                            border: Border.all(color: AppColors.border, width: 1),
                             boxShadow: [
                               BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
                             ],
@@ -108,13 +109,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Location', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38)),
+                                    Text('Location', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
                                     const SizedBox(height: 2),
                                     Text(
                                       event.location,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                                     ),
                                   ],
                                 ),
@@ -123,30 +124,30 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF0F0F0),
+                                  color: AppColors.surfaceAlt,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text('View Map', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF1A1A1A))),
+                                child: Text('View Map', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textPrimary)),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 20),
                         // About
-                        Text('About This Event', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+                        Text('About This Event', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                         const SizedBox(height: 10),
                         Text(
                           event.description,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black54, height: 1.7),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textSecondary, height: 1.7),
                         ),
                         const SizedBox(height: 10),
                         Text(
                           'All TVK members and supporters are encouraged to attend. This is an important gathering to discuss key issues affecting our constituency and to strengthen party organisation at the district level.',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black54, height: 1.7),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textSecondary, height: 1.7),
                         ),
                         const SizedBox(height: 20),
                         // What to expect
-                        Text('What to Expect', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+                        Text('What to Expect', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                         const SizedBox(height: 12),
                         ...[
                           'Opening address by district president',
@@ -167,7 +168,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Text(item, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54, height: 1.5)),
+                                child: Text(item, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary, height: 1.5)),
                               ),
                             ],
                           ),
@@ -177,20 +178,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+                            border: Border.all(color: AppColors.border, width: 1),
                             boxShadow: [
                               BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
                             ],
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.people_outline_rounded, color: Color(0xFF1A1A1A), size: 20),
+                              Icon(Icons.people_outline_rounded, color: AppColors.textPrimary, size: 20),
                               const SizedBox(width: 10),
-                              Text('342 people are attending', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF1A1A1A))),
+                              Text('342 people are attending', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary)),
                               const Spacer(),
-                              const Icon(Icons.ios_share_rounded, color: Colors.black54, size: 18),
+                              Icon(Icons.ios_share_rounded, color: AppColors.textSecondary, size: 18),
                             ],
                           ),
                         ),
@@ -205,9 +206,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           // Bottom RSVP button
           Container(
             padding: EdgeInsets.only(left: 16, right: 16, bottom: 16 + MediaQuery.of(context).padding.bottom, top: 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFEEEEEE), width: 1)),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.border, width: 1)),
             ),
             child: GestureDetector(
               onTap: () => setState(() => _rsvped = !_rsvped),
@@ -251,7 +252,15 @@ class _HeroImage extends StatelessWidget {
       height: 280 + topPad,
       child: Stack(
         children: [
-          Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
+          Positioned.fill(
+            child: event.imageUrl != null
+                ? Image.network(
+                    event.imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, e, s) => Image.asset(imagePath, fit: BoxFit.cover),
+                  )
+                : Image.asset(imagePath, fit: BoxFit.cover),
+          ),
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -311,9 +320,9 @@ class _InfoCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+          border: Border.all(color: AppColors.border, width: 1),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
           ],
@@ -326,13 +335,13 @@ class _InfoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.black38)),
+                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.textMuted)),
                   const SizedBox(height: 2),
                   Text(
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                 ],
               ),

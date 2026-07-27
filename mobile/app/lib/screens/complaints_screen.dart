@@ -1,6 +1,15 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/agent_service.dart';
+import '../config/app_colors.dart';
+import '../services/local_cache.dart';
+
+const _kRed = Color(0xFF9F1D1F);
 
 class ComplaintsScreen extends StatefulWidget {
   const ComplaintsScreen({super.key});
@@ -19,18 +28,29 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
     _load();
   }
 
+  /// Paints the last known list immediately, then replaces it with the
+  /// server's copy — no spinner on re-open.
   Future<void> _load() async {
+    final cached = await LocalCache.read('complaints');
+    if (cached is List && cached.isNotEmpty && mounted) {
+      setState(() {
+        _complaints = cached.cast<Map<String, dynamic>>();
+        _loading = false;
+      });
+    }
     final items = await AgentService.getComplaints();
-    if (mounted) setState(() { _complaints = items; _loading = false; });
+    if (!mounted) return;
+    setState(() { _complaints = items; _loading = false; });
+    await LocalCache.write('complaints', items);
   }
 
   Future<void> _register() async {
     final created = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => const _RegisterComplaintSheet(),
     );
@@ -40,23 +60,23 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text('My Complaints',
-            style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
+            style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _register,
-        backgroundColor: const Color(0xFF9F1D1F),
+        backgroundColor: _kRed,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: Text('Register Complaint', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF9F1D1F)))
+          ? const Center(child: CircularProgressIndicator(color: _kRed))
           : _complaints.isEmpty
               ? _EmptyState(onRegister: _register)
               : RefreshIndicator(
@@ -68,6 +88,63 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                   ),
                 ),
     );
+  }
+}
+
+// Download an attachment (authed) and show it: images inline, anything else
+// gets handed to the OS share/open sheet.
+Future<void> _viewAttachment(BuildContext context, String id, String name) async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Center(child: CircularProgressIndicator(color: _kRed)),
+  );
+  final res = await AgentService.complaintAttachment(id);
+  if (context.mounted) Navigator.pop(context); // close spinner
+  if (res == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open attachment.')),
+      );
+    }
+    return;
+  }
+  final bytes = Uint8List.fromList(res.bytes);
+  if (res.mime.startsWith('image/')) {
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          children: [
+            InteractiveViewer(child: Image.memory(bytes, fit: BoxFit.contain)),
+            Positioned(
+              top: 4, right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  } else {
+    try {
+      final dir = await getTemporaryDirectory();
+      final safe = name.isEmpty ? 'attachment' : name;
+      final f = File('${dir.path}/$safe');
+      await f.writeAsBytes(bytes, flush: true);
+      await Share.shareXFiles([XFile(f.path)]);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open attachment.')),
+        );
+      }
+    }
   }
 }
 
@@ -83,21 +160,21 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.assignment_outlined, size: 56, color: Color(0xFF9F1D1F)),
+            const Icon(Icons.assignment_outlined, size: 56, color: _kRed),
             const SizedBox(height: 16),
             Text('No complaints yet',
-                style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
+                style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text('Raise an issue and track its status here.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF666666))),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary)),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: onRegister,
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text('Register Complaint', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9F1D1F),
+                backgroundColor: _kRed,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -121,7 +198,7 @@ class _ComplaintCard extends StatelessWidget {
       case 'in progress':
         return (bg: const Color(0xFFFFF3E0), fg: const Color(0xFFE68E0C));
       default: // Pending
-        return (bg: const Color(0xFFFDE7E7), fg: const Color(0xFF9F1D1F));
+        return (bg: const Color(0xFFFDE7E7), fg: _kRed);
     }
   }
 
@@ -129,11 +206,13 @@ class _ComplaintCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = (data['status'] as String? ?? 'Pending');
     final c = _statusColors(status);
+    final hasAttachment = data['has_attachment'] == true;
+    final attachmentName = data['attachment_name'] as String? ?? 'Attachment';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -147,7 +226,7 @@ class _ComplaintCard extends StatelessWidget {
                   data['title'] as String? ?? '',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                 ),
               ),
               const SizedBox(width: 8),
@@ -162,17 +241,45 @@ class _ComplaintCard extends StatelessWidget {
           if ((data['description'] as String? ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(data['description'] as String,
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF555555), height: 1.4)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
           ],
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.folder_outlined, size: 13, color: Color(0xFF999999)),
+              Icon(Icons.folder_outlined, size: 13, color: AppColors.textMuted),
               const SizedBox(width: 4),
               Text(data['category'] as String? ?? 'General',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF999999))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
             ],
           ),
+          if (hasAttachment) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => _viewAttachment(context, data['id'].toString(), attachmentName),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _kRed.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _kRed.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.attachment_rounded, size: 15, color: _kRed),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(attachmentName,
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: _kRed)),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.visibility_rounded, size: 14, color: _kRed),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -192,6 +299,8 @@ class _RegisterComplaintSheetState extends State<_RegisterComplaintSheet> {
   final _categories = ['General', 'Water', 'Roads', 'Electricity', 'Sanitation', 'Health'];
   String _category = 'General';
   bool _submitting = false;
+  File? _file;
+  String? _fileName;
 
   @override
   void dispose() {
@@ -200,12 +309,20 @@ class _RegisterComplaintSheetState extends State<_RegisterComplaintSheet> {
     super.dispose();
   }
 
+  Future<void> _pickFile() async {
+    final res = await FilePicker.platform.pickFiles(withData: false);
+    final path = res?.files.single.path;
+    if (path != null) {
+      setState(() { _file = File(path); _fileName = res!.files.single.name; });
+    }
+  }
+
   Future<void> _submit() async {
     final title = _title.text.trim();
     if (title.isEmpty || _submitting) return;
     setState(() => _submitting = true);
     final result = await AgentService.registerComplaint(
-      title: title, description: _desc.text.trim(), category: _category,
+      title: title, description: _desc.text.trim(), category: _category, file: _file,
     );
     if (!mounted) return;
     if (result != null) {
@@ -218,67 +335,152 @@ class _RegisterComplaintSheetState extends State<_RegisterComplaintSheet> {
     }
   }
 
+  InputDecoration _dec(String label, String hint) => InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
+        hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted, fontSize: 13),
+        filled: true,
+        fillColor: AppColors.surfaceAlt,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kRed, width: 1.4)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Register Complaint',
-              style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A1A))),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _desc,
-            minLines: 2, maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _categories.map((cat) {
-              final active = cat == _category;
-              return GestureDetector(
-                onTap: () => setState(() => _category = cat),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: active ? const Color(0xFF9F1D1F) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: active ? const Color(0xFF9F1D1F) : const Color(0xFFDDDDDD)),
-                  ),
-                  child: Text(cat,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13, fontWeight: FontWeight.w600,
-                        color: active ? Colors.white : const Color(0xFF555555),
-                      )),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9F1D1F),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
               ),
-              child: _submitting
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text('Submit', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
-          ),
-        ],
+            Row(
+              children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(color: _kRed.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.campaign_rounded, color: _kRed, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Register a Complaint',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                      Text('We\'ll track it and update the status.',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            TextField(controller: _title, decoration: _dec('Title', 'e.g. Street light not working')),
+            const SizedBox(height: 12),
+            TextField(controller: _desc, minLines: 3, maxLines: 5, decoration: _dec('Description', 'Describe the issue and location')),
+            const SizedBox(height: 16),
+            Text('Category',
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: _categories.map((cat) {
+                final active = cat == _category;
+                return GestureDetector(
+                  onTap: () => setState(() => _category = cat),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: active ? _kRed : AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: active ? _kRed : AppColors.border),
+                    ),
+                    child: Text(cat,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: active ? Colors.white : AppColors.textSecondary,
+                        )),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            // Attachment
+            _file == null
+                ? GestureDetector(
+                    onTap: _pickFile,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.upload_file_rounded, color: _kRed, size: 26),
+                          const SizedBox(height: 6),
+                          Text('Attach evidence',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                          Text('Image, PDF, or ZIP',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.textMuted)),
+                        ],
+                      ),
+                    ),
+                  )
+                : Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _kRed.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _kRed.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.insert_drive_file_rounded, color: _kRed, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(_fileName ?? 'Selected file',
+                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() { _file = null; _fileName = null; }),
+                          child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _submitting ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kRed,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _submitting
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('Submit Complaint', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

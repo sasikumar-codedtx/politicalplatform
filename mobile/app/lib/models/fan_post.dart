@@ -15,6 +15,10 @@ class FanPost {
   final int likeCount;
   final String? pendingEdit;
 
+  /// Mirrored from the party's YouTube Posts tab.
+  final bool isOfficial;
+  final String? linkUrl;
+
   const FanPost({
     required this.id,
     required this.userId,
@@ -27,6 +31,8 @@ class FanPost {
     required this.createdAt,
     this.likeCount = 0,
     this.pendingEdit,
+    this.isOfficial = false,
+    this.linkUrl,
   });
 
   FanPost copyWith({
@@ -51,6 +57,8 @@ class FanPost {
       createdAt: createdAt,
       likeCount: likeCount ?? this.likeCount,
       pendingEdit: clearPendingEdit ? null : (pendingEdit ?? this.pendingEdit),
+      isOfficial: isOfficial,
+      linkUrl: linkUrl,
     );
   }
 

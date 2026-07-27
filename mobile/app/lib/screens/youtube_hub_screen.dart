@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/youtube_video.dart';
 import '../models/youtube_playlist.dart';
+import '../config/app_colors.dart';
 import '../services/youtube_service.dart';
 import 'video_player_screen.dart';
 import 'shorts_reel_screen.dart';
@@ -45,7 +46,7 @@ class _YoutubeHubScreenState extends State<YoutubeHubScreen>
     final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bg,
       body: NestedScrollView(
         headerSliverBuilder: (context, _) => [
           SliverToBoxAdapter(child: _Header(topPad: topPad)),
@@ -56,7 +57,7 @@ class _YoutubeHubScreenState extends State<YoutubeHubScreen>
                 controller: _tabController,
                 tabs: _tabs.map((t) => Tab(text: t)).toList(),
                 labelColor: const Color(0xFFE40101),
-                unselectedLabelColor: const Color(0xFF555555),
+                unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: const Color(0xFFE40101),
                 indicatorWeight: 2.5,
                 labelStyle: GoogleFonts.plusJakartaSans(
@@ -206,7 +207,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       elevation: overlapsContent ? 2 : 0,
       child: tabBar,
     );
@@ -232,7 +233,6 @@ class _LiveTabState extends State<_LiveTab>
 
   YouTubeVideo? _liveVideo;
   YouTubeVideo? _upcomingVideo;
-  YouTubeVideo? _recentVideo;
   bool _loading = true;
 
   @override
@@ -242,17 +242,14 @@ class _LiveTabState extends State<_LiveTab>
   }
 
   Future<void> _load() async {
+    // Live means live. No falling back to the newest upload — that made an
+    // ended stream from days ago look like it was on air.
     final live = await YouTubeService.getLiveStream();
     final upcoming = live == null ? await YouTubeService.getUpcomingLive() : null;
-    final recent = (live == null)
-        ? await YouTubeService.getVideos(count: 1).then(
-            (v) => v.isNotEmpty ? v.first : null)
-        : null;
     if (mounted) {
       setState(() {
         _liveVideo = live;
         _upcomingVideo = upcoming;
-        _recentVideo = recent;
         _loading = false;
       });
     }
@@ -283,20 +280,7 @@ class _LiveTabState extends State<_LiveTab>
             _UpcomingCard(video: _upcomingVideo!),
             const SizedBox(height: 20),
           ],
-          if (_recentVideo != null) ...[
-            Text(
-              'Most Recent Video',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _VideoCard(video: _recentVideo!),
-          ],
-          if (_upcomingVideo == null && _recentVideo == null)
-            _OfflineCard(),
+          if (_upcomingVideo == null) _OfflineCard(),
         ],
       ),
     );
@@ -394,7 +378,7 @@ class _LivePlayerSectionState extends State<_LivePlayerSection> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF1A1A1A),
+                              color: AppColors.textPrimary,
                               height: 1.4,
                             ),
                           ),
@@ -406,7 +390,7 @@ class _LivePlayerSectionState extends State<_LivePlayerSection> {
                       widget.video.channelTitle,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -429,9 +413,9 @@ class _UpcomingCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -473,7 +457,7 @@ class _UpcomingCard extends StatelessWidget {
                   video.title,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
-                    color: const Color(0xFF1A1A1A),
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -483,7 +467,7 @@ class _UpcomingCard extends StatelessWidget {
                   'Set a reminder',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: Colors.black38,
+                    color: AppColors.textMuted,
                   ),
                 ),
               ],
@@ -507,20 +491,20 @@ class _OfflineCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
-          const Icon(Icons.live_tv_outlined, size: 40, color: Colors.black26),
+          Icon(Icons.live_tv_outlined, size: 40, color: AppColors.textMuted),
           const SizedBox(height: 12),
           Text(
             'Not live right now',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -528,7 +512,7 @@ class _OfflineCard extends StatelessWidget {
             'Check the Videos tab for recent content.',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -583,7 +567,7 @@ class _VideosTabState extends State<_VideosTab>
           'No videos available.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
           ),
         ),
       );
@@ -644,7 +628,7 @@ class _ShortsTabState extends State<_ShortsTab>
           'No shorts available.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
           ),
         ),
       );
@@ -721,7 +705,7 @@ class _PlaylistsTabState extends State<_PlaylistsTab>
           'No playlists available.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: Colors.black54,
+            color: AppColors.textSecondary,
           ),
         ),
       );
@@ -755,7 +739,7 @@ class _VideoCard extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
@@ -781,18 +765,18 @@ class _VideoCard extends StatelessWidget {
                       video.thumbnailUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, e, s) => Container(
-                        color: const Color(0xFFEEEEEE),
-                        child: const Icon(
+                        color: AppColors.surfaceAlt,
+                        child: Icon(
                           Icons.play_circle_outline_rounded,
                           size: 40,
-                          color: Color(0xFFCCCCCC),
+                          color: AppColors.textMuted,
                         ),
                       ),
                       loadingBuilder: (_, child, progress) =>
                           progress == null
                               ? child
                               : Container(
-                                  color: const Color(0xFFEEEEEE),
+                                  color: AppColors.surfaceAlt,
                                   child: const Center(
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
@@ -852,7 +836,7 @@ class _VideoCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF1A1A1A),
+                      color: AppColors.textPrimary,
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -868,7 +852,7 @@ class _VideoCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: Colors.black54,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -877,7 +861,7 @@ class _VideoCard extends StatelessWidget {
                         video.formattedDate,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: Colors.black38,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],
@@ -911,17 +895,17 @@ class _ShortCard extends StatelessWidget {
               video.thumbnailUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, e, s) => Container(
-                color: const Color(0xFFEEEEEE),
-                child: const Icon(
+                color: AppColors.surfaceAlt,
+                child: Icon(
                   Icons.play_circle_outline_rounded,
                   size: 32,
-                  color: Color(0xFFCCCCCC),
+                  color: AppColors.textMuted,
                 ),
               ),
               loadingBuilder: (_, child, progress) => progress == null
                   ? child
                   : Container(
-                      color: const Color(0xFFEEEEEE),
+                      color: AppColors.surfaceAlt,
                       child: const Center(
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
@@ -1002,7 +986,7 @@ class _PlaylistCard extends StatelessWidget {
       child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -1025,18 +1009,18 @@ class _PlaylistCard extends StatelessWidget {
                       playlist.thumbnailUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, e, s) => Container(
-                        color: const Color(0xFFEEEEEE),
-                        child: const Icon(
+                        color: AppColors.surfaceAlt,
+                        child: Icon(
                           Icons.playlist_play_rounded,
-                          color: Colors.black26,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     )
                   : Container(
-                      color: const Color(0xFFEEEEEE),
-                      child: const Icon(
+                      color: AppColors.surfaceAlt,
+                      child: Icon(
                         Icons.playlist_play_rounded,
-                        color: Colors.black26,
+                        color: AppColors.textMuted,
                       ),
                     ),
             ),
@@ -1051,7 +1035,7 @@ class _PlaylistCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1A1A1A),
+                    color: AppColors.textPrimary,
                     height: 1.4,
                   ),
                   maxLines: 2,
@@ -1073,7 +1057,7 @@ class _PlaylistCard extends StatelessWidget {
                       '·',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: Colors.black38,
+                        color: AppColors.textMuted,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1081,7 +1065,7 @@ class _PlaylistCard extends StatelessWidget {
                       playlist.formattedDate,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: Colors.black38,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -1089,9 +1073,9 @@ class _PlaylistCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.chevron_right_rounded,
-            color: Colors.black38,
+            color: AppColors.textMuted,
             size: 20,
           ),
         ],

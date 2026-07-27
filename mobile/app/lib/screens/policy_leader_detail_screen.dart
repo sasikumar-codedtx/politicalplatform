@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 import 'policy_leaders_screen.dart';
 
 class PolicyLeaderDetailScreen extends StatelessWidget {
@@ -15,7 +16,7 @@ class PolicyLeaderDetailScreen extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6F6F6),
+        backgroundColor: AppColors.bg,
         body: Stack(
           children: [
             // ── Scrollable body ────────────────────────────────────────────
@@ -221,7 +222,7 @@ class _DetailBody extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: const [
               BoxShadow(
@@ -239,7 +240,7 @@ class _DetailBody extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF242424),
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 10),
@@ -248,7 +249,7 @@ class _DetailBody extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF242424).withValues(alpha: 0.8),
+                  color: AppColors.textSecondary,
                   height: 22 / 14,
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
+import '../config/app_colors.dart';
 import 'main_shell.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
@@ -118,7 +119,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final color = Color(AppConfig.current.primaryColor);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         // Scrollable so the form never overflows when the keyboard opens;
         // minHeight + IntrinsicHeight keep the Spacer-centred layout otherwise.
@@ -144,12 +145,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
               const SizedBox(height: 8),
               Text(
                 'Your voice matters.',
-                style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+                style: GoogleFonts.inter(fontSize: 16, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 48),
               if (!_codeSent) ...[
                 Text('Enter your mobile number',
-                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700])),
+                    style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _phoneController,
@@ -168,7 +169,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 ),
               ] else ...[
                 Text('Enter the OTP sent to your number',
-                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700])),
+                    style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _otpController,
