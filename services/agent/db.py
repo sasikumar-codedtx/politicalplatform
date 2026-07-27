@@ -808,6 +808,13 @@ def delete_forum_post(post_id: int, actor: str) -> None:
             )
 
 
+def delete_forum_post_admin(post_id: int) -> None:
+    """Admin delete — no author check."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM forum_posts WHERE id = %s", (post_id,))
+
+
 def set_forum_post_status(post_id: int, status: str) -> None:
     with get_conn() as conn:
         with conn.cursor() as cur:

@@ -133,6 +133,39 @@ class _ChatScreenState extends State<ChatScreen> {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
+  Future<void> _confirmDelete(ChatSession session) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Delete chat?',
+            style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: Text('This conversation will be permanently deleted.',
+            style: GoogleFonts.inter(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+                style: GoogleFonts.inter(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete',
+                style: GoogleFonts.inter(
+                    color: const Color(0xFFE40101), fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await AgentService.deleteSession(session.id);
+    if (!mounted) return;
+    setState(() => _sessions.removeWhere((s) => s.id == session.id));
+    // If the open chat was the one deleted, start a fresh session.
+    if (session.id == widget.session.id) _newChat();
+  }
+
   @override
   void dispose() {
     _eventSub?.cancel();
@@ -643,6 +676,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 11, color: AppColors.textMuted,
                                 )),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete_outline_rounded,
+                                  size: 19, color: AppColors.textMuted),
+                              tooltip: 'Delete',
+                              onPressed: () => _confirmDelete(s),
+                            ),
                             onTap: () => _openSession(s),
                           ),
                         );

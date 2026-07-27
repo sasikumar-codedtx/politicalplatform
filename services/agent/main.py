@@ -26,6 +26,7 @@ from db import (
     add_forum_post,
     delete_forum_post,
     set_forum_post_status,
+    delete_forum_post_admin,
     toggle_forum_like,
     list_forum_comments,
     add_forum_comment,
@@ -752,9 +753,15 @@ def forum_posts_list(background_tasks: BackgroundTasks,
                      x_device_id: str | None = Header(default=None)):
     uid, device_id = _identity(authorization, x_device_id)
     actor = forum_actor(uid, device_id)
-    if not mine and _needs_official_sync(flavor_id or ""):
-        background_tasks.add_task(_sync_official_posts, flavor_id or "")
     items = list_forum_posts(flavor_id or "", actor, status, mine)
+    if not mine and _needs_official_sync(flavor_id or ""):
+        if not items:
+            # Fresh device / empty forum — pull the channel posts NOW so the
+            # first load isn't blank, then re-query.
+            _sync_official_posts(flavor_id or "")
+            items = list_forum_posts(flavor_id or "", actor, status, mine)
+        else:
+            background_tasks.add_task(_sync_official_posts, flavor_id or "")
     return {"posts": items, "count": len(items)}
 
 
@@ -921,6 +928,23 @@ def event_create(req: EventCreate, x_admin_key: str | None = Header(default=None
 def event_delete(event_id: int, x_admin_key: str | None = Header(default=None)):
     _require_admin(x_admin_key)
     delete_event(event_id)
+    return {"status": "ok"}
+
+
+# ── Forum (admin) ─────────────────────────────────────────────────────────────
+
+@app.get("/admin/forum")
+def admin_forum_list(flavor_id: str | None = None,
+                     x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    items = list_forum_posts(flavor_id or "", "", "", False)
+    return {"posts": items, "count": len(items)}
+
+
+@app.delete("/admin/forum/{post_id}")
+def admin_forum_delete(post_id: int, x_admin_key: str | None = Header(default=None)):
+    _require_admin(x_admin_key)
+    delete_forum_post_admin(post_id)
     return {"status": "ok"}
 
 

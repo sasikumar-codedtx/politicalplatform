@@ -1222,6 +1222,77 @@ function ComplaintsView() {
   )
 }
 
+function ForumView({ flavor }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const STATUSES = ['approved', 'pending', 'rejected']
+
+  const load = async () => {
+    setLoading(true)
+    try { const r = await fetch(`${API}/admin/forum?flavor_id=${flavor}`); setItems((await r.json()).posts || []) }
+    catch { setItems([]) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [flavor])
+
+  const setStatus = async (id, status) => {
+    try {
+      const r = await fetch(`${API}/forum/posts/${id}/status?status=${status}`, { method: 'POST' })
+      if (!r.ok) throw new Error('Update failed')
+      setToast({ ok: true, text: `Marked ${status}` }); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+  }
+  const remove = async (id) => {
+    if (!confirm('Delete this post?')) return
+    try {
+      const r = await fetch(`${API}/admin/forum/${id}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Delete failed')
+      setToast({ ok: true, text: 'Deleted' }); load()
+    } catch (e) { setToast({ ok: false, text: e.message }) }
+  }
+  const color = s => s === 'approved' ? t.success : s === 'rejected' ? t.danger : t.info
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {toast && <Toast msg={toast} />}
+      <Card>
+        <SectionHeader title="Community forum posts" />
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: t.muted, fontSize: 13 }}>No posts yet.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {items.map(it => (
+              <div key={it.id} className="hover-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${t.border}` }}>
+                {(it.has_media || it.media_url) && (
+                  <img src={it.has_media ? `${API}/forum/posts/${it.id}/media` : it.media_url}
+                    alt="" style={{ width: 46, height: 46, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.sidebar }}>
+                    {it.user_name}{it.is_official ? ' ✓' : ''}
+                  </div>
+                  <div style={{ fontSize: 11, color: t.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {it.media_type === 'video' ? '🎬 ' : ''}{it.text || '(media only)'}
+                  </div>
+                </div>
+                <Badge color={color(it.status)}>{it.status}</Badge>
+                <select value={it.status} onChange={e => setStatus(it.id, e.target.value)}
+                  style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${t.border}`, fontSize: 12 }}>
+                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <Button size="sm" variant="ghost" color={t.danger} onClick={() => remove(it.id)}>Delete</Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
 // ── Sidebar ──────────────────────────────────────────────────────────────
 const NAV = [
   { section: 'KNOWLEDGE BASE' },
@@ -1233,6 +1304,7 @@ const NAV = [
   { id: 'events', icon: '📅', label: 'Events' },
   { id: 'toolkit', icon: '🎨', label: 'Campaign Toolkit' },
   { id: 'complaints', icon: '📮', label: 'Complaints' },
+  { id: 'forum', icon: '💬', label: 'Forum' },
   { section: 'AVATAR' },
   { id: 'avatars', icon: '🧑', label: 'Avatars' },
   { section: 'PROMPT CONFIG' },
@@ -1351,6 +1423,7 @@ export default function App() {
           {page === 'events' && <CmsView flavor={flavor} kind="events" />}
           {page === 'toolkit' && <ToolkitCmsView flavor={flavor} />}
           {page === 'complaints' && <ComplaintsView />}
+          {page === 'forum' && <ForumView flavor={flavor} />}
         </main>
 
         {/* Floating Add Content button — only on the knowledge-base document pages */}

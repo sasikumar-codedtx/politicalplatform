@@ -2576,6 +2576,14 @@ class _EventCard extends StatelessWidget {
                     ? Image.network(
                         event.imageUrl!,
                         fit: BoxFit.cover,
+                        // Hold the bundled rally photo while the network image
+                        // loads so the card never flashes empty on a new device.
+                        loadingBuilder: (context, child, progress) =>
+                            progress == null
+                                ? child
+                                : Image.asset(imgPath, fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stack) =>
+                                        Container(color: const Color(0xFF8B1A1A))),
                         errorBuilder: (context, error, stackTrace) => Image.asset(
                           imgPath,
                           fit: BoxFit.cover,

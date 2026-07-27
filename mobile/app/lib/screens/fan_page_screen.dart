@@ -435,15 +435,22 @@ class _PostCardState extends State<_PostCard> {
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                post.mediaUrl!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, e, s) => Container(
-                  height: 200,
-                  color: AppColors.surfaceAlt,
-                  child: Icon(Icons.broken_image_outlined, color: AppColors.textMuted, size: 40),
+              // Fixed 16:9 box so every post image is the same size and the
+              // card keeps its height while the image loads (no scroll jump).
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  post.mediaUrl!,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) => progress == null
+                      ? child
+                      : Container(color: AppColors.surfaceAlt),
+                  errorBuilder: (context, e, s) => Container(
+                    color: AppColors.surfaceAlt,
+                    child: Icon(Icons.broken_image_outlined,
+                        color: AppColors.textMuted, size: 40),
+                  ),
                 ),
               ),
             ),

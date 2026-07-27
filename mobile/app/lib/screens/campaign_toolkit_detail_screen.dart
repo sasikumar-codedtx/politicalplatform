@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../config/app_colors.dart';
 import '../services/content_service.dart';
+import '../services/youtube_service.dart';
 import '../models/youtube_video.dart';
 import 'video_player_screen.dart';
 
@@ -331,12 +332,19 @@ class _PostersBodyState extends State<_PostersBody> {
         itemCount: items.length,
         itemBuilder: (context, i) {
           final url = items[i]['image_url'] as String? ?? '';
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (_, e, s) => Container(color: AppColors.surfaceAlt),
+          final gallery = [
+            for (final m in items)
+              _PosterImg(url: m['image_url'] as String? ?? ''),
+          ];
+          return GestureDetector(
+            onTap: () => _openGallery(context, gallery, i),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, e, s) => Container(color: AppColors.surfaceAlt),
+              ),
             ),
           );
         },
@@ -365,6 +373,10 @@ class _StaticPostersBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Combined gallery list (left column then right) so the fullscreen swipe
+    // can page through every poster.
+    final all = [..._leftItems, ..._rightItems];
+    final gallery = [for (final it in all) _PosterImg(asset: it.$1)];
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
       children: [
@@ -381,6 +393,8 @@ class _StaticPostersBody extends StatelessWidget {
                   child: _PosterCard(
                     asset: _leftItems[i].$1,
                     height: _leftItems[i].$2,
+                    gallery: gallery,
+                    galleryIndex: i,
                   ),
                 )),
               ),
@@ -396,6 +410,8 @@ class _StaticPostersBody extends StatelessWidget {
                   child: _PosterCard(
                     asset: _rightItems[i].$1,
                     height: _rightItems[i].$2,
+                    gallery: gallery,
+                    galleryIndex: _leftItems.length + i,
                   ),
                 )),
               ),
@@ -410,24 +426,147 @@ class _StaticPostersBody extends StatelessWidget {
 class _PosterCard extends StatelessWidget {
   final String asset;
   final double height;
-  const _PosterCard({required this.asset, required this.height});
+  final List<_PosterImg> gallery;
+  final int galleryIndex;
+  const _PosterCard({
+    required this.asset,
+    required this.height,
+    required this.gallery,
+    required this.galleryIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        height: height,
-        child: Image.asset(
-          asset,
-          fit: BoxFit.cover,
-          errorBuilder: (_, e, s) => Container(
-            color: AppColors.surfaceAlt,
+    return GestureDetector(
+      onTap: () => _openGallery(context, gallery, galleryIndex),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          height: height,
+          child: Image.asset(
+            asset,
+            fit: BoxFit.cover,
+            errorBuilder: (_, e, s) => Container(
+              color: AppColors.surfaceAlt,
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+// One gallery image — a network url OR a bundled asset.
+class _PosterImg {
+  final String? url;
+  final String? asset;
+  const _PosterImg({this.url, this.asset});
+}
+
+// Opens the posters full-screen as a swipeable gallery: swipe left → next,
+// swipe right → previous. Each page is zoomable.
+void _openGallery(BuildContext context, List<_PosterImg> images, int index) {
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => _PosterGallery(images: images, initialIndex: index),
+  ));
+}
+
+class _PosterGallery extends StatefulWidget {
+  final List<_PosterImg> images;
+  final int initialIndex;
+  const _PosterGallery({required this.images, required this.initialIndex});
+
+  @override
+  State<_PosterGallery> createState() => _PosterGalleryState();
+}
+
+class _PosterGalleryState extends State<_PosterGallery> {
+  late final PageController _pc = PageController(initialPage: widget.initialIndex);
+  late int _current = widget.initialIndex;
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pc,
+            itemCount: widget.images.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (context, i) {
+              final img = widget.images[i];
+              return InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Center(
+                  child: img.url != null
+                      ? Image.network(img.url!, fit: BoxFit.contain,
+                          errorBuilder: (_, e, s) => const Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.white38, size: 60))
+                      : Image.asset(img.asset!, fit: BoxFit.contain),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+          if (widget.images.length > 1)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+              left: 0, right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text('${_current + 1} / ${widget.images.length}',
+                      style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white, fontSize: 13)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Copies text to the clipboard and confirms — works on mobile and desktop/Mac
+// (the copy itself always worked; there was just no feedback).
+void _copy(BuildContext context, String text) {
+  Clipboard.setData(ClipboardData(text: text));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Copied to clipboard', style: GoogleFonts.plusJakartaSans()),
+      backgroundColor: const Color(0xFF1A1A1A),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 1),
+    ),
+  );
 }
 
 // ─── MEDIA BODY — Audios list + Videos list ───────────────────────────────────
@@ -446,9 +585,25 @@ class _MediaBodyState extends State<_MediaBody> {
   @override
   void initState() {
     super.initState();
-    ContentService.getToolkit('Media').then((v) {
-      if (mounted) setState(() => _items = v);
-    });
+    _load();
+  }
+
+  // Merge admin-published media (first) with the channel's real YouTube videos,
+  // so new items added in admin AND new uploads both appear and play.
+  Future<void> _load() async {
+    final results = await Future.wait([
+      ContentService.getToolkit('Media'),
+      YouTubeService.getVideos(count: 20),
+    ]);
+    final admin = results[0] as List<Map<String, dynamic>>;
+    final videos = results[1] as List<YouTubeVideo>;
+    final yt = videos.map((v) => {
+      'title': v.title,
+      'image_url': v.thumbnailUrl,
+      'subtitle': v.channelTitle,
+      'link_url': v.videoId,
+    }).toList();
+    if (mounted) setState(() => _items = [...admin, ...yt]);
   }
 
   void _openLink(Map<String, dynamic> item) {
@@ -789,7 +944,7 @@ class _SloganRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           GestureDetector(
-            onTap: () => Clipboard.setData(ClipboardData(text: text)),
+            onTap: () => _copy(context, text),
             child: Icon(Icons.copy_rounded,
                 size: 20, color: AppColors.textMuted),
           ),
@@ -841,7 +996,7 @@ class _HashtagBlock extends StatelessWidget {
       children: [
         // Red "Copy" tab — top-left, rounded top corners
         GestureDetector(
-          onTap: () => Clipboard.setData(ClipboardData(text: text)),
+          onTap: () => _copy(context, text),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
             decoration: const BoxDecoration(

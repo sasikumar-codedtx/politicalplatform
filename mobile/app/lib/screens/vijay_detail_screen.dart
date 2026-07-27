@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../widgets/sticky_header.dart';
 
 class VijayDetailScreen extends StatefulWidget {
   const VijayDetailScreen({super.key});
@@ -35,46 +36,33 @@ class _VijayDetailScreenState extends State<VijayDetailScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.bg,
-        body: Column(
-          children: [
-            // ── Hero section ─────────────────────────────────────────────────
-            _VijayHeroSection(topPad: topPad),
-
-            // ── Tab bar ───────────────────────────────────────────────────────
-            Container(
-              color: AppColors.surface,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: AppColors.textPrimary,
-                unselectedLabelColor: AppColors.textMuted,
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+        // Sticky: the hero scrolls away, the tab bar pins to the top, and each
+        // tab's content scrolls beneath it (shared toolkit / forum pattern).
+        body: NestedScrollView(
+          headerSliverBuilder: (context, _) => [
+            SliverToBoxAdapter(child: _VijayHeroSection(topPad: topPad)),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: PinnedTabBar(
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.textPrimary,
+                  unselectedLabelColor: AppColors.textMuted,
+                  labelStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 14, fontWeight: FontWeight.w700),
+                  unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 14, fontWeight: FontWeight.w400),
+                  indicatorColor: const Color(0xFFE40101),
+                  indicatorWeight: 2.5,
+                  tabs: const [Tab(text: 'About'), Tab(text: 'Achievements')],
                 ),
-                unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
-                indicatorColor: const Color(0xFFE40101),
-                indicatorWeight: 2.5,
-                tabs: const [
-                  Tab(text: 'About'),
-                  Tab(text: 'Achievements'),
-                ],
-              ),
-            ),
-
-            // ── Tab content ───────────────────────────────────────────────────
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: const [
-                  _AboutTab(),
-                  _AchievementsTab(),
-                ],
               ),
             ),
           ],
+          body: TabBarView(
+            controller: _tabController,
+            children: const [_AboutTab(), _AchievementsTab()],
+          ),
         ),
       ),
     );
@@ -270,11 +258,9 @@ class _AboutTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      children: [
           // Info table
           _InfoCard(rows: const [
             _InfoRow(label: 'Full Name',   value: 'Joseph Vijay Chandrasekhar'),
@@ -315,8 +301,7 @@ class _AboutTab extends StatelessWidget {
                 'a major political force, fielding 234 candidates across all Tamil '
                 'Nadu constituencies for the 2026 assembly elections.',
           ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -328,11 +313,9 @@ class _AchievementsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      children: [
           // Cinema section
           _AchievementSection(
             imagePath: 'assets/images/campaign1.png',
@@ -400,8 +383,7 @@ class _AchievementsTab extends StatelessWidget {
               description: 'TVK fielded candidates in all 234 Tamil Nadu assembly constituencies, marking a full-scale entry into state politics.',
             ),
           ]),
-        ],
-      ),
+      ],
     );
   }
 }
