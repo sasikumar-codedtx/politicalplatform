@@ -23,14 +23,29 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   // 0=Home 1=Forum  [2=VoiceChat action]  3=News 4=MyTVK
   int _selectedIndex = 0;
   StreamSubscription<User?>? _authSub;
 
+  // Hide the top status bar (clock/wifi/battery/sim/notifications) while inside
+  // the app; keep the bottom nav gestures.
+  void _hideStatusBar() {
+    SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-hide after resume (some OS transitions restore the bars).
+    if (state == AppLifecycleState.resumed) _hideStatusBar();
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _hideStatusBar();
     ProfileService.load(); // so the My TVK icon shows the saved photo on launch
     // On logout, leave the (gated) profile tab and return to Home.
     _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
@@ -42,6 +57,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authSub?.cancel();
     super.dispose();
   }

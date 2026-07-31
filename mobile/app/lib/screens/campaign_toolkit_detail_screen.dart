@@ -29,7 +29,7 @@ class CampaignToolkitDetailScreen extends StatefulWidget {
 
 class _CampaignToolkitDetailScreenState
     extends State<CampaignToolkitDetailScreen> {
-  int _mediaTab = 0; // 0=Audios 1=Videos
+  String _query = '';
 
   @override
   Widget build(BuildContext context) {
@@ -44,8 +44,7 @@ class _CampaignToolkitDetailScreenState
             _Header(
               topPad: topPad,
               type: widget.type,
-              mediaTab: _mediaTab,
-              onMediaTabChanged: (v) => setState(() => _mediaTab = v),
+              onSearchChanged: (q) => setState(() => _query = q.trim()),
             ),
             Expanded(child: _buildBody()),
           ],
@@ -57,11 +56,11 @@ class _CampaignToolkitDetailScreenState
   Widget _buildBody() {
     switch (widget.type) {
       case 'Media':
-        return _MediaBody(tab: _mediaTab);
+        return _MediaBody(query: _query);
       case 'Slogans':
-        return _SlogansBody();
+        return const _SlogansBody();
       case 'Hashtags':
-        return _HashtagsBody();
+        return const _HashtagsBody();
       default:
         return const _PostersBody();
     }
@@ -73,14 +72,12 @@ class _CampaignToolkitDetailScreenState
 class _Header extends StatelessWidget {
   final double topPad;
   final String type;
-  final int mediaTab;
-  final ValueChanged<int> onMediaTabChanged;
+  final ValueChanged<String> onSearchChanged;
 
   const _Header({
     required this.topPad,
     required this.type,
-    required this.mediaTab,
-    required this.onMediaTabChanged,
+    required this.onSearchChanged,
   });
 
   String get _subtitle {
@@ -97,7 +94,7 @@ class _Header extends StatelessWidget {
     final headerH = topPad + 216.0;
 
     return Container(
-      color: AppColors.surface,
+      color: AppColors.bg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -192,104 +189,60 @@ class _Header extends StatelessWidget {
             ),
           ),
 
-          // ── Search bar ───────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x29000000),
-                    blurRadius: 1.5,
-                    offset: Offset.zero,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  Icon(Icons.search_rounded,
-                      size: 20, color: AppColors.textMuted),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Search',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Tab row (Media only) ─────────────────────────────────────────
-          if (type == 'Media') ...[
-            const SizedBox(height: 8),
+          // ── Search bar — Media only ──────────────────────────────────────
+          if (type == 'Media')
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Container(
-                height: 42,
-                padding: const EdgeInsets.all(4),
+                height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFDEDEDE), width: 2),
                 ),
                 child: Row(
                   children: [
-                    _MediaTabBtn(
-                      label: 'Audios', active: mediaTab == 0,
-                      onTap: () => onMediaTabChanged(0),
+                    const SizedBox(width: 16),
+                    Icon(Icons.search_rounded,
+                        size: 20, color: AppColors.textMuted),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        onChanged: onSearchChanged,
+                        textAlignVertical: TextAlignVertical.center,
+                        cursorColor: const Color(0xFFE40101),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          // Null every border state — otherwise the app theme's
+                          // red focusedBorder draws a box inside this one.
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          filled: false,
+                          hintText: 'Search',
+                          hintStyle: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
                     ),
-                    _MediaTabBtn(
-                      label: 'Videos', active: mediaTab == 1,
-                      onTap: () => onMediaTabChanged(1),
-                    ),
+                    const SizedBox(width: 12),
                   ],
                 ),
               ),
             ),
-          ],
 
           const SizedBox(height: 12),
         ],
-      ),
-    );
-  }
-}
-
-class _MediaTabBtn extends StatelessWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _MediaTabBtn(
-      {required this.label, required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: active ? const Color(0xFFE40101) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-              color: active ? Colors.white : AppColors.textPrimary,
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -572,8 +525,8 @@ void _copy(BuildContext context, String text) {
 // ─── MEDIA BODY — Audios list + Videos list ───────────────────────────────────
 
 class _MediaBody extends StatefulWidget {
-  final int tab;
-  const _MediaBody({required this.tab});
+  final String query;
+  const _MediaBody({this.query = ''});
 
   @override
   State<_MediaBody> createState() => _MediaBodyState();
@@ -627,7 +580,14 @@ class _MediaBodyState extends State<_MediaBody> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _items;
+    final q = widget.query.toLowerCase();
+    final items = q.isEmpty
+        ? _items
+        : _items
+            ?.where((m) =>
+                (m['title'] as String? ?? '').toLowerCase().contains(q) ||
+                (m['subtitle'] as String? ?? '').toLowerCase().contains(q))
+            .toList();
     if (items != null && items.isNotEmpty) {
       return ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
@@ -689,189 +649,18 @@ class _MediaBodyState extends State<_MediaBody> {
         },
       );
     }
-    return _StaticMediaBody(tab: widget.tab);
-  }
-}
-
-class _StaticMediaBody extends StatelessWidget {
-  final int tab;
-  const _StaticMediaBody({required this.tab});
-
-  static const _audioItems = [
-    ('Unga Vijay maanadu song',    '1.6M views', '8 months ago', 'assets/images/campaign1.png'),
-    ('TVK Election Campaign Song', '11M views',  '1 month ago',  'assets/images/campaign2.png'),
-    ('TVK : Flag Anthem',          '15M views',  '1 year ago',   'assets/images/campaign_2.png'),
-    ('TVK : Ideology Song',        '5.7M views', '1 year ago',   'assets/images/campaign1.png'),
-  ];
-
-  static const _videoItems = [
-    ('2nd State Conference of TVK', 'TVK Official', 'assets/images/campaign1.png'),
-    ('TVK Election Campaign Film',  'TVK Official', 'assets/images/campaign2.png'),
-    ('Vijay Maanadu 2025 Highlights','TVK Official', 'assets/images/campaign_2.png'),
-    ('TVK Ideology Launch',         'TVK Official', 'assets/images/campaign1.png'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    if (tab == 0) {
-      // Audios tab — list view with thumbnail + title + meta
-      return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        itemCount: _audioItems.length,
-        separatorBuilder: (context, i) => const SizedBox(height: 16),
-        itemBuilder: (context, i) {
-          final item = _audioItems[i];
-          return Row(
-            children: [
-              // Thumbnail with play button overlay
-              Container(
-                width: 60, height: 47,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  color: Colors.black12,
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(item.$4, fit: BoxFit.cover,
-                        errorBuilder: (_, e, s) =>
-                            Container(color: AppColors.surfaceAlt)),
-                    Center(
-                      child: Container(
-                        width: 20, height: 20,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE40101),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.play_arrow_rounded,
-                            color: Colors.white, size: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Title + meta
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.$1,
-                      // Figma: Manrope Medium 14px
-                      style: GoogleFonts.manrope(
-                        fontSize: 14, fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Text(item.$2,
-                            style: GoogleFonts.manrope(
-                                fontSize: 12, fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary)),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 4, height: 4,
-                          decoration: BoxDecoration(
-                            color: AppColors.textSecondary,
-                            shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(item.$3,
-                            style: GoogleFonts.manrope(
-                                fontSize: 12, fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.more_vert_rounded,
-                  size: 20, color: AppColors.textMuted),
-            ],
-          );
-        },
-      );
-    } else {
-      // Videos tab — full-width 180px video cards
-      return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        itemCount: _videoItems.length,
-        separatorBuilder: (context, i) => const SizedBox(height: 16),
-        itemBuilder: (context, i) {
-          final item = _videoItems[i];
-          return _VideoCard(title: item.$1, channel: item.$2, asset: item.$3);
-        },
+    // Still loading (nothing fetched yet).
+    if (_items == null) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFE40101), strokeWidth: 2),
       );
     }
-  }
-}
-
-class _VideoCard extends StatelessWidget {
-  final String title;
-  final String channel;
-  final String asset;
-  const _VideoCard(
-      {required this.title, required this.channel, required this.asset});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        height: 180,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(asset, fit: BoxFit.cover,
-                errorBuilder: (_, e, s) => Container(color: AppColors.surfaceAlt)),
-            // Bottom gradient
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              height: 180,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black, Colors.transparent],
-                    stops: [0.0, 0.85],
-                  ),
-                ),
-              ),
-            ),
-            // Play button
-            Center(
-              child: Container(
-                width: 42, height: 42,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE40101),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 24),
-              ),
-            ),
-            // Title bottom-left (Figma: Plus Jakarta Sans Regular 16px, bottom ~26px)
-            Positioned(
-              left: 16, right: 16, bottom: 20,
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16, color: Colors.white,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    // Loaded but empty (or search matched nothing) — show a message, never the
+    // built-in static list.
+    return Center(
+      child: Text(q.isNotEmpty ? 'No results found' : 'No media found',
+          style: GoogleFonts.plusJakartaSans(
+              fontSize: 14, color: AppColors.textMuted)),
     );
   }
 }
@@ -879,6 +668,8 @@ class _VideoCard extends StatelessWidget {
 // ─── SLOGANS BODY ─────────────────────────────────────────────────────────────
 
 class _SlogansBody extends StatelessWidget {
+  const _SlogansBody();
+
   static const _slogans = [
     'பிறப்பொக்கும் எல்லா உயிர்க்கும்!',
     'என் நெஞ்சில் குடியிருக்கும்!',
@@ -957,6 +748,8 @@ class _SloganRow extends StatelessWidget {
 // ─── HASHTAGS BODY ────────────────────────────────────────────────────────────
 
 class _HashtagsBody extends StatelessWidget {
+  const _HashtagsBody();
+
   static const _hashtagGroups = [
     '#tvkvijay #thalapathy #thalapathyvijay #tvk #vijay #thalapathytrends #thalapathyfans #mersal #thalapathyforever #tamilactress #tamilbgm #vijayofficial #vijayofficialfans #thuppakki #tamilcinema #tamilsong #jilla #vijayismforever #vijayofficialkerela #thalapathyupdates #actorvijay #kaththi #trending #vijayfans #vijayanna #vijayforever #thalapathi #thalapathyblood #vijaymakkaliyakkam #reels',
     '#thalapathyveriyan #vijayism #tamilstatus #vijayfansclub #dhanush #leodas #goat #tamillyrics #cookwithcomali #thegreatestofalltime #instagramreels #arjundas #likeforlikes #tamilagavettrikazhagam #memes #chennaifoodie #vediomemes #mokkajokes #vijayfansmedia #tamilsongslyrics #viralmemes #bigboss #vijaythalapathy #tamillovesongs #tamilnadu',

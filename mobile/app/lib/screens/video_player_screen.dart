@@ -39,7 +39,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
     }
   }
 
