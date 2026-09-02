@@ -1,0 +1,10 @@
+{
+  "video_player.live": { "en": "LIVE", "ta": "நேரலை" },
+  "video_player.now_playing": { "en": "Now Playing", "ta": "இப்போது இயங்குகிறது" },
+  "video_player.liked": { "en": "Liked", "ta": "விருப்பப்பட்டது" },
+  "video_player.like": { "en": "Like", "ta": "விருப்பம்" },
+  "video_player.share": { "en": "Share", "ta": "பகிர்" },
+  "video_player.youtube": { "en": "YouTube", "ta": "யூடியூப்" },
+  "video_player.playback_restricted": { "en": "Playback restricted on this app", "ta": "இந்த செயலியில் இயக்கம் தடைசெய்யப்பட்டுள்ளது" },
+  "video_player.watch_on_youtube": { "en": "Watch on YouTube", "ta": "யூடியூபில் காணவும்" }
+}

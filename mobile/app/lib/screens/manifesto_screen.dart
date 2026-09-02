@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/manifesto_plan.dart';
 import '../viewmodels/manifesto_viewmodel.dart';
 import 'manifesto_detail_screen.dart';
@@ -27,7 +28,11 @@ class _ManifestoView extends StatefulWidget {
 
 class _ManifestoViewState extends State<_ManifestoView> {
   int _tab = 0;
-  static const _tabs = ['5-Year Plans', 'Visions', 'Goals & Achievements'];
+  List<String> get _tabs => [
+        t('manifesto.tab_five_year_plans'),
+        t('manifesto.tab_visions'),
+        t('manifesto.tab_goals_achievements'),
+      ];
   static const _years = ['2026', '2027', '2028', '2029', '2030'];
 
   @override
@@ -195,7 +200,7 @@ class _Header extends StatelessWidget {
                     colors: [Color(0xFFE40101), Color(0xFF7E0101)],
                   ).createShader(bounds),
                   child: Text(
-                    "TVK's MANIFESTO",
+                    t('manifesto.header_title'),
                     style: GoogleFonts.bebasNeue(
                       fontSize: 34,
                       color: Colors.white,
@@ -205,7 +210,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Our plans, goals & achievements for Tamil Nadu',
+                  t('manifesto.header_subtitle'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     color: Colors.white,
@@ -388,9 +393,9 @@ class _PlanCard extends StatelessWidget {
           // Timeline + Budget chips
           Row(
             children: [
-              Flexible(child: _InfoChip(label: 'Timeline', value: plan.timeline)),
+              Flexible(child: _InfoChip(label: t('manifesto.info_timeline'), value: plan.timeline)),
               const SizedBox(width: 16),
-              Expanded(child: _InfoChip(label: 'Budget', value: plan.budget, expand: true)),
+              Expanded(child: _InfoChip(label: t('manifesto.info_budget'), value: plan.budget, expand: true)),
             ],
           ),
           const SizedBox(height: 12),
@@ -408,7 +413,7 @@ class _PlanCard extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                'See Details',
+                t('manifesto.see_details'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -466,25 +471,29 @@ class _VisionsTab extends StatefulWidget {
 class _VisionsTabState extends State<_VisionsTab> {
   int _selected = 0;
 
-  static const _menuItems = ['Our policies', 'Our Purpose', 'Our basic principle'];
+  List<String> get _menuItems => [
+        t('manifesto.menu_our_policies'),
+        t('manifesto.menu_our_purpose'),
+        t('manifesto.menu_basic_principle'),
+      ];
 
-  static const _content = [
-    [
-      _VisionItem('Social justice', 'We promote social justice principles to ensure equality for all social groups and to create equal opportunities for all without discrimination.'),
-      _VisionItem('Technological development', 'We want to use modern technologies in public welfare work, simplify political processes, and improve public service.'),
-      _VisionItem('Opportunity for the younger generation', 'We promote social justice principles to ensure equality for all social groups and to create equal opportunities for all without discrimination.'),
-    ],
-    [
-      _VisionItem('Inclusive governance', 'TVK believes every Tamil deserves a voice in decisions that affect their lives. Our governance model ensures participatory democracy at the grassroots.'),
-      _VisionItem('Transparent administration', 'We will digitize public services and make government spending publicly visible so every citizen can track how funds are used.'),
-      _VisionItem('People-first policies', 'Every policy decision will be measured by its impact on the most vulnerable — farmers, women, youth, and daily wage workers.'),
-    ],
-    [
-      _VisionItem('Democratic values', 'TVK stands firmly for constitutional democracy, federalism, and the rights guaranteed under the Indian Constitution to every citizen.'),
-      _VisionItem('Tamil identity & culture', 'We will protect and promote Tamil language, arts, and heritage as a core pillar of our governance and cultural policy.'),
-      _VisionItem('Non-violence & peace', 'TVK promotes non-violent political engagement and dialogue as the foundation of all party activities and public interactions.'),
-    ],
-  ];
+  List<List<_VisionItem>> get _content => [
+        [
+          _VisionItem(t('manifesto.vision_social_justice_title'), t('manifesto.vision_social_justice_desc')),
+          _VisionItem(t('manifesto.vision_tech_development_title'), t('manifesto.vision_tech_development_desc')),
+          _VisionItem(t('manifesto.vision_youth_opportunity_title'), t('manifesto.vision_youth_opportunity_desc')),
+        ],
+        [
+          _VisionItem(t('manifesto.vision_inclusive_governance_title'), t('manifesto.vision_inclusive_governance_desc')),
+          _VisionItem(t('manifesto.vision_transparent_admin_title'), t('manifesto.vision_transparent_admin_desc')),
+          _VisionItem(t('manifesto.vision_people_first_title'), t('manifesto.vision_people_first_desc')),
+        ],
+        [
+          _VisionItem(t('manifesto.vision_democratic_values_title'), t('manifesto.vision_democratic_values_desc')),
+          _VisionItem(t('manifesto.vision_tamil_identity_title'), t('manifesto.vision_tamil_identity_desc')),
+          _VisionItem(t('manifesto.vision_non_violence_title'), t('manifesto.vision_non_violence_desc')),
+        ],
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -616,10 +625,10 @@ class _VisionItem {
 class _GoalsTab extends StatelessWidget {
   const _GoalsTab();
 
-  static const _achievements = [
-    _AchievementData('Health Camps Across Tamil Nadu', 'Health', 'Completed: Feb 2025', 'assets/images/event_1.png'),
-    _AchievementData('Solar Panels for Rural Schools', 'Education', 'Completed: Apr 2025', 'assets/images/event_2.png'),
-  ];
+  List<_AchievementData> get _achievements => [
+        _AchievementData(t('manifesto.achievement_health_camps_title'), t('manifesto.achievement_health_category'), t('manifesto.achievement_health_camps_subtitle'), 'assets/images/event_1.png'),
+        _AchievementData(t('manifesto.achievement_solar_panels_title'), t('manifesto.achievement_education_category'), t('manifesto.achievement_solar_panels_subtitle'), 'assets/images/event_2.png'),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -627,7 +636,7 @@ class _GoalsTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Ongoing Goal ────────────────────────────────────────
-        Text('Ongoing Goal',
+        Text(t('manifesto.ongoing_goal'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
             color: AppColors.textPrimary, height: 1.3,
@@ -670,14 +679,14 @@ class _GoalsTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Solar Classroom Initiative',
+                        Text(t('manifesto.goal_solar_title'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14, fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary, letterSpacing: 0.2,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text('Installed solar-powered classrooms in 100 schools, improving digital access for 50,000 students',
+                        Text(t('manifesto.goal_solar_desc'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12, color: AppColors.textSecondary,
                             height: 1.5,
@@ -696,11 +705,11 @@ class _GoalsTab extends StatelessWidget {
                 children: [
                   _GoalChip(
                     icon: Icons.access_time_rounded,
-                    label: 'Jan 2026 – Sep 2026',
+                    label: t('manifesto.goal_timeline'),
                   ),
                   _GoalChip(
                     icon: Icons.currency_rupee_rounded,
-                    label: '50 Crore',
+                    label: t('manifesto.goal_budget'),
                   ),
                 ],
               ),
@@ -712,7 +721,7 @@ class _GoalsTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 alignment: Alignment.center,
-                child: Text('See Details',
+                child: Text(t('manifesto.see_details'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white,
                   ),
@@ -723,7 +732,7 @@ class _GoalsTab extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         // ── Achievements ───────────────────────────────────────
-        Text('Achievements',
+        Text(t('manifesto.achievements'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
             color: AppColors.textPrimary, height: 1.3,

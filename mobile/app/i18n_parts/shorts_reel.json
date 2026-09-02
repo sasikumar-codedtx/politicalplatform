@@ -1,0 +1,10 @@
+{
+  "shorts_reel.subscribe": { "en": "Subscribe", "ta": "பதிவு செய்" },
+  "shorts_reel.liked": { "en": "Liked", "ta": "விருப்பம்" },
+  "shorts_reel.like": { "en": "Like", "ta": "விருப்பம்" },
+  "shorts_reel.share": { "en": "Share", "ta": "பகிர்" },
+  "shorts_reel.youtube": { "en": "YouTube", "ta": "யூடியூப்" },
+  "shorts_reel.playback_restricted": { "en": "Playback restricted", "ta": "காணொளி இயக்கம் தடைசெய்யப்பட்டுள்ளது" },
+  "shorts_reel.youtube_only": { "en": "This video can only be played on YouTube", "ta": "இந்த காணொளியை யூடியூபில் மட்டுமே இயக்க முடியும்" },
+  "shorts_reel.watch_on_youtube": { "en": "Watch on YouTube", "ta": "யூடியூபில் பார்க்க" }
+}

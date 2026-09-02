@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/event.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -77,13 +78,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           children: [
                             _InfoCard(
                               icon: Icons.calendar_today_outlined,
-                              label: 'Date',
+                              label: t('event_detail.date'),
                               value: '${_weekday(event.date)}, ${_month(event.date)} ${_day(event.date)}',
                             ),
                             const SizedBox(width: 12),
                             _InfoCard(
                               icon: Icons.access_time_rounded,
-                              label: 'Time',
+                              label: t('event_detail.time'),
                               value: event.time,
                             ),
                           ],
@@ -109,7 +110,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Location', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
+                                    Text(t('event_detail.location'), style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
                                     const SizedBox(height: 2),
                                     Text(
                                       event.location,
@@ -127,14 +128,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   color: AppColors.surfaceAlt,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text('View Map', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textPrimary)),
+                                child: Text(t('event_detail.view_map'), style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textPrimary)),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 20),
                         // About
-                        Text('About This Event', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                        Text(t('event_detail.about_this_event'), style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                         const SizedBox(height: 10),
                         Text(
                           event.description,
@@ -142,19 +143,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'All TVK members and supporters are encouraged to attend. This is an important gathering to discuss key issues affecting our constituency and to strengthen party organisation at the district level.',
+                          t('event_detail.attendance_note'),
                           style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textSecondary, height: 1.7),
                         ),
                         const SizedBox(height: 20),
                         // What to expect
-                        Text('What to Expect', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                        Text(t('event_detail.what_to_expect'), style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                         const SizedBox(height: 12),
                         ...[
-                          'Opening address by district president',
-                          'Policy discussions and updates',
-                          'Q&A session with party leaders',
-                          'Networking with fellow members',
-                          'Cultural programme',
+                          t('event_detail.expect_opening_address'),
+                          t('event_detail.expect_policy_discussions'),
+                          t('event_detail.expect_qa_session'),
+                          t('event_detail.expect_networking'),
+                          t('event_detail.expect_cultural_programme'),
                         ].map((item) => Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Row(
@@ -189,7 +190,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             children: [
                               Icon(Icons.people_outline_rounded, color: AppColors.textPrimary, size: 20),
                               const SizedBox(width: 10),
-                              Text('342 people are attending', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary)),
+                              Text(t('event_detail.people_attending'), style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary)),
                               const Spacer(),
                               Icon(Icons.ios_share_rounded, color: AppColors.textSecondary, size: 18),
                             ],
@@ -226,7 +227,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     Icon(_rsvped ? Icons.check_circle_outline_rounded : Icons.how_to_vote_outlined, color: _rsvped ? const Color(0xFFE40101) : Colors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      _rsvped ? 'You\'re Attending' : 'RSVP — I\'ll Attend',
+                      _rsvped ? t('event_detail.attending') : t('event_detail.rsvp_attend'),
                       style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: _rsvped ? const Color(0xFFE40101) : Colors.white),
                     ),
                   ],

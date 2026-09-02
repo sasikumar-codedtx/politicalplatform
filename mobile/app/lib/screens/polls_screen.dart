@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/agent_service.dart';
 import 'create_poll_screen.dart';
 import 'complaints_screen.dart';
+import '../widgets/login_gate.dart';
 
 class PollsScreen extends StatefulWidget {
   final int initialTab; // 0=Polls, 1=Complaints, 2=Donation
@@ -73,12 +75,14 @@ class _PollsScreenState extends State<PollsScreen> {
     } else {
       setState(() => _submitted.remove(pollId));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not submit your vote. Please try again.')),
+        SnackBar(content: Text(t('polls.vote_failed'))),
       );
     }
   }
 
   Future<void> _createPoll() async {
+    if (!await requireLogin(context, message: t('polls.login_to_create'))) return;
+    if (!mounted) return;
     final created = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const CreatePollScreen()),
@@ -95,7 +99,7 @@ class _PollsScreenState extends State<PollsScreen> {
       body: Column(
         children: [
           // ── App Bar ──────────────────────────────────────────────
-          _AppBar(topPad: topPad, title: 'Take Action'),
+          _AppBar(topPad: topPad, title: t('polls.title')),
           // ── Scrollable content ───────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
@@ -108,11 +112,11 @@ class _PollsScreenState extends State<PollsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _FilterChip(label: 'Polls', active: _tab == 0, onTap: () => setState(() => _tab = 0)),
+                        _FilterChip(label: t('polls.tab_polls'), active: _tab == 0, onTap: () => setState(() => _tab = 0)),
                         const SizedBox(width: 8),
-                        _FilterChip(label: 'Complaints', active: _tab == 1, onTap: () => setState(() => _tab = 1)),
+                        _FilterChip(label: t('polls.tab_complaints'), active: _tab == 1, onTap: () => setState(() => _tab = 1)),
                         const SizedBox(width: 8),
-                        _FilterChip(label: 'Donation', active: _tab == 2, onTap: () => setState(() => _tab = 2)),
+                        _FilterChip(label: t('polls.tab_donation'), active: _tab == 2, onTap: () => setState(() => _tab = 2)),
                       ],
                     ),
                   ),
@@ -126,7 +130,7 @@ class _PollsScreenState extends State<PollsScreen> {
                         child: Center(child: CircularProgressIndicator(color: Color(0xFF9F1D1F))),
                       )
                     else if (_polls.isEmpty)
-                      _InfoCard(text: 'No polls yet. Create the first one!')
+                      _InfoCard(text: t('polls.empty_polls'))
                     else
                       ...List.generate(_polls.length, (i) {
                         final p = _polls[i];
@@ -156,7 +160,7 @@ class _PollsScreenState extends State<PollsScreen> {
                         child: Center(child: CircularProgressIndicator(color: Color(0xFF9F1D1F))),
                       )
                     else if (_complaints.isEmpty)
-                      _InfoCard(text: 'No complaints yet.')
+                      _InfoCard(text: t('polls.empty_complaints'))
                     else
                       ...List.generate(_complaints.length, (i) {
                         final c = _complaints[i];
@@ -209,7 +213,7 @@ class _CreateComplaintButton extends StatelessWidget {
           children: [
             const Icon(Icons.add_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 8),
-            Text('Register Complaint',
+            Text(t('polls.register_complaint'),
                 style: GoogleFonts.plusJakartaSans(
                   color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
           ],
@@ -316,7 +320,7 @@ class _CreatePollButton extends StatelessWidget {
           children: [
             const Icon(Icons.add_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 8),
-            Text('Create New Poll',
+            Text(t('polls.create_new_poll'),
                 style: GoogleFonts.plusJakartaSans(
                     fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
           ],
@@ -354,7 +358,7 @@ class _DonationComingSoon extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Welfare Contribution',
+            t('polls.welfare_contribution'),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -363,7 +367,7 @@ class _DonationComingSoon extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Contribute an amount towards TVK welfare initiatives. Secure payments are coming soon.',
+            t('polls.welfare_description'),
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
@@ -379,7 +383,7 @@ class _DonationComingSoon extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              'Coming soon',
+              t('polls.coming_soon'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -561,7 +565,7 @@ class _PollCard extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                submitted ? 'Voted' : 'Submit',
+                submitted ? t('polls.voted') : t('polls.submit'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -582,10 +586,10 @@ class _PollCard extends StatelessWidget {
                   text: TextSpan(
                     style: GoogleFonts.plusJakartaSans(fontSize: 14),
                     children: [
-                      TextSpan(text: '$responses responses ', style: TextStyle(color: AppColors.textPrimary)),
+                      TextSpan(text: '$responses ${t('polls.responses')} ', style: TextStyle(color: AppColors.textPrimary)),
                       TextSpan(text: '| ', style: TextStyle(color: AppColors.textMuted)),
                       TextSpan(
-                        text: daysLeft > 0 ? ' $daysLeft Days left' : ' Closed',
+                        text: daysLeft > 0 ? ' $daysLeft ${t('polls.days_left')}' : ' ${t('polls.closed')}',
                         style: const TextStyle(color: Color(0xFFDD2D2D)),
                       ),
                     ],
@@ -605,7 +609,7 @@ class _PollCard extends StatelessWidget {
                     const Icon(Icons.verified_rounded, size: 12, color: Colors.white),
                     const SizedBox(width: 4),
                     Text(
-                      'Get TVK Badge',
+                      t('polls.get_tvk_badge'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

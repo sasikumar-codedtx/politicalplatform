@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import 'policy_leaders_screen.dart';
 
 class PolicyLeaderDetailScreen extends StatelessWidget {
@@ -236,7 +237,7 @@ class _DetailBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Biography',
+                t('policy_leader_detail.biography'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

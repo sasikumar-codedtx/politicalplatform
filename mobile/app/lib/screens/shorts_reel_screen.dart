@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../config/app_strings.dart';
 import '../models/youtube_video.dart';
 import '../services/video_like_service.dart';
 
@@ -321,7 +322,7 @@ class _ReelPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'Subscribe',
+                        t('shorts_reel.subscribe'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -357,14 +358,14 @@ class _ReelPage extends StatelessWidget {
                   icon: liked
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
-                  label: liked ? 'Liked' : 'Like',
+                  label: liked ? t('shorts_reel.liked') : t('shorts_reel.like'),
                   color: liked ? const Color(0xFFE40101) : Colors.white,
                   onTap: onLike ?? () {},
                 ),
                 const SizedBox(height: 24),
                 _ActionBtn(
                   icon: Icons.ios_share_rounded,
-                  label: 'Share',
+                  label: t('shorts_reel.share'),
                   color: Colors.white,
                   onTap: () {},
                 ),
@@ -372,7 +373,7 @@ class _ReelPage extends StatelessWidget {
                   const SizedBox(height: 24),
                   _ActionBtn(
                     icon: Icons.open_in_new_rounded,
-                    label: 'YouTube',
+                    label: t('shorts_reel.youtube'),
                     color: Colors.white70,
                     onTap: onOpenYouTube ?? () {},
                   ),
@@ -443,7 +444,7 @@ class _ErrorOverlay extends StatelessWidget {
                 size: 44, color: Colors.white54),
             const SizedBox(height: 10),
             Text(
-              'Playback restricted',
+              t('shorts_reel.playback_restricted'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: Colors.white70,
@@ -452,7 +453,7 @@ class _ErrorOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'This video can only be played on YouTube',
+              t('shorts_reel.youtube_only'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 color: Colors.white38,
@@ -475,7 +476,7 @@ class _ErrorOverlay extends StatelessWidget {
                         color: Colors.white, size: 15),
                     const SizedBox(width: 8),
                     Text(
-                      'Watch on YouTube',
+                      t('shorts_reel.watch_on_youtube'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,

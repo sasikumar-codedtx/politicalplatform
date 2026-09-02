@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/agent_service.dart';
 
 class CreatePollScreen extends StatefulWidget {
@@ -58,7 +59,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not create poll. Check your connection.',
+          content: Text(t('create_poll.error_create'),
               style: GoogleFonts.plusJakartaSans(color: Colors.white)),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
@@ -69,7 +70,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     Navigator.pop(context, true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Poll created successfully!', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+        content: Text(t('create_poll.success'), style: GoogleFonts.plusJakartaSans(color: Colors.white)),
         backgroundColor: const Color(0xFF1A1A1A),
         behavior: SnackBarBehavior.floating,
       ),
@@ -100,7 +101,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text('Create Poll', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                Text(t('create_poll.title'), style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
               ],
             ),
           ),
@@ -112,7 +113,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Question field
-                  Text('Poll Question', style: _labelStyle),
+                  Text(t('create_poll.question_label'), style: _labelStyle),
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
@@ -129,7 +130,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                       maxLines: 3,
                       style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textPrimary, height: 1.5),
                       decoration: InputDecoration.collapsed(
-                        hintText: 'Ask a question to the community...',
+                        hintText: t('create_poll.question_hint'),
                         hintStyle: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textMuted),
                       ),
                       onChanged: (_) => setState(() {}),
@@ -137,7 +138,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   ),
                   const SizedBox(height: 24),
                   // Options
-                  Text('Options', style: _labelStyle),
+                  Text(t('create_poll.options_label'), style: _labelStyle),
                   const SizedBox(height: 10),
                   ...List.generate(_options.length, (i) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -164,14 +165,14 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                           children: [
                             const Icon(Icons.add_circle_outline_rounded, color: Color(0xFFE40101), size: 18),
                             const SizedBox(width: 8),
-                            Text('Add Option', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFFE40101), fontWeight: FontWeight.w500)),
+                            Text(t('create_poll.add_option'), style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFFE40101), fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
                     ),
                   const SizedBox(height: 24),
                   // Poll duration
-                  Text('Poll Duration', style: _labelStyle),
+                  Text(t('create_poll.duration_label'), style: _labelStyle),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -189,7 +190,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                           ),
                         ),
                         child: Text(
-                          d == 1 ? '1 Day' : '$d Days',
+                          d == 1 ? t('create_poll.one_day') : '$d ${t('create_poll.days_suffix')}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -201,10 +202,10 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   ),
                   const SizedBox(height: 24),
                   // Settings
-                  Text('Settings', style: _labelStyle),
+                  Text(t('create_poll.settings'), style: _labelStyle),
                   const SizedBox(height: 10),
-                  _ToggleSetting(label: 'Anonymous voting', subtitle: 'Voters\' identities will be hidden'),
-                  _ToggleSetting(label: 'Show results before voting', subtitle: 'Users can see results before casting vote'),
+                  _ToggleSetting(label: t('create_poll.anonymous_voting'), subtitle: t('create_poll.anonymous_voting_sub')),
+                  _ToggleSetting(label: t('create_poll.show_results'), subtitle: t('create_poll.show_results_sub')),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -232,7 +233,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : Text(
-                        'Publish Poll',
+                        t('create_poll.publish'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -294,7 +295,7 @@ class _OptionField extends StatelessWidget {
               controller: controller,
               style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary),
               decoration: InputDecoration.collapsed(
-                hintText: 'Option ${index + 1}',
+                hintText: '${t('create_poll.option_hint')} ${index + 1}',
                 hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textMuted),
               ),
               onChanged: onChanged,

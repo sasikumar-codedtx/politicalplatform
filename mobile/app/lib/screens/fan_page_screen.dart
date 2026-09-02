@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/fan_post.dart';
 import '../services/fan_post_service.dart';
 import 'create_fan_post_screen.dart';
 import 'fan_post_detail_screen.dart';
+import '../widgets/login_gate.dart';
 
 class FanPageScreen extends StatefulWidget {
   const FanPageScreen({super.key});
@@ -48,6 +50,8 @@ class _FanPageScreenState extends State<FanPageScreen>
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFE40101),
         onPressed: () async {
+          if (!await requireLogin(context, message: t('fan_page.login_to_post'))) return;
+          if (!context.mounted) return;
           await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CreateFanPostScreen()),
@@ -76,7 +80,7 @@ class _FanPageScreenState extends State<FanPageScreen>
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
-                tabs: const [Tab(text: 'All'), Tab(text: 'Popular')],
+                tabs: [Tab(text: t('fan_page.tab_all')), Tab(text: t('fan_page.tab_popular'))],
               ),
             ),
           ),
@@ -169,7 +173,7 @@ class _Header extends StatelessWidget {
                     colors: [Color(0xFFE40101), Color(0xFF7E0101)],
                   ).createShader(bounds),
                   child: Text(
-                    'COMMUNITY WALL',
+                    t('fan_page.title'),
                     style: GoogleFonts.bebasNeue(
                       fontSize: 34,
                       color: Colors.white,
@@ -179,7 +183,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Fan posts approved by TVK volunteers',
+                  t('fan_page.subtitle'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     color: Colors.white,
@@ -233,7 +237,7 @@ class _PostList extends StatelessWidget {
             Icon(Icons.article_outlined, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(
-              'No posts yet',
+              t('fan_page.no_posts'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 color: AppColors.textMuted,
@@ -294,6 +298,8 @@ class _PostCardState extends State<_PostCard> {
 
   Future<void> _toggleLike() async {
     if (_likeLoading) return;
+    if (!await requireLogin(context, message: t('fan_page.login_to_like'))) return;
+    if (!mounted) return;
     setState(() => _likeLoading = true);
     final newCount = await FanPostService.toggleLike(widget.post.id, _userId);
     if (mounted) {

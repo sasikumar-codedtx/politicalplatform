@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/manifesto_plan.dart';
 
 class ManifestoDetailScreen extends StatelessWidget {
@@ -86,11 +87,11 @@ class ManifestoDetailScreen extends StatelessWidget {
     );
   }
 
-  static const _defaultMilestones = [
-    ManifestoMilestone(date: 'Phase 1', title: 'Planning & Setup', description: 'Project team formed, objectives defined, initial resource allocation completed.'),
-    ManifestoMilestone(date: 'Phase 2', title: 'Implementation Begins', description: 'Field work starts across priority districts with monitoring committees established.'),
-    ManifestoMilestone(date: 'Phase 3', title: 'Mid-term Review', description: 'Progress evaluated against targets, adjustments made based on ground feedback.'),
-    ManifestoMilestone(date: 'Phase 4', title: 'Completion & Handover', description: 'Project delivered to local bodies with long-term maintenance plans in place.'),
+  static List<ManifestoMilestone> get _defaultMilestones => [
+    ManifestoMilestone(date: t('manifesto_detail.phase_1'), title: t('manifesto_detail.phase_1_title'), description: t('manifesto_detail.phase_1_desc')),
+    ManifestoMilestone(date: t('manifesto_detail.phase_2'), title: t('manifesto_detail.phase_2_title'), description: t('manifesto_detail.phase_2_desc')),
+    ManifestoMilestone(date: t('manifesto_detail.phase_3'), title: t('manifesto_detail.phase_3_title'), description: t('manifesto_detail.phase_3_desc')),
+    ManifestoMilestone(date: t('manifesto_detail.phase_4'), title: t('manifesto_detail.phase_4_title'), description: t('manifesto_detail.phase_4_desc')),
   ];
 }
 
@@ -158,7 +159,7 @@ class _MilestonesHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Milestones',
+        Text(t('manifesto_detail.milestones'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary,
           ),

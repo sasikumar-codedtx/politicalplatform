@@ -1,0 +1,21 @@
+{
+  "my_posts.title": { "en": "My Posts", "ta": "எனது இடுகைகள்" },
+  "my_posts.tab_my_posts": { "en": "My Posts", "ta": "எனது இடுகைகள்" },
+  "my_posts.tab_admin_panel": { "en": "Admin Panel", "ta": "நிர்வாகப் பலகை" },
+  "my_posts.empty_my_posts": { "en": "No posts yet. Tap + to create your first post.", "ta": "இதுவரை இடுகைகள் இல்லை. உங்கள் முதல் இடுகையை உருவாக்க + ஐ தட்டவும்." },
+  "my_posts.edit_post": { "en": "Edit Post", "ta": "இடுகையைத் திருத்து" },
+  "my_posts.edit_post_hint": { "en": "Edit your post...", "ta": "உங்கள் இடுகையைத் திருத்தவும்..." },
+  "my_posts.cancel": { "en": "Cancel", "ta": "ரத்து செய்" },
+  "my_posts.save": { "en": "Save", "ta": "சேமி" },
+  "my_posts.delete_post": { "en": "Delete Post", "ta": "இடுகையை நீக்கு" },
+  "my_posts.delete_confirm": { "en": "Are you sure you want to delete this post?", "ta": "இந்த இடுகையை நீக்க விரும்புகிறீர்களா?" },
+  "my_posts.delete": { "en": "Delete", "ta": "நீக்கு" },
+  "my_posts.status_pending": { "en": "Pending Review", "ta": "பரிசீலனையில் உள்ளது" },
+  "my_posts.status_approved": { "en": "Approved", "ta": "அங்கீகரிக்கப்பட்டது" },
+  "my_posts.status_rejected": { "en": "Rejected", "ta": "நிராகரிக்கப்பட்டது" },
+  "my_posts.status_edit_pending": { "en": "Edit Pending Review", "ta": "திருத்தம் பரிசீலனையில் உள்ளது" },
+  "my_posts.admin_banner": { "en": "Demo Admin Panel — Approve/reject pending posts", "ta": "மாதிரி நிர்வாகப் பலகை — நிலுவையில் உள்ள இடுகைகளை அங்கீகரி/நிராகரி" },
+  "my_posts.empty_pending": { "en": "No pending posts", "ta": "நிலுவையில் இடுகைகள் இல்லை" },
+  "my_posts.approve": { "en": "Approve", "ta": "அங்கீகரி" },
+  "my_posts.reject": { "en": "Reject", "ta": "நிராகரி" }
+}

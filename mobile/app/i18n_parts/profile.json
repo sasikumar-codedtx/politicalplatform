@@ -1,0 +1,23 @@
+{
+  "profile.title": { "en": "Profile", "ta": "சுயவிவரம்" },
+  "profile.take_photo": { "en": "Take a photo", "ta": "புகைப்படம் எடுக்கவும்" },
+  "profile.choose_from_gallery": { "en": "Choose from gallery", "ta": "கேலரியில் இருந்து தேர்ந்தெடுக்கவும்" },
+  "profile.your_name": { "en": "Your name", "ta": "உங்கள் பெயர்" },
+  "profile.your_city": { "en": "Your city", "ta": "உங்கள் நகரம்" },
+  "profile.cancel": { "en": "Cancel", "ta": "ரத்து செய்" },
+  "profile.save": { "en": "Save", "ta": "சேமி" },
+  "profile.save_failed": { "en": "Could not save — check your connection and login.", "ta": "சேமிக்க முடியவில்லை — உங்கள் இணைப்பையும் உள்நுழைவையும் சரிபார்க்கவும்." },
+  "profile.add_your_name": { "en": "Add your name", "ta": "உங்கள் பெயரைச் சேர்க்கவும்" },
+  "profile.add_your_city": { "en": "Add your city", "ta": "உங்கள் நகரத்தைச் சேர்க்கவும்" },
+  "profile.polls_participated": { "en": "Polls\nparticipated", "ta": "பங்கேற்ற\nகருத்துக்கணிப்புகள்" },
+  "profile.complaints_submitted": { "en": "Complaints\nsubmitted", "ta": "சமர்ப்பித்த\nபுகார்கள்" },
+  "profile.total_amount_donated": { "en": "Total Amount\nDonated", "ta": "மொத்த நன்கொடை\nதொகை" },
+  "profile.join_as_member": { "en": "Join as member", "ta": "உறுப்பினராக இணையுங்கள்" },
+  "profile.about_tvk": { "en": "About TVK", "ta": "தமிழக வெற்றிக் கழகம் பற்றி" },
+  "profile.sign_in_title": { "en": "Sign in to My TVK", "ta": "My TVK-யில் உள்நுழையுங்கள்" },
+  "profile.sign_in_subtitle": { "en": "Log in to view your profile, track complaints and polls, and join as a TVK member.", "ta": "உங்கள் சுயவிவரத்தைக் காணவும், புகார்கள் மற்றும் கருத்துக்கணிப்புகளைக் கண்காணிக்கவும், தமிழக வெற்றிக் கழக உறுப்பினராக இணையவும் உள்நுழையுங்கள்." },
+  "profile.log_in": { "en": "Log in", "ta": "உள்நுழை" },
+  "profile.founded_year": { "en": "Founded Year", "ta": "தொடங்கப்பட்ட ஆண்டு" },
+  "profile.leader": { "en": "Leader", "ta": "தலைவர்" },
+  "profile.view_journey": { "en": "View Journey & Milestones", "ta": "பயணத்தையும் மைல்கற்களையும் காண்க" }
+}

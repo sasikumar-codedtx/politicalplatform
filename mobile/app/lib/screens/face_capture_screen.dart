@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import 'member_id_screen.dart';
 
 // Figma: 1328-9652 — Face/photo capture screen for TVK member ID card
@@ -42,7 +43,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Please capture or select a photo first',
+            t('face_capture.no_photo_warning'),
             style: GoogleFonts.plusJakartaSans(fontSize: 14),
           ),
           backgroundColor: const Color(0xFFE40101),
@@ -86,7 +87,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                   children: [
                     SizedBox(height: topPad + 60),
                     Text(
-                      'Photo ID Card',
+                      t('face_capture.title'),
                       style: GoogleFonts.bebasNeue(
                         fontSize: 28,
                         color: Colors.white,
@@ -95,7 +96,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Position your face inside the frame',
+                      t('face_capture.position_face'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: Colors.white70,
@@ -122,7 +123,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Photo ready! Tap "Use Photo" or retake',
+                      t('face_capture.photo_ready'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: Colors.white,
@@ -297,7 +298,7 @@ class _CaptureActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Take your photo',
+          t('face_capture.take_photo_heading'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -306,7 +307,7 @@ class _CaptureActions extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Make sure your face is clearly visible and well-lit',
+          t('face_capture.take_photo_hint'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             color: AppColors.textMuted,
@@ -337,7 +338,7 @@ class _CaptureActions extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Gallery',
+                    t('face_capture.gallery'),
                     style: GoogleFonts.plusJakartaSans(
                         fontSize: 11, color: AppColors.textSecondary),
                   ),
@@ -399,7 +400,7 @@ class _CaptureActions extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Flash',
+                    t('face_capture.flash'),
                     style: GoogleFonts.plusJakartaSans(
                         fontSize: 11, color: AppColors.textSecondary),
                   ),
@@ -427,7 +428,7 @@ class _UsePhotoActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Use this photo?',
+          t('face_capture.use_this_photo'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -436,7 +437,7 @@ class _UsePhotoActions extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Your photo will appear on your TVK member ID card',
+          t('face_capture.photo_id_note'),
           style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted),
           textAlign: TextAlign.center,
         ),
@@ -455,7 +456,7 @@ class _UsePhotoActions extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Retake',
+                    t('face_capture.retake'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -484,7 +485,7 @@ class _UsePhotoActions extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Use Photo',
+                    t('face_capture.use_photo'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,

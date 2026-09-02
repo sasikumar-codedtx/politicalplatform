@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/leader.dart';
 import '../viewmodels/leader_viewmodel.dart';
 
@@ -26,7 +27,7 @@ class _LeaderView extends StatefulWidget {
 
 class _LeaderViewState extends State<_LeaderView> {
   int _tab = 0;
-  static const _tabs = ['About', 'Achievements', 'Media'];
+  List<String> get _tabs => [t('leader.tab_about'), t('leader.tab_achievements'), t('leader.tab_media')];
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +55,7 @@ class _LeaderViewState extends State<_LeaderView> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Know Your Leaders',
+          t('leader.title'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -258,48 +259,48 @@ class _AboutContent extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _InfoRow('Name', 'Joseph Vijay Chandrasekhar'),
-                _InfoRow('Party Position', 'President'),
-                _InfoRow('Date of Birth', '22 June 1974'),
-                _InfoRow('Age', '54'),
-                _InfoRow('Place of origin', 'Chennai, Tamil Nadu'),
-                _InfoRow('Education', 'B.A. in Visual Communication', last: true),
+                _InfoRow(t('leader.info_name_label'), t('leader.info_name_value')),
+                _InfoRow(t('leader.info_position_label'), t('leader.info_position_value')),
+                _InfoRow(t('leader.info_dob_label'), t('leader.info_dob_value')),
+                _InfoRow(t('leader.info_age_label'), '54'),
+                _InfoRow(t('leader.info_origin_label'), t('leader.info_origin_value')),
+                _InfoRow(t('leader.info_education_label'), t('leader.info_education_value'), last: true),
               ],
             ),
           ),
           const SizedBox(height: 16),
           // Personal Background
           _Section(
-            title: 'Personal Background',
+            title: t('leader.section_personal_background'),
             body: leader.bio,
           ),
           const SizedBox(height: 16),
           // Career Summary
           _Section(
-            title: 'Career Summary',
+            title: t('leader.section_career_summary'),
             body: leader.careerSummary,
           ),
           const SizedBox(height: 16),
           // Political Journey
           _Section(
-            title: 'Political Journey',
-            body: 'From actor and philanthropist (2009, Vijay Makkal Iyakkam) to full-scale political leader (2024, TVK launch).',
+            title: t('leader.section_political_journey'),
+            body: t('leader.political_journey_body'),
           ),
           const SizedBox(height: 16),
           // Major Campaigns
           Text(
-            'Major Campaigns',
+            t('leader.section_major_campaigns'),
             style: GoogleFonts.plusJakartaSans(fontSize: 16, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 16),
           _CampaignItem(
             imagePath: 'assets/images/campaign1.png',
-            text: "Led rallies in Vikravandi and Villupuram, set the party's ideology drawing inspiration from Periyar and social justice.",
+            text: t('leader.campaign1_text'),
           ),
           const SizedBox(height: 8),
           _CampaignItem(
             imagePath: 'assets/images/campaign2.png',
-            text: "Launched Villupuram Declaration affirming TVK's commitment to Dravidian social justice and anti-corruption governance.",
+            text: t('leader.campaign2_text'),
           ),
         ],
       ),

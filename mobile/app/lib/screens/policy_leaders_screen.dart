@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import 'policy_leader_detail_screen.dart';
 
 // ─── Shared data models ───────────────────────────────────────────────────────
@@ -589,7 +590,7 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
                   style: GoogleFonts.plusJakartaSans(
                       fontSize: 14, color: AppColors.textPrimary),
                   decoration: InputDecoration(
-                    hintText: 'Search by name, constituency or role…',
+                    hintText: t('policy_leaders.search_hint'),
                     hintStyle: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: AppColors.textMuted,
@@ -656,7 +657,7 @@ class _TvkFamilyScreenState extends State<TvkFamilyScreen> {
               child: filtered.isEmpty
                   ? Center(
                       child: Text(
-                        'No candidates found',
+                        t('policy_leaders.no_candidates_found'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           color: AppColors.textMuted,
@@ -776,7 +777,7 @@ class _HeroBanner extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'FAMILY',
+                        t('policy_leaders.family'),
                         style: GoogleFonts.bebasNeue(
                           fontSize: 36,
                           color: Colors.white,
@@ -786,7 +787,7 @@ class _HeroBanner extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Know Your Leaders · All Districts',
+                        t('policy_leaders.know_your_leaders_subtitle'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
@@ -816,7 +817,7 @@ class _HeroBanner extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Members',
+                        t('policy_leaders.members'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
@@ -1167,7 +1168,7 @@ class _PolicyHeroBanner extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'OUR POLICY LEADERS',
+                  t('policy_leaders.our_policy_leaders'),
                   style: GoogleFonts.bebasNeue(
                     fontSize: 34,
                     color: const Color(0xFFE40101),
@@ -1177,7 +1178,7 @@ class _PolicyHeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'KNOW OUR POLICY LEADERS',
+                  t('policy_leaders.know_our_policy_leaders'),
                   style: GoogleFonts.bebasNeue(
                     fontSize: 16,
                     color: Colors.white,

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/content_service.dart';
 import '../services/youtube_service.dart';
 import '../models/youtube_video.dart';
@@ -82,10 +83,10 @@ class _Header extends StatelessWidget {
 
   String get _subtitle {
     switch (type) {
-      case 'Media':    return 'Explore our members contents';
-      case 'Slogans':  return 'Explore our members Slogans';
-      case 'Hashtags': return 'Explore our members Hashtags';
-      default:         return 'Explore our members posts';
+      case 'Media':    return t('campaign_toolkit.subtitle_media');
+      case 'Slogans':  return t('campaign_toolkit.subtitle_slogans');
+      case 'Hashtags': return t('campaign_toolkit.subtitle_hashtags');
+      default:         return t('campaign_toolkit.subtitle_posters');
     }
   }
 
@@ -226,7 +227,7 @@ class _Header extends StatelessWidget {
                           errorBorder: InputBorder.none,
                           focusedErrorBorder: InputBorder.none,
                           filled: false,
-                          hintText: 'Search',
+                          hintText: t('campaign_toolkit.search'),
                           hintStyle: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -514,7 +515,7 @@ void _copy(BuildContext context, String text) {
   Clipboard.setData(ClipboardData(text: text));
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text('Copied to clipboard', style: GoogleFonts.plusJakartaSans()),
+      content: Text(t('campaign_toolkit.copied_to_clipboard'), style: GoogleFonts.plusJakartaSans()),
       backgroundColor: const Color(0xFF1A1A1A),
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 1),
@@ -658,7 +659,7 @@ class _MediaBodyState extends State<_MediaBody> {
     // Loaded but empty (or search matched nothing) — show a message, never the
     // built-in static list.
     return Center(
-      child: Text(q.isNotEmpty ? 'No results found' : 'No media found',
+      child: Text(q.isNotEmpty ? t('campaign_toolkit.no_results_found') : t('campaign_toolkit.no_media_found'),
           style: GoogleFonts.plusJakartaSans(
               fontSize: 14, color: AppColors.textMuted)),
     );
@@ -689,7 +690,7 @@ class _SlogansBody extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
       children: [
         Text(
-          'Best Slogans',
+          t('campaign_toolkit.best_slogans'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -762,7 +763,7 @@ class _HashtagsBody extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
       children: [
         Text(
-          'Best Hashtags',
+          t('campaign_toolkit.best_hashtags'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18, fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -800,7 +801,7 @@ class _HashtagBlock extends StatelessWidget {
               ),
             ),
             child: Text(
-              'Copy',
+              t('campaign_toolkit.copy'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12, fontWeight: FontWeight.w600,
                 color: Colors.white,

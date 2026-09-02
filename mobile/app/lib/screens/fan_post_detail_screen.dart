@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/fan_post.dart';
 import '../models/fan_comment.dart';
 import '../services/fan_post_service.dart';
+import '../widgets/login_gate.dart';
 
 class FanPostDetailScreen extends StatefulWidget {
   final FanPost post;
@@ -75,7 +77,8 @@ class _FanPostDetailScreenState extends State<FanPostDetailScreen> {
   Future<void> _sendComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty || _sending) return;
-
+    if (!await requireLogin(context, message: t('fan_post_detail.login_to_comment'))) return;
+    if (!mounted) return;
     setState(() => _sending = true);
     final comment = FanComment(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -350,7 +353,7 @@ class _CommentsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Comments (${comments.length})',
+          '${t('fan_post_detail.comments')} (${comments.length})',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -367,7 +370,7 @@ class _CommentsSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'Comments are disabled on this post',
+              t('fan_post_detail.comments_disabled'),
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
@@ -387,7 +390,7 @@ class _CommentsSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Center(
               child: Text(
-                'No comments yet. Be the first!',
+                t('fan_post_detail.no_comments'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   color: AppColors.textMuted,
@@ -526,7 +529,7 @@ class _CommentInputBar extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Write a comment...',
+                  hintText: t('fan_post_detail.write_comment_hint'),
                   hintStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     color: AppColors.textMuted,

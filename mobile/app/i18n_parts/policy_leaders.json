@@ -1,0 +1,9 @@
+{
+  "policy_leaders.search_hint": { "en": "Search by name, constituency or role…", "ta": "பெயர், தொகுதி அல்லது பொறுப்பு வாரியாகத் தேடுங்கள்…" },
+  "policy_leaders.no_candidates_found": { "en": "No candidates found", "ta": "வேட்பாளர்கள் யாரும் இல்லை" },
+  "policy_leaders.family": { "en": "FAMILY", "ta": "குடும்பம்" },
+  "policy_leaders.know_your_leaders_subtitle": { "en": "Know Your Leaders · All Districts", "ta": "உங்கள் தலைவர்களை அறியுங்கள் · அனைத்து மாவட்டங்கள்" },
+  "policy_leaders.members": { "en": "Members", "ta": "உறுப்பினர்கள்" },
+  "policy_leaders.our_policy_leaders": { "en": "OUR POLICY LEADERS", "ta": "நமது கொள்கைத் தலைவர்கள்" },
+  "policy_leaders.know_our_policy_leaders": { "en": "KNOW OUR POLICY LEADERS", "ta": "நமது கொள்கைத் தலைவர்களை அறியுங்கள்" }
+}

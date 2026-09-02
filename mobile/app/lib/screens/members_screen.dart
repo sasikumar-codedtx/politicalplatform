@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/agent_service.dart';
 import '../widgets/loading_overlay.dart';
 import 'join_screen.dart';
@@ -68,7 +69,7 @@ class _MembersScreenState extends State<MembersScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'My Memberships',
+                      t('members.title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
@@ -103,7 +104,8 @@ class _MembersScreenState extends State<MembersScreen> {
             if (!_loading && _members.isNotEmpty)
               Padding(
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + bottomPad),
-                child: _PrimaryButton(label: '＋  New Member', onTap: _addMember),
+                child: _PrimaryButton(
+                    label: '＋  ${t('members.new_member')}', onTap: _addMember),
               ),
           ],
         ),
@@ -160,7 +162,7 @@ class _MemberRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _v('name', 'TVK Member'),
+                    _v('name', t('members.default_name')),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
@@ -207,7 +209,7 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.badge_outlined, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 14),
             Text(
-              'No membership yet',
+              t('members.empty_title'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -216,7 +218,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Join TVK to get your official member ID card.',
+              t('members.empty_subtitle'),
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
@@ -224,7 +226,7 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            _PrimaryButton(label: 'Join as member', onTap: onJoin),
+            _PrimaryButton(label: t('members.join_as_member'), onTap: onJoin),
           ],
         ),
       ),

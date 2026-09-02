@@ -182,6 +182,17 @@ class AgentService {
     required String title,
     String description = '',
     String category = 'General',
+    String subcategory = '',
+    String department = '',
+    String district = '',
+    String taluk = '',
+    String localBody = '',
+    String village = '',
+    String ward = '',
+    String pincode = '',
+    String address = '',
+    String previousRef = '',
+    bool isUrgent = false,
     File? file,
   }) async {
     try {
@@ -192,6 +203,17 @@ class AgentService {
       req.fields['title'] = title;
       req.fields['description'] = description;
       req.fields['category'] = category;
+      req.fields['subcategory'] = subcategory;
+      req.fields['department'] = department;
+      req.fields['district'] = district;
+      req.fields['taluk'] = taluk;
+      req.fields['local_body'] = localBody;
+      req.fields['village'] = village;
+      req.fields['ward'] = ward;
+      req.fields['pincode'] = pincode;
+      req.fields['address'] = address;
+      req.fields['previous_ref'] = previousRef;
+      req.fields['is_urgent'] = isUrgent.toString();
       if (file != null) {
         req.files.add(await http.MultipartFile.fromPath('file', file.path));
       }

@@ -13,7 +13,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>My TVK</string>
+	<string>TVK Connect</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>My TVK</string>
+	<string>TVK Connect</string>
 	<!-- Allow the app to reach the local HTTP API (LAN IP, no TLS in dev).
 	     Without this, iOS App Transport Security blocks every http:// request
 	     so the API and forum post images fail to load. Replace with a scoped

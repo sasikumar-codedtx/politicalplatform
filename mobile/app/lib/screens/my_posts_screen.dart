@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/fan_post.dart';
 import '../services/fan_post_service.dart';
 import 'create_fan_post_screen.dart';
@@ -61,7 +62,7 @@ class _MyPostsScreenState extends State<MyPostsScreen>
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text(
-          'My Posts',
+          t('my_posts.title'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -82,7 +83,10 @@ class _MyPostsScreenState extends State<MyPostsScreen>
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
-          tabs: const [Tab(text: 'My Posts'), Tab(text: 'Admin Panel')],
+          tabs: [
+            Tab(text: t('my_posts.tab_my_posts')),
+            Tab(text: t('my_posts.tab_admin_panel')),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -143,7 +147,7 @@ class _MyPostsTab extends StatelessWidget {
             Icon(Icons.article_outlined, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(
-              'No posts yet. Tap + to create your first post.',
+              t('my_posts.empty_my_posts'),
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
@@ -184,14 +188,14 @@ class _MyPostCard extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(
-          'Edit Post',
+          t('my_posts.edit_post'),
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
         ),
         content: TextField(
           controller: controller,
           maxLines: 5,
           decoration: InputDecoration(
-            hintText: 'Edit your post...',
+            hintText: t('my_posts.edit_post_hint'),
             hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
@@ -204,7 +208,7 @@ class _MyPostCard extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              'Cancel',
+              t('my_posts.cancel'),
               style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
             ),
           ),
@@ -219,7 +223,7 @@ class _MyPostCard extends StatelessWidget {
               onRefresh();
             },
             child: Text(
-              'Save',
+              t('my_posts.save'),
               style: GoogleFonts.plusJakartaSans(
                 color: const Color(0xFFE40101),
                 fontWeight: FontWeight.w700,
@@ -237,18 +241,18 @@ class _MyPostCard extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(
-          'Delete Post',
+          t('my_posts.delete_post'),
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
         ),
         content: Text(
-          'Are you sure you want to delete this post?',
+          t('my_posts.delete_confirm'),
           style: GoogleFonts.plusJakartaSans(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              'Cancel',
+              t('my_posts.cancel'),
               style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
             ),
           ),
@@ -260,7 +264,7 @@ class _MyPostCard extends StatelessWidget {
               onRefresh();
             },
             child: Text(
-              'Delete',
+              t('my_posts.delete'),
               style: GoogleFonts.plusJakartaSans(
                 color: const Color(0xFFE40101),
                 fontWeight: FontWeight.w700,
@@ -277,13 +281,13 @@ class _MyPostCard extends StatelessWidget {
     Widget statusBadge;
     switch (post.status) {
       case PostStatus.pending:
-        statusBadge = _StatusChip(label: 'Pending Review', color: Colors.orange);
+        statusBadge = _StatusChip(label: t('my_posts.status_pending'), color: Colors.orange);
         break;
       case PostStatus.approved:
-        statusBadge = _StatusChip(label: 'Approved', color: Colors.green);
+        statusBadge = _StatusChip(label: t('my_posts.status_approved'), color: Colors.green);
         break;
       case PostStatus.rejected:
-        statusBadge = _StatusChip(label: 'Rejected', color: const Color(0xFFE40101));
+        statusBadge = _StatusChip(label: t('my_posts.status_rejected'), color: const Color(0xFFE40101));
         break;
     }
 
@@ -320,7 +324,7 @@ class _MyPostCard extends StatelessWidget {
             children: [
               statusBadge,
               if (post.pendingEdit != null && post.status == PostStatus.approved)
-                _StatusChip(label: 'Edit Pending Review', color: Colors.amber.shade700),
+                _StatusChip(label: t('my_posts.status_edit_pending'), color: Colors.amber.shade700),
             ],
           ),
           const SizedBox(height: 10),
@@ -436,7 +440,7 @@ class _AdminTab extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Demo Admin Panel — Approve/reject pending posts',
+                  t('my_posts.admin_banner'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -451,7 +455,7 @@ class _AdminTab extends StatelessWidget {
           Expanded(
             child: Center(
               child: Text(
-                'No pending posts',
+                t('my_posts.empty_pending'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   color: AppColors.textMuted,
@@ -540,7 +544,7 @@ class _AdminCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Approve',
+                    t('my_posts.approve'),
                     style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -560,7 +564,7 @@ class _AdminCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Reject',
+                    t('my_posts.reject'),
                     style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                   ),
                 ),

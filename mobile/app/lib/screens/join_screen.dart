@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/agent_service.dart';
 import '../widgets/loading_overlay.dart';
 import 'face_capture_screen.dart';
@@ -81,11 +82,11 @@ class _JoinScreenState extends State<JoinScreen> {
   Future<void> _onSubmit() async {
     if (_submitting) return;
     if (_nameCtrl.text.trim().isEmpty) {
-      _showError('Please enter your name');
+      _showError(t('join.please_enter_name'));
       return;
     }
     if (_mobileCtrl.text.trim().length < 10) {
-      _showError('Please enter a valid mobile number');
+      _showError(t('join.valid_mobile'));
       return;
     }
     setState(() => _submitting = true);
@@ -104,7 +105,7 @@ class _JoinScreenState extends State<JoinScreen> {
     if (!mounted) return;
     setState(() => _submitting = false);
     if (saved == null) {
-      _showError('Could not save your details — check connection and login.');
+      _showError(t('join.save_failed'));
       return;
     }
     Navigator.pushReplacement(
@@ -143,25 +144,25 @@ class _JoinScreenState extends State<JoinScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Member Details ─────────────────────────────
-                    _SectionTitle('Member Details'),
+                    _SectionTitle(t('join.member_details')),
                     const SizedBox(height: 16),
                     _Field(
-                      label: 'Name',
-                      placeholder: 'Enter your full name',
+                      label: t('join.name'),
+                      placeholder: t('join.name_hint'),
                       controller: _nameCtrl,
                       inputType: TextInputType.name,
                     ),
                     const SizedBox(height: 14),
                     _Field(
-                      label: 'Email',
-                      placeholder: 'Enter your email address',
+                      label: t('join.email'),
+                      placeholder: t('join.email_hint'),
                       controller: _emailCtrl,
                       inputType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 14),
                     _Field(
-                      label: 'Mobile Number',
-                      placeholder: 'Enter 10-digit mobile number',
+                      label: t('join.mobile_number'),
+                      placeholder: t('join.mobile_hint'),
                       controller: _mobileCtrl,
                       inputType: TextInputType.phone,
                       maxLength: 10,
@@ -175,7 +176,7 @@ class _JoinScreenState extends State<JoinScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _FieldLabel('Date of Birth'),
+                              _FieldLabel(t('join.date_of_birth')),
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: _pickDob,
@@ -185,7 +186,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                       Expanded(
                                         child: Text(
                                           _dob == null
-                                              ? 'DD / MM / YYYY'
+                                              ? t('join.dob_placeholder')
                                               : '${_dob!.day.toString().padLeft(2, '0')} / ${_dob!.month.toString().padLeft(2, '0')} / ${_dob!.year}',
                                           style: _dob == null
                                               ? _placeholderStyle
@@ -206,12 +207,12 @@ class _JoinScreenState extends State<JoinScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _FieldLabel('Gender'),
+                              _FieldLabel(t('join.gender')),
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
-                                  final val = await _showPicker(
-                                      context, _genderOptions, 'Select Gender');
+                                  final val = await _showPicker(context,
+                                      _genderOptions, t('join.select_gender'));
                                   if (val != null) setState(() => _gender = val);
                                 },
                                 child: _InputBox(
@@ -219,7 +220,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          _gender ?? 'Select',
+                                          _gender ?? t('join.select'),
                                           style: _gender == null
                                               ? _placeholderStyle
                                               : _valueStyle,
@@ -242,14 +243,14 @@ class _JoinScreenState extends State<JoinScreen> {
                     const SizedBox(height: 28),
 
                     // ── Location Details ───────────────────────────
-                    _SectionTitle('Location Details'),
+                    _SectionTitle(t('join.location_details')),
                     const SizedBox(height: 16),
-                    _FieldLabel('District'),
+                    _FieldLabel(t('join.district')),
                     const SizedBox(height: 8),
                     GestureDetector(
                       onTap: () async {
                         final val = await _showPicker(
-                            context, _districtOptions, 'Select District');
+                            context, _districtOptions, t('join.select_district'));
                         if (val != null) setState(() => _district = val);
                       },
                       child: _InputBox(
@@ -257,7 +258,7 @@ class _JoinScreenState extends State<JoinScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                _district ?? 'Select District',
+                                _district ?? t('join.select_district'),
                                 style: _district == null
                                     ? _placeholderStyle
                                     : _valueStyle,
@@ -271,16 +272,16 @@ class _JoinScreenState extends State<JoinScreen> {
                     ),
                     const SizedBox(height: 14),
                     _Field(
-                      label: 'Pin Code',
-                      placeholder: 'Enter pin code',
+                      label: t('join.pin_code'),
+                      placeholder: t('join.pin_hint'),
                       controller: _pinCtrl,
                       inputType: TextInputType.number,
                       maxLength: 6,
                     ),
                     const SizedBox(height: 14),
                     _Field(
-                      label: 'Booth Number',
-                      placeholder: 'Enter booth number',
+                      label: t('join.booth_number'),
+                      placeholder: t('join.booth_hint'),
                       controller: _boothCtrl,
                       inputType: TextInputType.text,
                     ),
@@ -288,7 +289,7 @@ class _JoinScreenState extends State<JoinScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: Text(
-                        "Don't know your booth number?",
+                        t('join.dont_know_booth'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -300,12 +301,12 @@ class _JoinScreenState extends State<JoinScreen> {
                     const SizedBox(height: 28),
 
                     // ── KYC Verification ───────────────────────────
-                    _SectionTitle('KYC Verification'),
+                    _SectionTitle(t('join.kyc_verification')),
                     const SizedBox(height: 8),
-                    _FieldLabel('Attach Your KYC Document'),
+                    _FieldLabel(t('join.attach_kyc')),
                     const SizedBox(height: 4),
                     Text(
-                      'Accepted formats: PDF, JPEG, PNG, JPG',
+                      t('join.accepted_formats'),
                       style: GoogleFonts.plusJakartaSans(
                           fontSize: 11, color: AppColors.textMuted),
                     ),
@@ -342,7 +343,7 @@ class _JoinScreenState extends State<JoinScreen> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
-                                  _kycFileName ?? 'Tap to attach document',
+                                  _kycFileName ?? t('join.tap_to_attach'),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.plusJakartaSans(
@@ -390,7 +391,7 @@ class _JoinScreenState extends State<JoinScreen> {
                             const SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                'Submit & Get ID Card',
+                                t('join.submit_get_id'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
@@ -537,7 +538,7 @@ class _JoinHeader extends StatelessWidget {
                     colors: [Color(0xFFFFCA00), Color(0xFFE40101)],
                   ).createShader(bounds),
                   child: Text(
-                    'Be Part of\nthe Change',
+                    t('join.header_title'),
                     style: GoogleFonts.bebasNeue(
                       fontSize: 38,
                       color: Colors.white,
@@ -548,7 +549,7 @@ class _JoinHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Register as a TVK member — get updates, contribute,\nand shape Tamil Nadu\'s future.',
+                  t('join.header_subtitle'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: Colors.white70,

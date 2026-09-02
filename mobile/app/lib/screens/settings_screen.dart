@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/profile_service.dart';
 import 'phone_login_screen.dart';
 
@@ -37,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setLang(int i) async {
     setState(() => _langIdx = i);
-    (await SharedPreferences.getInstance()).setInt('app_language', i);
+    await LocaleController.set(i); // flips the whole app's language immediately
   }
 
   Future<void> _setNotifications(bool v) async {
@@ -67,11 +68,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Edit Profile', style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700)),
+                Text(t('settings.edit_profile'), style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 16),
-                TextField(controller: nameC, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+                TextField(controller: nameC, decoration: InputDecoration(labelText: t('settings.name_label'), border: const OutlineInputBorder())),
                 const SizedBox(height: 12),
-                TextField(controller: cityC, decoration: const InputDecoration(labelText: 'City', border: OutlineInputBorder())),
+                TextField(controller: cityC, decoration: InputDecoration(labelText: t('settings.city_label'), border: const OutlineInputBorder())),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -94,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: submitting
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text('Save', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+                        : Text(t('settings.save'), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -114,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(title, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
         content: Text(body, style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('settings.close'))),
         ],
       ),
     );
@@ -126,14 +127,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Delete Account', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
-        content: Text('This permanently deletes your account. This cannot be undone.',
+        title: Text(t('settings.delete_account_title'), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+        content: Text(t('settings.delete_account_body'),
             style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('settings.cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF9F1D1F), fontWeight: FontWeight.w700)),
+            child: Text(t('settings.delete'), style: GoogleFonts.plusJakartaSans(color: const Color(0xFF9F1D1F), fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -148,11 +149,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) {
           Navigator.of(context).popUntil((r) => r.isFirst);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please log in again, then delete your account.')),
+            SnackBar(content: Text(t('settings.reauth_delete'))),
           );
         }
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: ${e.message}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${t('settings.delete_failed')}: ${e.message}')));
       }
     }
   }
@@ -163,18 +164,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Sign Out',
+        title: Text(t('settings.sign_out'),
             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-        content: Text('Are you sure you want to sign out?',
+        content: Text(t('settings.sign_out_confirm'),
             style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
+            child: Text(t('settings.cancel'), style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Sign Out',
+            child: Text(t('settings.sign_out'),
                 style: GoogleFonts.plusJakartaSans(color: const Color(0xFF9F1D1F), fontWeight: FontWeight.w600)),
           ),
         ],
@@ -209,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Settings',
+                    t('settings.title'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -231,8 +232,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // ── Edit Profile ──────────────────────────────────
                   _SettingsTile(
                     icon: Icons.edit_rounded,
-                    title: 'Edit Profile',
-                    subtitle: 'Update your info to stay connected.',
+                    title: t('settings.edit_profile'),
+                    subtitle: t('settings.edit_profile_subtitle'),
                     onTap: _editProfile,
                   ),
                   const SizedBox(height: 12),
@@ -240,8 +241,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // ── Notifications ─────────────────────────────────
                   _ToggleTile(
                     icon: Icons.notifications_outlined,
-                    title: 'Notification Preferences',
-                    subtitle: 'Manage your app notifications.',
+                    title: t('settings.notifications_title'),
+                    subtitle: t('settings.notifications_subtitle'),
                     value: _notificationsOn,
                     onChanged: _setNotifications,
                   ),
@@ -250,8 +251,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // ── App Theme ─────────────────────────────────────
                   _ToggleTile(
                     icon: Icons.dark_mode_outlined,
-                    title: 'App Theme',
-                    subtitle: 'Enable mode which you prefer.',
+                    title: t('settings.theme_title'),
+                    subtitle: t('settings.theme_subtitle'),
                     value: _darkModeOn,
                     onChanged: _setDarkMode,
                   ),
@@ -275,10 +276,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Language',
+                                Text(t('settings.language_title'),
                                     style: GoogleFonts.plusJakartaSans(
                                         fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                                Text('Switch between languages.',
+                                Text(t('settings.language_subtitle'),
                                     style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                               ],
                             ),
@@ -340,11 +341,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // ── About us ──────────────────────────────────────
                   _SettingsTile(
                     icon: Icons.info_outline_rounded,
-                    title: 'About us',
-                    subtitle: 'Learn more about the app.',
+                    title: t('settings.about_title'),
+                    subtitle: t('settings.about_subtitle'),
                     onTap: () => _showInfoDialog(
-                      'About My TVK',
-                      'My TVK is the official citizen platform of Tamilaga Vettri Kazhagam — chat with the leader, track projects and news, join as a member, and raise complaints.\n\nFounded on 2 February 2024 by Leader: Thiru Vijay',
+                      t('settings.about_dialog_title'),
+                      t('settings.about_dialog_body'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -352,11 +353,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // ── Help & Support ────────────────────────────────
                   _SettingsTile(
                     icon: Icons.support_rounded,
-                    title: 'Help and Support',
-                    subtitle: 'Contact our support team.',
+                    title: t('settings.help_title'),
+                    subtitle: t('settings.help_subtitle'),
                     onTap: () => _showInfoDialog(
-                      'Help & Support',
-                      'Need help?\n\nEmail: support@tvkvijay.com\nPhone: 1800-000-0000\n\nOur team responds within 24 hours.',
+                      t('settings.help_dialog_title'),
+                      t('settings.help_dialog_body'),
                     ),
                   ),
                   const SizedBox(height: 120),
@@ -370,7 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (context, snapshot) {
                       final loggedIn = snapshot.data != null;
                       final loginBtn = _ActionButton(
-                        label: loggedIn ? 'Log out' : 'Log in',
+                        label: loggedIn ? t('settings.log_out') : t('settings.log_in'),
                         color: const Color(0xFF9F1D1F),
                         onTap: loggedIn
                             ? _confirmSignOut
@@ -382,7 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Expanded(
                             child: _ActionButton(
-                              label: 'Delete account',
+                              label: t('settings.delete_account'),
                               color: AppColors.textSecondary,
                               onTap: _confirmDeleteAccount,
                             ),

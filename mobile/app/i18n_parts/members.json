@@ -1,0 +1,8 @@
+{
+  "members.title": { "en": "My Memberships", "ta": "எனது உறுப்பினர் அட்டைகள்" },
+  "members.new_member": { "en": "New Member", "ta": "புதிய உறுப்பினர்" },
+  "members.default_name": { "en": "TVK Member", "ta": "தெ.வெ.க. உறுப்பினர்" },
+  "members.empty_title": { "en": "No membership yet", "ta": "இதுவரை உறுப்பினர் பதிவு இல்லை" },
+  "members.empty_subtitle": { "en": "Join TVK to get your official member ID card.", "ta": "உங்கள் அதிகாரப்பூர்வ உறுப்பினர் அடையாள அட்டையைப் பெற தெ.வெ.க.வில் இணையுங்கள்." },
+  "members.join_as_member": { "en": "Join as member", "ta": "உறுப்பினராக இணையுங்கள்" }
+}

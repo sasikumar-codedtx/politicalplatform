@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/news_item.dart';
 
 class NewsDetailScreen extends StatelessWidget {
@@ -133,7 +134,7 @@ class NewsDetailScreen extends StatelessWidget {
                       children: [
                         Icon(Icons.ios_share_rounded, color: AppColors.textPrimary, size: 20),
                         const SizedBox(width: 10),
-                        Text('Share this article', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                        Text(t('news_detail.share_this_article'), style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                         const Spacer(),
                         _ActionIcon(icon: Icons.thumb_up_outlined),
                         const SizedBox(width: 16),
@@ -152,11 +153,11 @@ class NewsDetailScreen extends StatelessWidget {
   }
 
   List<String> _bodyParagraphs(NewsItem item) => [
-    'Tamilaga Vettri Kazhagam continues to strengthen its grassroots presence across all 234 assembly constituencies in Tamil Nadu. ${item.summary}',
-    'Party president Vijay addressed a gathering of over 10,000 party workers, emphasising the importance of community service and democratic values. The meeting saw participation from youth wing, women\'s wing, and district committee leaders.',
-    'The initiative focuses on building strong booth-level committees that can effectively engage with citizens on local issues including clean drinking water, employment, and education. Each booth committee will have a dedicated team of volunteers.',
-    '"Our goal is not just political representation — it is about building a movement rooted in the welfare of every Tamil family," said a senior party spokesperson. The party has set ambitious targets for the upcoming months.',
-    'Activities are scheduled across all districts, with public meetings, awareness programmes, and community service drives planned to connect directly with the people of Tamil Nadu.',
+    '${t('news_detail.body_p1')} ${item.summary}',
+    t('news_detail.body_p2'),
+    t('news_detail.body_p3'),
+    t('news_detail.body_p4'),
+    t('news_detail.body_p5'),
   ];
 }
 

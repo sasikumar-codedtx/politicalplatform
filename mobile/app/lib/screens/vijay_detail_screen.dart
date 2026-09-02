@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../widgets/sticky_header.dart';
 
 class VijayDetailScreen extends StatefulWidget {
@@ -54,7 +55,10 @@ class _VijayDetailScreenState extends State<VijayDetailScreen>
                       fontSize: 14, fontWeight: FontWeight.w400),
                   indicatorColor: const Color(0xFFE40101),
                   indicatorWeight: 2.5,
-                  tabs: const [Tab(text: 'About'), Tab(text: 'Achievements')],
+                  tabs: [
+                    Tab(text: t('vijay_detail.tab_about')),
+                    Tab(text: t('vijay_detail.tab_achievements')),
+                  ],
                 ),
               ),
             ),
@@ -186,7 +190,7 @@ class _VijayHeroSection extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Vijay',
+                  t('vijay_detail.name'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 32, fontWeight: FontWeight.w800,
                     color: Colors.white, height: 1.1,
@@ -194,7 +198,7 @@ class _VijayHeroSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'President, TVK',
+                  t('vijay_detail.role'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13, fontWeight: FontWeight.w600,
                     color: const Color(0xFFFF6B6B),
@@ -215,7 +219,7 @@ class _VijayHeroSection extends StatelessWidget {
                           size: 12, color: Colors.white70),
                       const SizedBox(width: 4),
                       Text(
-                        'Perambur, Chennai',
+                        t('vijay_detail.location'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11, fontWeight: FontWeight.w500,
                           color: Colors.white70,
@@ -262,44 +266,28 @@ class _AboutTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
           // Info table
-          _InfoCard(rows: const [
-            _InfoRow(label: 'Full Name',   value: 'Joseph Vijay Chandrasekhar'),
-            _InfoRow(label: 'Position',    value: 'President, Tamilaga Vettri Kazhagam'),
-            _InfoRow(label: 'Date of Birth', value: '22 June 1974'),
-            _InfoRow(label: 'Age',         value: '51 years'),
-            _InfoRow(label: 'Place',       value: 'Chennai, Tamil Nadu'),
-            _InfoRow(label: 'Education',   value: 'B.A. Visual Communication'),
-            _InfoRow(label: 'Constituency', value: '12. Perambur, Chennai'),
+          _InfoCard(rows: [
+            _InfoRow(label: t('vijay_detail.info_full_name_label'),   value: t('vijay_detail.info_full_name_value')),
+            _InfoRow(label: t('vijay_detail.info_position_label'),    value: t('vijay_detail.info_position_value')),
+            _InfoRow(label: t('vijay_detail.info_dob_label'), value: t('vijay_detail.info_dob_value')),
+            _InfoRow(label: t('vijay_detail.info_age_label'),         value: t('vijay_detail.info_age_value')),
+            _InfoRow(label: t('vijay_detail.info_place_label'),       value: t('vijay_detail.info_place_value')),
+            _InfoRow(label: t('vijay_detail.info_education_label'),   value: t('vijay_detail.info_education_value')),
+            _InfoRow(label: t('vijay_detail.info_constituency_label'), value: t('vijay_detail.info_constituency_value')),
           ]),
           const SizedBox(height: 20),
 
           // Personal Background
           _SectionCard(
-            title: 'Personal Background',
-            body: 'Joseph Vijay Chandrasekhar, known professionally as Vijay, was '
-                'born on 22 June 1974 in Chennai to director S. A. Chandrasekhar '
-                'and singer Shoba Chandrasekhar. He grew up in the heart of Chennai '
-                'and completed his B.A. in Visual Communication from Loyola College.\n\n'
-                'Vijay is married to Sangeetha Sornalingam and has two children, '
-                'Jason Sanjay and Divya Saasha. Known for his simplicity and '
-                'deep-rooted connection to Tamil culture, he is one of the most '
-                'popular public figures in South India.',
+            title: t('vijay_detail.personal_background_title'),
+            body: t('vijay_detail.personal_background_body'),
           ),
           const SizedBox(height: 16),
 
           // Career Summary
           _SectionCard(
-            title: 'Career Summary',
-            body: 'Vijay made his acting debut as a child in Vetri (1984) and his '
-                'first lead role in Naalaiya Theerpu (1992). Over three decades he '
-                'starred in 68+ films, becoming one of Tamil cinema\'s biggest '
-                'superstars. Blockbusters like Ghilli, Pokkiri, Thuppakki, Mersal, '
-                'Bigil, and Master cemented his iconic status.\n\n'
-                'In 2024, Vijay founded Tamilaga Vettri Kazhagam (TVK), entering '
-                'politics with a vision of transparent governance, youth empowerment, '
-                'and social justice for Tamil Nadu. The party rapidly grew to become '
-                'a major political force, fielding 234 candidates across all Tamil '
-                'Nadu constituencies for the 2026 assembly elections.',
+            title: t('vijay_detail.career_summary_title'),
+            body: t('vijay_detail.career_summary_body'),
           ),
       ],
     );
@@ -319,68 +307,68 @@ class _AchievementsTab extends StatelessWidget {
           // Cinema section
           _AchievementSection(
             imagePath: 'assets/images/campaign1.png',
-            sectionTitle: 'Cinema',
-            badge: '68+ Films',
-            items: const [
+            sectionTitle: t('vijay_detail.cinema_section'),
+            badge: t('vijay_detail.cinema_badge'),
+            items: [
               _AchievementItem(
                 icon: Icons.movie_outlined,
-                title: '68+ Films',
-                description: 'Three-decade career spanning 1984–2024, starring in blockbusters across multiple genres.',
+                title: t('vijay_detail.cinema_films_title'),
+                description: t('vijay_detail.cinema_films_desc'),
               ),
               _AchievementItem(
                 icon: Icons.emoji_events_outlined,
-                title: 'Kalaimamani Award',
-                description: 'Awarded the prestigious Kalaimamani by the Tamil Nadu Government for contribution to Tamil cinema.',
+                title: t('vijay_detail.cinema_kalaimamani_title'),
+                description: t('vijay_detail.cinema_kalaimamani_desc'),
               ),
               _AchievementItem(
                 icon: Icons.star_outline_rounded,
-                title: 'Thalapathy',
-                description: 'Beloved as "Thalapathy" (Commander) by millions of fans — a title earned through decades of dedicated performances.',
+                title: t('vijay_detail.cinema_thalapathy_title'),
+                description: t('vijay_detail.cinema_thalapathy_desc'),
               ),
             ],
           ),
           const SizedBox(height: 20),
 
           // Public Service section
-          _SectionTitle(title: 'Public Service'),
+          _SectionTitle(title: t('vijay_detail.public_service_section')),
           const SizedBox(height: 12),
-          _AchievementCard(items: const [
+          _AchievementCard(items: [
             _AchievementItem(
               icon: Icons.volunteer_activism_outlined,
-              title: 'COVID Relief',
-              description: 'Donated crores for COVID-19 relief efforts, including ventilators, PPE kits, and food for daily-wage workers.',
+              title: t('vijay_detail.covid_relief_title'),
+              description: t('vijay_detail.covid_relief_desc'),
             ),
             _AchievementItem(
               icon: Icons.school_outlined,
-              title: 'Educational Scholarships',
-              description: 'Funded thousands of scholarships for students from economically weaker sections through his charitable foundation.',
+              title: t('vijay_detail.scholarships_title'),
+              description: t('vijay_detail.scholarships_desc'),
             ),
             _AchievementItem(
               icon: Icons.local_hospital_outlined,
-              title: 'Medical Aid',
-              description: 'Provided free medical treatment for hundreds of patients through personal contributions and fundraisers.',
+              title: t('vijay_detail.medical_aid_title'),
+              description: t('vijay_detail.medical_aid_desc'),
             ),
           ]),
           const SizedBox(height: 20),
 
           // Historic Events section
-          _SectionTitle(title: 'Historic Events'),
+          _SectionTitle(title: t('vijay_detail.historic_events_section')),
           const SizedBox(height: 12),
-          _AchievementCard(items: const [
+          _AchievementCard(items: [
             _AchievementItem(
               icon: Icons.flag_outlined,
-              title: 'TVK Founded — 2024',
-              description: 'Founded Tamilaga Vettri Kazhagam on 2 February 2024, drawing 100,000+ members within the first month.',
+              title: t('vijay_detail.tvk_founded_title'),
+              description: t('vijay_detail.tvk_founded_desc'),
             ),
             _AchievementItem(
               icon: Icons.groups_outlined,
-              title: 'Villupuram Rally — 2024',
-              description: 'Addressed a historic rally of over 5 lakh party workers, unveiling TVK\'s governance vision for Tamil Nadu.',
+              title: t('vijay_detail.villupuram_rally_title'),
+              description: t('vijay_detail.villupuram_rally_desc'),
             ),
             _AchievementItem(
               icon: Icons.how_to_vote_outlined,
-              title: '234 Seats — 2026',
-              description: 'TVK fielded candidates in all 234 Tamil Nadu assembly constituencies, marking a full-scale entry into state politics.',
+              title: t('vijay_detail.seats_234_title'),
+              description: t('vijay_detail.seats_234_desc'),
             ),
           ]),
       ],

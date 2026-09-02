@@ -1,0 +1,10 @@
+{
+  "chat_list.new_conversation": { "en": "New conversation", "ta": "புதிய உரையாடல்" },
+  "chat_list.today": { "en": "Today", "ta": "இன்று" },
+  "chat_list.yesterday": { "en": "Yesterday", "ta": "நேற்று" },
+  "chat_list.appbar_title": { "en": "Ask Honorable CM Sir", "ta": "மாண்புமிகு முதலமைச்சர் அவர்களிடம் கேளுங்கள்" },
+  "chat_list.ask_leader": { "en": "Ask {name}", "ta": "{name} அவர்களிடம் கேளுங்கள்" },
+  "chat_list.empty_title": { "en": "Chat with {name}", "ta": "{name} உடன் உரையாடுங்கள்" },
+  "chat_list.empty_subtitle": { "en": "Ask about policies, schemes, or anything you want your CM to know.", "ta": "கொள்கைகள், திட்டங்கள், அல்லது உங்கள் முதலமைச்சர் அறிய வேண்டியவை பற்றி கேளுங்கள்." },
+  "chat_list.start_conversation": { "en": "Start a Conversation", "ta": "உரையாடலைத் தொடங்குங்கள்" }
+}

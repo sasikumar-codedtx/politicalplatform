@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import '../config/app_colors.dart';
 import '../config/app_config.dart';
+import '../config/app_strings.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
 import '../services/chat_stream_service.dart';
@@ -166,7 +167,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   Future<void> _startRecording() async {
     final status = await Permission.microphone.request();
     if (!status.isGranted) {
-      _showError('Microphone permission denied');
+      _showError(t('voice_chat.mic_permission_denied'));
       return;
     }
     // Interrupt any current AI playback before listening
@@ -184,7 +185,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       setState(() => _state = _VoiceState.recording);
       _startTimer();
     } catch (e) {
-      _showError('Could not start recording: $e');
+      _showError('${t('voice_chat.could_not_start_recording')}: $e');
     }
   }
 
@@ -194,7 +195,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   String _friendly(Object e) {
     final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
     if (msg.isEmpty || msg.contains('SocketException') || msg.contains('TimeoutException')) {
-      return 'Sorry, I could not reach the server. Please check your connection.';
+      return t('voice_chat.server_unreachable');
     }
     return msg;
   }
@@ -283,7 +284,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       );
       await completer.future;
     } catch (e) {
-      if (mounted) _showError('Could not connect: $e');
+      if (mounted) _showError('${t('voice_chat.could_not_connect')}: $e');
     }
     // Wait for the audio queue to drain so the next mic turn doesn't start
     // talking over Vijay's last sentence.
@@ -375,7 +376,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       await _player.setFilePath(out.path);
       await _player.play();
     } catch (e) {
-      if (mounted) _showError('Could not play audio: $e');
+      if (mounted) _showError('${t('voice_chat.could_not_play_audio')}: $e');
     } finally {
       if (mounted && myGen == _replayGen) {
         setState(() => _replayingContent = null);
@@ -421,7 +422,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               _buildControls(color),
               const SizedBox(height: 8),
               Text(
-                'Tap to speak in your preferred language',
+                t('voice_chat.tap_to_speak_language'),
                 style: GoogleFonts.inter(
                   color: AppColors.textMuted, fontSize: 12,
                 ),
@@ -451,7 +452,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'You are speaking with',
+                t('voice_chat.you_are_speaking_with'),
                 style: GoogleFonts.inter(
                   color: AppColors.textPrimary,
                   fontSize: 15, fontWeight: FontWeight.w500,
@@ -459,7 +460,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               ),
               const SizedBox(height: 2),
               Text(
-                'Respected Vijay Sir',
+                t('voice_chat.respected_vijay_sir'),
                 style: GoogleFonts.inter(
                   color: color, fontSize: 28, fontWeight: FontWeight.w800,
                   height: 1.1,
@@ -467,7 +468,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                "Hon'ble Chief Minister of Tamil Nadu",
+                t('voice_chat.chief_minister_title'),
                 style: GoogleFonts.inter(
                   color: AppColors.textSecondary,
                   fontSize: 11, fontWeight: FontWeight.w500,
@@ -502,7 +503,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     if (_conversation.isEmpty && !isStreaming) {
       return Center(
         child: Text(
-          'Tap the mic and start speaking',
+          t('voice_chat.tap_mic_start'),
           style: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 13),
         ),
       );
@@ -662,7 +663,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       children: [
         _SideButton(
           icon: Icons.chat_bubble_outline_rounded,
-          label: 'Type',
+          label: t('voice_chat.type_button'),
           onTap: () {
             _streamGen++;
             _player.stop();
@@ -705,11 +706,11 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
 
   String _statusText() {
     switch (_state) {
-      case _VoiceState.idle:          return 'Tap the mic to speak';
-      case _VoiceState.recording:     return 'Respected Chief Minister Vijay Sir is listening...';
-      case _VoiceState.transcribing:  return 'Understanding...';
-      case _VoiceState.thinking:      return 'Honorable CM is thinking...';
-      case _VoiceState.speaking:      return 'Respected Thiru Vijay sir is speaking...';
+      case _VoiceState.idle:          return t('voice_chat.status_idle');
+      case _VoiceState.recording:     return t('voice_chat.status_listening');
+      case _VoiceState.transcribing:  return t('voice_chat.status_transcribing');
+      case _VoiceState.thinking:      return t('voice_chat.status_thinking');
+      case _VoiceState.speaking:      return t('voice_chat.status_speaking');
     }
   }
 

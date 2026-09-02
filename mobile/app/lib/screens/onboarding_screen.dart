@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_strings.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onDone;
@@ -16,30 +17,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
 
   // Slides 1-3 use the generic photo layout; slide 0 is the TVK collage
-  static const _photoSlides = [
-    _SlideData(
-      image: 'assets/images/onboard_1_social_justice.jpg',
-      title: 'Social',
-      subtitle: 'Justice',
-      description:
-          'We promote social justice principles to ensure equality for all social groups and to create equal opportunities for all without discrimination.',
-    ),
-    _SlideData(
-      image: 'assets/images/onboard_2_technology.jpg',
-      title: 'Technological',
-      subtitle: 'development',
-      description:
-          'We want to use modern technologies in public welfare work, simplify political processes, and improve public service.',
-    ),
-    _SlideData(
-      image: 'assets/images/onboard_3_opportunity.jpg',
-      title: 'Opportunity',
-      subtitle: 'for the younger generation',
-      description:
-          'We want to use modern technologies in public welfare work, simplify political processes, and improve public service.',
-      hasCta: true,
-    ),
-  ];
+  List<_SlideData> get _photoSlides => [
+        _SlideData(
+          image: 'assets/images/onboard_1_social_justice.jpg',
+          title: t('onboarding.social_title'),
+          subtitle: t('onboarding.social_subtitle'),
+          description: t('onboarding.social_description'),
+        ),
+        _SlideData(
+          image: 'assets/images/onboard_2_technology.jpg',
+          title: t('onboarding.tech_title'),
+          subtitle: t('onboarding.tech_subtitle'),
+          description: t('onboarding.tech_description'),
+        ),
+        _SlideData(
+          image: 'assets/images/onboard_3_opportunity.jpg',
+          title: t('onboarding.opportunity_title'),
+          subtitle: t('onboarding.opportunity_subtitle'),
+          description: t('onboarding.opportunity_description'),
+          hasCta: true,
+        ),
+      ];
 
   static const _totalSlides = 4; // 1 TVK collage + 3 photo slides
 
@@ -93,7 +91,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
-                      'Skip',
+                      t('onboarding.skip'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -278,7 +276,7 @@ class _TvkCollageSlide extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Tamilaga Vettri Kazhagam',
+                  t('onboarding.tvk_title'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 38,
                     fontWeight: FontWeight.w400,
@@ -289,7 +287,7 @@ class _TvkCollageSlide extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'We want to use modern technologies in public welfare work, simplify political processes, and improve public service.',
+                  t('onboarding.tvk_description'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
@@ -450,7 +448,7 @@ class _OnboardSlide extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        'Bright Future Starts Here !',
+                        t('onboarding.cta_bright_future'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
