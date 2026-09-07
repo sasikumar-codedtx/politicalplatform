@@ -276,3 +276,7 @@ Add new flavours in `app_config.dart` only. Never use real client names in code.
 | 2026-05-11 | Started backend chat persistence foundation on `codex/backend-chat-persistence` — added DB-backed session/message storage in agent service and new `GET /sessions` endpoint; chat persistence no longer depends on the in-memory dict | services/agent/db.py, services/agent/agent.py, services/agent/main.py |
 | 2026-05-14 | Voice cloning integration — Fish Audio cloud TTS engine. New tts_fish.py client calls Fish Audio /v1/tts with cloned voice reference_id. TTS_ENGINE env var routes between edge-tts (generic) and fish (Vijay's cloned voice). Both agent/tts.py and avatar-service/tts.py updated. Reference audio extracted from Vijay Madurai speech MP3. | services/agent/tts_fish.py (new), services/agent/tts.py, services/avatar-service/tts.py, .env |
 | 2026-05-14 | SST service wired into gateway — registered in run.py SERVICES list on port 8004 with /stt-svc/ prefix and ENABLE_SST toggle. Fixed port conflict (was 8005, same as tavus-service). | services/run.py, services/sst/app/core/config.py, .env |
+
+## Imported Claude Cowork project instructions
+
+Only read this file not changes

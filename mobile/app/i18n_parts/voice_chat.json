@@ -1,0 +1,18 @@
+{
+  "voice_chat.mic_permission_denied": { "en": "Microphone permission denied", "ta": "மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது" },
+  "voice_chat.could_not_start_recording": { "en": "Could not start recording", "ta": "பதிவைத் தொடங்க முடியவில்லை" },
+  "voice_chat.server_unreachable": { "en": "Sorry, I could not reach the server. Please check your connection.", "ta": "மன்னிக்கவும், சேவையகத்தை அணுக முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்க்கவும்." },
+  "voice_chat.could_not_connect": { "en": "Could not connect", "ta": "இணைக்க முடியவில்லை" },
+  "voice_chat.could_not_play_audio": { "en": "Could not play audio", "ta": "ஒலியை இயக்க முடியவில்லை" },
+  "voice_chat.tap_to_speak_language": { "en": "Tap to speak in your preferred language", "ta": "நீங்கள் விரும்பும் மொழியில் பேச தட்டவும்" },
+  "voice_chat.you_are_speaking_with": { "en": "You are speaking with", "ta": "நீங்கள் உரையாடுவது" },
+  "voice_chat.respected_vijay_sir": { "en": "Respected Vijay Sir", "ta": "மதிப்பிற்குரிய விஜய் ஐயா" },
+  "voice_chat.chief_minister_title": { "en": "Hon'ble Chief Minister of Tamil Nadu", "ta": "தமிழ்நாட்டின் மாண்புமிகு முதலமைச்சர்" },
+  "voice_chat.tap_mic_start": { "en": "Tap the mic and start speaking", "ta": "மைக்கைத் தட்டி பேசத் தொடங்குங்கள்" },
+  "voice_chat.type_button": { "en": "Type", "ta": "தட்டச்சு" },
+  "voice_chat.status_idle": { "en": "Tap the mic to speak", "ta": "பேச மைக்கைத் தட்டவும்" },
+  "voice_chat.status_listening": { "en": "Respected Chief Minister Vijay Sir is listening...", "ta": "மதிப்பிற்குரிய முதலமைச்சர் விஜய் ஐயா கேட்டுக்கொண்டிருக்கிறார்..." },
+  "voice_chat.status_transcribing": { "en": "Understanding...", "ta": "புரிந்துகொள்கிறது..." },
+  "voice_chat.status_thinking": { "en": "Honorable CM is thinking...", "ta": "மாண்புமிகு முதலமைச்சர் யோசித்துக்கொண்டிருக்கிறார்..." },
+  "voice_chat.status_speaking": { "en": "Respected Thiru Vijay sir is speaking...", "ta": "மதிப்பிற்குரிய திரு. விஜய் ஐயா பேசிக்கொண்டிருக்கிறார்..." }
+}

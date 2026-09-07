@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/news_item.dart';
 import '../models/youtube_video.dart';
 import '../services/content_service.dart';
@@ -136,7 +137,7 @@ class _NewsScreenState extends State<NewsScreen> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          Text('Filter News',
+                          Text(t('news.filter_title'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -150,7 +151,7 @@ class _NewsScreenState extends State<NewsScreen> {
                                 tmpVertical = 'All Sectors';
                                 tmpMinistry = 'All Ministries';
                               }),
-                              child: Text('Clear All',
+                              child: Text(t('news.clear_all'),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -201,21 +202,21 @@ class _NewsScreenState extends State<NewsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                     children: [
                       _SheetFilterSection(
-                        title: 'District',
+                        title: t('news.section_district'),
                         options: _kDistricts,
                         active: tmpDistrict,
                         onSelect: (v) => setSheetState(() => tmpDistrict = v),
                       ),
                       const SizedBox(height: 20),
                       _SheetFilterSection(
-                        title: 'Sector',
+                        title: t('news.section_sector'),
                         options: _kVerticals,
                         active: tmpVertical,
                         onSelect: (v) => setSheetState(() => tmpVertical = v),
                       ),
                       const SizedBox(height: 20),
                       _SheetFilterSection(
-                        title: 'Ministry',
+                        title: t('news.section_ministry'),
                         options: _kMinistries,
                         active: tmpMinistry,
                         onSelect: (v) => setSheetState(() => tmpMinistry = v),
@@ -244,7 +245,7 @@ class _NewsScreenState extends State<NewsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       alignment: Alignment.center,
-                      child: Text('Apply Filters',
+                      child: Text(t('news.apply_filters'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -269,27 +270,55 @@ class _NewsScreenState extends State<NewsScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.surface,
-        body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            SliverToBoxAdapter(
-              child: _NewsBanner(topPad: topPad),
+        body: Stack(
+          children: [
+            NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: _NewsBanner(topPad: topPad),
+                ),
+              ],
+              body: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Color(0xFFE40101)))
+                  : _NewsBody(
+                      news: _filtered,
+                      categories: _kCategories,
+                      activeCategory: _activeCategory,
+                      searchQuery: _searchQuery,
+                      hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
+                      onCategoryChanged: (c) =>
+                          setState(() => _activeCategory = c),
+                      onSearchChanged: (q) =>
+                          setState(() => _searchQuery = q),
+                      onOpenFilters: _openFilterSheet,
+                    ),
+            ),
+            // Sticky back button — only when pushed (not the News tab root);
+            // pinned above the scroll so it never scrolls away.
+            Builder(
+              builder: (ctx) {
+                if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
+                return Positioned(
+                  top: topPad + 14,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
-          body: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFE40101)))
-              : _NewsBody(
-                  news: _filtered,
-                  categories: _kCategories,
-                  activeCategory: _activeCategory,
-                  searchQuery: _searchQuery,
-                  hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
-                  onCategoryChanged: (c) =>
-                      setState(() => _activeCategory = c),
-                  onSearchChanged: (q) =>
-                      setState(() => _searchQuery = q),
-                  onOpenFilters: _openFilterSheet,
-                ),
         ),
       ),
     );
@@ -306,7 +335,7 @@ class _NewsBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: topPad + 160,
+      height: topPad + 190,
       child: Stack(
         children: [
           // TVK flag background
@@ -342,30 +371,6 @@ class _NewsBanner extends StatelessWidget {
             ),
           ),
 
-          // Back button — only when pushed onto stack
-          Builder(
-            builder: (ctx) {
-              if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
-              return Positioned(
-                top: topPad + 14,
-                left: 16,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-                    ),
-                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                  ),
-                ),
-              );
-            },
-          ),
-
           // Title block
           Positioned(
             left: 16,
@@ -380,23 +385,27 @@ class _NewsBanner extends StatelessWidget {
                     colors: [Color(0xFFE40101), Color(0xFF7E0101)],
                   ).createShader(bounds),
                   child: Text(
-                    "TVK's NEWS",
+                    t('news.title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
+                      fontSize: LocaleController.isTamil ? 24 : 34,
                       color: Colors.white,
                       letterSpacing: 0.2,
-                      height: 1.0,
+                      height: 1.05,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Stay informed with real-time news, announcements, and progress from TVK.',
+                  t('news.subtitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     color: Colors.white,
-                    height: 1.5,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -462,7 +471,7 @@ class _NewsBody extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 14, color: AppColors.textPrimary),
                         decoration: InputDecoration(
-                          hintText: 'Search',
+                          hintText: t('news.search_hint'),
                           hintStyle: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -585,7 +594,7 @@ class _NewsBody extends StatelessWidget {
                 const Icon(Icons.filter_list_rounded,
                     size: 14, color: Color(0xFFE40101)),
                 const SizedBox(width: 4),
-                Text('Filters active',
+                Text(t('news.filters_active'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -594,7 +603,7 @@ class _NewsBody extends StatelessWidget {
                 const Spacer(),
                 GestureDetector(
                   onTap: onOpenFilters,
-                  child: Text('Edit',
+                  child: Text(t('news.edit'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -618,7 +627,7 @@ class _NewsBody extends StatelessWidget {
                           size: 48, color: AppColors.textMuted),
                       const SizedBox(height: 12),
                       Text(
-                        'No news found',
+                        t('news.no_news'),
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: AppColors.textMuted),

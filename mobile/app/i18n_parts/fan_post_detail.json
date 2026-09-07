@@ -1,0 +1,7 @@
+{
+  "fan_post_detail.login_to_comment": { "en": "Log in to comment.", "ta": "கருத்து தெரிவிக்க உள்நுழையவும்." },
+  "fan_post_detail.comments": { "en": "Comments", "ta": "கருத்துகள்" },
+  "fan_post_detail.comments_disabled": { "en": "Comments are disabled on this post", "ta": "இந்த இடுகையில் கருத்துகள் முடக்கப்பட்டுள்ளன" },
+  "fan_post_detail.no_comments": { "en": "No comments yet. Be the first!", "ta": "இதுவரை கருத்துகள் இல்லை. முதலில் கருத்து தெரிவியுங்கள்!" },
+  "fan_post_detail.write_comment_hint": { "en": "Write a comment...", "ta": "ஒரு கருத்தை எழுதுங்கள்..." }
+}

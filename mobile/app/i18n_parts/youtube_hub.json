@@ -1,0 +1,17 @@
+{
+  "youtube_hub.tab_live": { "en": "Live", "ta": "நேரலை" },
+  "youtube_hub.tab_videos": { "en": "Videos", "ta": "வீடியோக்கள்" },
+  "youtube_hub.tab_shorts": { "en": "Shorts", "ta": "ஷார்ட்ஸ்" },
+  "youtube_hub.tab_playlists": { "en": "Playlists", "ta": "பிளேலிஸ்ட்கள்" },
+  "youtube_hub.title": { "en": "TVK Videos", "ta": "தமிழக வெற்றிக் கழக வீடியோக்கள்" },
+  "youtube_hub.subtitle": { "en": "Watch live streams, videos, shorts and playlists", "ta": "நேரலை ஒளிபரப்புகள், வீடியோக்கள், ஷார்ட்ஸ் மற்றும் பிளேலிஸ்ட்களைக் காணுங்கள்" },
+  "youtube_hub.live_badge": { "en": "LIVE", "ta": "நேரலை" },
+  "youtube_hub.upcoming_live": { "en": "Upcoming Live", "ta": "வரவிருக்கும் நேரலை" },
+  "youtube_hub.set_reminder": { "en": "Tap to set a reminder", "ta": "நினைவூட்டலை அமைக்க தட்டவும்" },
+  "youtube_hub.not_live": { "en": "Not live right now", "ta": "தற்போது நேரலை இல்லை" },
+  "youtube_hub.check_videos_tab": { "en": "Check the Videos tab for recent uploads", "ta": "சமீபத்திய பதிவேற்றங்களுக்கு வீடியோக்கள் தாவலைப் பார்க்கவும்" },
+  "youtube_hub.no_videos": { "en": "No videos available.", "ta": "வீடியோக்கள் எதுவும் இல்லை." },
+  "youtube_hub.no_shorts": { "en": "No shorts available.", "ta": "ஷார்ட்ஸ் எதுவும் இல்லை." },
+  "youtube_hub.no_playlists": { "en": "No playlists available.", "ta": "பிளேலிஸ்ட்கள் எதுவும் இல்லை." },
+  "youtube_hub.videos_count": { "en": "videos", "ta": "வீடியோக்கள்" }
+}

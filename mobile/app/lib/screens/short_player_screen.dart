@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/youtube_video.dart';
+import '../config/app_strings.dart';
 
 class ShortPlayerScreen extends StatefulWidget {
   final YouTubeVideo video;
@@ -81,7 +82,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        widget.video.isLive ? '🔴 LIVE' : 'Now Playing',
+                        widget.video.isLive ? t('short_player.live') : t('short_player.now_playing'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -137,7 +138,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(widget.video.channelTitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                                  Text(widget.video.isLive ? 'Live Now' : widget.video.formattedDate, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white54)),
+                                  Text(widget.video.isLive ? t('short_player.live_now') : widget.video.formattedDate, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white54)),
                                 ],
                               ),
                             ),
@@ -147,7 +148,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                                 color: const Color(0xFFE40101),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text('Subscribe', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                              child: Text(t('short_player.subscribe'), style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
                             ),
                           ],
                         ),
@@ -161,16 +162,16 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                           children: [
                             _ActionBtn(
                               icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              label: _likeCount > 0 ? '$_likeCount' : 'Like',
+                              label: _likeCount > 0 ? '$_likeCount' : t('short_player.like'),
                               color: _liked ? const Color(0xFFE40101) : Colors.white54,
                               onTap: () => setState(() {
                                 _liked = !_liked;
                                 _likeCount += _liked ? 1 : -1;
                               }),
                             ),
-                            _ActionBtn(icon: Icons.chat_bubble_outline_rounded, label: 'Comment', color: Colors.white54, onTap: _showComments),
-                            _ActionBtn(icon: Icons.repeat_rounded, label: 'Share', color: Colors.white54, onTap: () {}),
-                            _ActionBtn(icon: Icons.download_outlined, label: 'Save', color: Colors.white54, onTap: () {}),
+                            _ActionBtn(icon: Icons.chat_bubble_outline_rounded, label: t('short_player.comment'), color: Colors.white54, onTap: _showComments),
+                            _ActionBtn(icon: Icons.repeat_rounded, label: t('short_player.share'), color: Colors.white54, onTap: () {}),
+                            _ActionBtn(icon: Icons.download_outlined, label: t('short_player.save'), color: Colors.white54, onTap: () {}),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -204,7 +205,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Comments', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              child: Text(t('short_player.comments'), style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
             const SizedBox(height: 12),
             Expanded(

@@ -1,0 +1,13 @@
+{
+  "campaign_toolkit.subtitle_media": { "en": "Explore our members contents", "ta": "எங்கள் உறுப்பினர்களின் உள்ளடக்கங்களைக் காணுங்கள்" },
+  "campaign_toolkit.subtitle_slogans": { "en": "Explore our members Slogans", "ta": "எங்கள் உறுப்பினர்களின் முழக்கங்களைக் காணுங்கள்" },
+  "campaign_toolkit.subtitle_hashtags": { "en": "Explore our members Hashtags", "ta": "எங்கள் உறுப்பினர்களின் ஹேஷ்டேக்குகளைக் காணுங்கள்" },
+  "campaign_toolkit.subtitle_posters": { "en": "Explore our members posts", "ta": "எங்கள் உறுப்பினர்களின் பதிவுகளைக் காணுங்கள்" },
+  "campaign_toolkit.search": { "en": "Search", "ta": "தேடு" },
+  "campaign_toolkit.copied_to_clipboard": { "en": "Copied to clipboard", "ta": "கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது" },
+  "campaign_toolkit.no_results_found": { "en": "No results found", "ta": "முடிவுகள் எதுவும் இல்லை" },
+  "campaign_toolkit.no_media_found": { "en": "No media found", "ta": "ஊடகம் எதுவும் இல்லை" },
+  "campaign_toolkit.best_slogans": { "en": "Best Slogans", "ta": "சிறந்த முழக்கங்கள்" },
+  "campaign_toolkit.best_hashtags": { "en": "Best Hashtags", "ta": "சிறந்த ஹேஷ்டேக்குகள்" },
+  "campaign_toolkit.copy": { "en": "Copy", "ta": "நகலெடு" }
+}

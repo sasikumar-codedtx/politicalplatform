@@ -1,0 +1,6 @@
+{
+  "login_gate.title": { "en": "Login required", "ta": "உள்நுழைவு தேவை" },
+  "login_gate.default_message": { "en": "Please log in to continue.", "ta": "தொடர உள்நுழையவும்." },
+  "login_gate.log_in": { "en": "Log in", "ta": "உள்நுழைக" },
+  "login_gate.cancel": { "en": "Cancel", "ta": "ரத்து செய்" }
+}

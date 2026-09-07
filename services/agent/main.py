@@ -539,6 +539,17 @@ async def complaints_create(
     title: str = Form(...),
     description: str = Form(""),
     category: str = Form("General"),
+    subcategory: str = Form(""),
+    department: str = Form(""),
+    district: str = Form(""),
+    taluk: str = Form(""),
+    local_body: str = Form(""),
+    village: str = Form(""),
+    ward: str = Form(""),
+    pincode: str = Form(""),
+    address: str = Form(""),
+    previous_ref: str = Form(""),
+    is_urgent: bool = Form(False),
     file: UploadFile | None = File(default=None),
     authorization: str | None = Header(default=None),
     x_device_id: str | None = Header(default=None),
@@ -560,7 +571,13 @@ async def complaints_create(
             data = None
     row = add_complaint(uid, device_id, title, description.strip(),
                         category.strip() or "General",
-                        attachment=data, attachment_name=name, attachment_mime=mime)
+                        attachment=data, attachment_name=name, attachment_mime=mime,
+                        subcategory=subcategory.strip(), department=department.strip(),
+                        district=district.strip(), taluk=taluk.strip(),
+                        local_body=local_body.strip(), village=village.strip(),
+                        ward=ward.strip(), pincode=pincode.strip(),
+                        address=address.strip(), previous_ref=previous_ref.strip(),
+                        is_urgent=is_urgent)
     audit("complaint_created", entity_type="complaint", entity_id=str(row["id"]),
           metadata={"category": row["category"], "has_attachment": row["has_attachment"]})
     return row

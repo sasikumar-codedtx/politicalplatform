@@ -1,0 +1,17 @@
+{
+  "event_detail.date": { "en": "Date", "ta": "தேதி" },
+  "event_detail.time": { "en": "Time", "ta": "நேரம்" },
+  "event_detail.location": { "en": "Location", "ta": "இடம்" },
+  "event_detail.view_map": { "en": "View Map", "ta": "வரைபடத்தைக் காண்க" },
+  "event_detail.about_this_event": { "en": "About This Event", "ta": "இந்த நிகழ்வு பற்றி" },
+  "event_detail.attendance_note": { "en": "All TVK members and supporters are encouraged to attend. This is an important gathering to discuss key issues affecting our constituency and to strengthen party organisation at the district level.", "ta": "அனைத்து தமிழக வெற்றிக் கழக உறுப்பினர்களும் ஆதரவாளர்களும் கலந்து கொள்ளுமாறு அன்புடன் அழைக்கப்படுகிறீர்கள். நமது தொகுதியைப் பாதிக்கும் முக்கிய பிரச்சினைகளைக் கலந்துரையாடவும், மாவட்ட அளவில் கட்சி அமைப்பை வலுப்படுத்தவும் இது ஒரு முக்கியமான கூட்டமாகும்." },
+  "event_detail.what_to_expect": { "en": "What to Expect", "ta": "எதை எதிர்பார்க்கலாம்" },
+  "event_detail.expect_opening_address": { "en": "Opening address by district president", "ta": "மாவட்டத் தலைவரின் தொடக்க உரை" },
+  "event_detail.expect_policy_discussions": { "en": "Policy discussions and updates", "ta": "கொள்கை கலந்துரையாடல்கள் மற்றும் புதுப்பிப்புகள்" },
+  "event_detail.expect_qa_session": { "en": "Q&A session with party leaders", "ta": "கட்சித் தலைவர்களுடன் கேள்வி பதில் அமர்வு" },
+  "event_detail.expect_networking": { "en": "Networking with fellow members", "ta": "சக உறுப்பினர்களுடன் தொடர்பு ஏற்படுத்துதல்" },
+  "event_detail.expect_cultural_programme": { "en": "Cultural programme", "ta": "கலை நிகழ்ச்சி" },
+  "event_detail.people_attending": { "en": "342 people are attending", "ta": "342 பேர் கலந்து கொள்கின்றனர்" },
+  "event_detail.attending": { "en": "You're Attending", "ta": "நீங்கள் கலந்து கொள்கிறீர்கள்" },
+  "event_detail.rsvp_attend": { "en": "RSVP — I'll Attend", "ta": "பதிவு செய்க — நான் கலந்து கொள்கிறேன்" }
+}

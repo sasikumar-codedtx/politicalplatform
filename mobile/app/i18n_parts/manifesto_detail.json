@@ -1,0 +1,15 @@
+{
+  "manifesto_detail.milestones": { "en": "Milestones", "ta": "மைல்கற்கள்" },
+  "manifesto_detail.phase_1": { "en": "Phase 1", "ta": "கட்டம் 1" },
+  "manifesto_detail.phase_1_title": { "en": "Planning & Setup", "ta": "திட்டமிடல் & அமைப்பு" },
+  "manifesto_detail.phase_1_desc": { "en": "Project team formed, objectives defined, initial resource allocation completed.", "ta": "திட்டக் குழு உருவாக்கப்பட்டது, இலக்குகள் வரையறுக்கப்பட்டன, தொடக்க வள ஒதுக்கீடு நிறைவு செய்யப்பட்டது." },
+  "manifesto_detail.phase_2": { "en": "Phase 2", "ta": "கட்டம் 2" },
+  "manifesto_detail.phase_2_title": { "en": "Implementation Begins", "ta": "செயல்பாடு தொடங்குகிறது" },
+  "manifesto_detail.phase_2_desc": { "en": "Field work starts across priority districts with monitoring committees established.", "ta": "கண்காணிப்புக் குழுக்கள் அமைக்கப்பட்டு, முன்னுரிமை மாவட்டங்களில் களப்பணி தொடங்குகிறது." },
+  "manifesto_detail.phase_3": { "en": "Phase 3", "ta": "கட்டம் 3" },
+  "manifesto_detail.phase_3_title": { "en": "Mid-term Review", "ta": "இடைக்கால மதிப்பாய்வு" },
+  "manifesto_detail.phase_3_desc": { "en": "Progress evaluated against targets, adjustments made based on ground feedback.", "ta": "இலக்குகளுக்கு எதிராக முன்னேற்றம் மதிப்பிடப்பட்டு, களக் கருத்துகளின் அடிப்படையில் மாற்றங்கள் செய்யப்படுகின்றன." },
+  "manifesto_detail.phase_4": { "en": "Phase 4", "ta": "கட்டம் 4" },
+  "manifesto_detail.phase_4_title": { "en": "Completion & Handover", "ta": "நிறைவு & ஒப்படைப்பு" },
+  "manifesto_detail.phase_4_desc": { "en": "Project delivered to local bodies with long-term maintenance plans in place.", "ta": "நீண்டகால பராமரிப்புத் திட்டங்களுடன் திட்டம் உள்ளாட்சி அமைப்புகளிடம் ஒப்படைக்கப்படுகிறது." }
+}

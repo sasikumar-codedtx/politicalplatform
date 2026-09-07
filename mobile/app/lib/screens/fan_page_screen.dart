@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/fan_post.dart';
 import '../services/fan_post_service.dart';
 import 'create_fan_post_screen.dart';
 import 'fan_post_detail_screen.dart';
+import '../widgets/login_gate.dart';
 
 class FanPageScreen extends StatefulWidget {
   const FanPageScreen({super.key});
@@ -48,6 +50,8 @@ class _FanPageScreenState extends State<FanPageScreen>
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFE40101),
         onPressed: () async {
+          if (!await requireLogin(context, message: t('fan_page.login_to_post'))) return;
+          if (!context.mounted) return;
           await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CreateFanPostScreen()),
@@ -56,44 +60,72 @@ class _FanPageScreenState extends State<FanPageScreen>
         },
         child: const Icon(Icons.edit_rounded, color: Colors.white),
       ),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, _) => [
-          SliverToBoxAdapter(child: _Header(topPad: topPad)),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              TabBar(
-                controller: _tabController,
-                labelColor: const Color(0xFFE40101),
-                unselectedLabelColor: AppColors.textPrimary,
-                indicatorColor: const Color(0xFFE40101),
-                indicatorWeight: 2,
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+      body: Stack(
+        children: [
+          NestedScrollView(
+            headerSliverBuilder: (context, _) => [
+              SliverToBoxAdapter(child: _Header(topPad: topPad)),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _TabBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: const Color(0xFFE40101),
+                    unselectedLabelColor: AppColors.textPrimary,
+                    indicatorColor: const Color(0xFFE40101),
+                    indicatorWeight: 2,
+                    labelStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    tabs: [Tab(text: t('fan_page.tab_all')), Tab(text: t('fan_page.tab_popular'))],
+                  ),
                 ),
-                unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: const [Tab(text: 'All'), Tab(text: 'Popular')],
               ),
-            ),
+            ],
+            body: _loading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFE40101)))
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _PostList(posts: _posts, onRefresh: _load),
+                      _PostList(
+                        posts: List.from(_posts)
+                          ..sort((a, b) => b.likeCount.compareTo(a.likeCount)),
+                        onRefresh: _load,
+                      ),
+                    ],
+                  ),
+          ),
+          // Sticky back button — only when pushed (not the Forum tab root);
+          // pinned above the scroll so it never scrolls away.
+          Builder(
+            builder: (ctx) {
+              if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
+              return Positioned(
+                top: topPad + 14,
+                left: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                    ),
+                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                  ),
+                ),
+              );
+            },
           ),
         ],
-        body: _loading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFE40101)))
-            : TabBarView(
-                controller: _tabController,
-                children: [
-                  _PostList(posts: _posts, onRefresh: _load),
-                  _PostList(
-                    posts: List.from(_posts)
-                      ..sort((a, b) => b.likeCount.compareTo(a.likeCount)),
-                    onRefresh: _load,
-                  ),
-                ],
-              ),
       ),
     );
   }
@@ -134,29 +166,6 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          // Conditional back button — only when this screen was pushed
-          Builder(
-            builder: (ctx) {
-              if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
-              return Positioned(
-                top: topPad + 14,
-                left: 16,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-                    ),
-                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                  ),
-                ),
-              );
-            },
-          ),
           Positioned(
             bottom: 0,
             left: 16,
@@ -169,9 +178,11 @@ class _Header extends StatelessWidget {
                     colors: [Color(0xFFE40101), Color(0xFF7E0101)],
                   ).createShader(bounds),
                   child: Text(
-                    'COMMUNITY WALL',
+                    t('fan_page.title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
+                      fontSize: LocaleController.isTamil ? 26 : 34,
                       color: Colors.white,
                       letterSpacing: 0.2,
                     ),
@@ -179,9 +190,11 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Fan posts approved by TVK volunteers',
+                  t('fan_page.subtitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
+                    fontSize: LocaleController.isTamil ? 13 : 16,
                     color: Colors.white,
                     height: 1.4,
                   ),
@@ -233,7 +246,7 @@ class _PostList extends StatelessWidget {
             Icon(Icons.article_outlined, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(
-              'No posts yet',
+              t('fan_page.no_posts'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 color: AppColors.textMuted,
@@ -294,6 +307,8 @@ class _PostCardState extends State<_PostCard> {
 
   Future<void> _toggleLike() async {
     if (_likeLoading) return;
+    if (!await requireLogin(context, message: t('fan_page.login_to_like'))) return;
+    if (!mounted) return;
     setState(() => _likeLoading = true);
     final newCount = await FanPostService.toggleLike(widget.post.id, _userId);
     if (mounted) {

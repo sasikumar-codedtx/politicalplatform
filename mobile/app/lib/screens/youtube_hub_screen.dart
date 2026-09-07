@@ -4,6 +4,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/youtube_video.dart';
 import '../models/youtube_playlist.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/youtube_service.dart';
 import 'video_player_screen.dart';
 import 'shorts_reel_screen.dart';
@@ -23,13 +24,18 @@ class _YoutubeHubScreenState extends State<YoutubeHubScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  static const _tabs = ['Live', 'Videos', 'Shorts', 'Playlists'];
+  List<String> get _tabLabels => [
+        t('youtube_hub.tab_live'),
+        t('youtube_hub.tab_videos'),
+        t('youtube_hub.tab_shorts'),
+        t('youtube_hub.tab_playlists'),
+      ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: _tabs.length,
+      length: 4,
       vsync: this,
       initialIndex: widget.initialTab,
     );
@@ -55,7 +61,7 @@ class _YoutubeHubScreenState extends State<YoutubeHubScreen>
             delegate: _TabBarDelegate(
               TabBar(
                 controller: _tabController,
-                tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                tabs: _tabLabels.map((label) => Tab(text: label)).toList(),
                 labelColor: const Color(0xFFE40101),
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: const Color(0xFFE40101),
@@ -163,9 +169,11 @@ class _Header extends StatelessWidget {
                     colors: [Color(0xFFE40101), Color(0xFF7E0101)],
                   ).createShader(bounds),
                   child: Text(
-                    'TVK VIDEOS',
+                    t('youtube_hub.title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
+                      fontSize: LocaleController.isTamil ? 22 : 34,
                       color: Colors.white,
                       letterSpacing: 0.2,
                     ),
@@ -173,9 +181,11 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Official channel — Live streams, videos & shorts',
+                  t('youtube_hub.subtitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
+                    fontSize: LocaleController.isTamil ? 11 : 13,
                     color: Colors.white,
                     height: 1.4,
                   ),
@@ -360,7 +370,7 @@ class _LivePlayerSectionState extends State<_LivePlayerSection> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'LIVE',
+                                t('youtube_hub.live_badge'),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -445,7 +455,7 @@ class _UpcomingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Upcoming Live',
+                  t('youtube_hub.upcoming_live'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: const Color(0xFFE40101),
@@ -464,7 +474,7 @@ class _UpcomingCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  'Set a reminder',
+                  t('youtube_hub.set_reminder'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     color: AppColors.textMuted,
@@ -500,7 +510,7 @@ class _OfflineCard extends StatelessWidget {
           Icon(Icons.live_tv_outlined, size: 40, color: AppColors.textMuted),
           const SizedBox(height: 12),
           Text(
-            'Not live right now',
+            t('youtube_hub.not_live'),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -509,7 +519,7 @@ class _OfflineCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Check the Videos tab for recent content.',
+            t('youtube_hub.check_videos_tab'),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               color: AppColors.textSecondary,
@@ -564,7 +574,7 @@ class _VideosTabState extends State<_VideosTab>
     if (_videos.isEmpty) {
       return Center(
         child: Text(
-          'No videos available.',
+          t('youtube_hub.no_videos'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -625,7 +635,7 @@ class _ShortsTabState extends State<_ShortsTab>
     if (_shorts.isEmpty) {
       return Center(
         child: Text(
-          'No shorts available.',
+          t('youtube_hub.no_shorts'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -702,7 +712,7 @@ class _PlaylistsTabState extends State<_PlaylistsTab>
     if (_playlists.isEmpty) {
       return Center(
         child: Text(
-          'No playlists available.',
+          t('youtube_hub.no_playlists'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -797,7 +807,7 @@ class _VideoCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'LIVE',
+                            t('youtube_hub.live_badge'),
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -1045,7 +1055,7 @@ class _PlaylistCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${playlist.videoCount} videos',
+                      '${playlist.videoCount} ${t('youtube_hub.videos_count')}',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: const Color(0xFFE40101),

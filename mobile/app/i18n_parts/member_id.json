@@ -1,0 +1,12 @@
+{
+  "member_id.share_intro": { "en": "I am now a TVK member! 🚩", "ta": "நான் இப்போது தமிழக வெற்றிக் கழக உறுப்பினர்! 🚩" },
+  "member_id.share_join_cta": { "en": "Join TVK on the My TVK app.", "ta": "My TVK செயலியில் தமிழக வெற்றிக் கழகத்தில் இணையுங்கள்." },
+  "member_id.member_id_label": { "en": "Member ID", "ta": "உறுப்பினர் அடையாள எண்" },
+  "member_id.card_ready": { "en": "Your id card is ready!", "ta": "உங்கள் அடையாள அட்டை தயாராக உள்ளது!" },
+  "member_id.get_id_card": { "en": "Get your id card", "ta": "உங்கள் அடையாள அட்டையைப் பெறுங்கள்" },
+  "member_id.back_to_home": { "en": "Back to Home", "ta": "முகப்புக்குத் திரும்பு" },
+  "member_id.name": { "en": "Name", "ta": "பெயர்" },
+  "member_id.mobile_no": { "en": "Mobile No", "ta": "கைபேசி எண்" },
+  "member_id.district": { "en": "District", "ta": "மாவட்டம்" },
+  "member_id.booth_no": { "en": "Booth No", "ta": "வாக்குச்சாவடி எண்" }
+}

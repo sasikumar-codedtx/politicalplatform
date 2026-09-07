@@ -1,0 +1,15 @@
+{
+  "onboarding.skip": { "en": "Skip", "ta": "தவிர்" },
+  "onboarding.tvk_title": { "en": "Tamilaga Vettri Kazhagam", "ta": "தமிழக வெற்றிக் கழகம்" },
+  "onboarding.tvk_description": { "en": "We want to use modern technologies in public welfare work, simplify political processes, and improve public service.", "ta": "பொதுநல பணிகளில் நவீன தொழில்நுட்பங்களைப் பயன்படுத்தி, அரசியல் செயல்முறைகளை எளிமையாக்கி, பொதுச் சேவையை மேம்படுத்த விரும்புகிறோம்." },
+  "onboarding.social_title": { "en": "Social", "ta": "சமூக" },
+  "onboarding.social_subtitle": { "en": "Justice", "ta": "நீதி" },
+  "onboarding.social_description": { "en": "We promote social justice principles to ensure equality for all social groups and to create equal opportunities for all without discrimination.", "ta": "அனைத்து சமூகப் பிரிவினருக்கும் சமத்துவத்தை உறுதி செய்யவும், பாகுபாடின்றி அனைவருக்கும் சம வாய்ப்புகளை உருவாக்கவும் சமூக நீதிக் கொள்கைகளை நாங்கள் முன்னெடுக்கிறோம்." },
+  "onboarding.tech_title": { "en": "Technological", "ta": "தொழில்நுட்ப" },
+  "onboarding.tech_subtitle": { "en": "development", "ta": "வளர்ச்சி" },
+  "onboarding.tech_description": { "en": "We want to use modern technologies in public welfare work, simplify political processes, and improve public service.", "ta": "பொதுநல பணிகளில் நவீன தொழில்நுட்பங்களைப் பயன்படுத்தி, அரசியல் செயல்முறைகளை எளிமையாக்கி, பொதுச் சேவையை மேம்படுத்த விரும்புகிறோம்." },
+  "onboarding.opportunity_title": { "en": "Opportunity", "ta": "வாய்ப்பு" },
+  "onboarding.opportunity_subtitle": { "en": "for the younger generation", "ta": "இளைய தலைமுறையினருக்கு" },
+  "onboarding.opportunity_description": { "en": "We want to use modern technologies in public welfare work, simplify political processes, and improve public service.", "ta": "பொதுநல பணிகளில் நவீன தொழில்நுட்பங்களைப் பயன்படுத்தி, அரசியல் செயல்முறைகளை எளிமையாக்கி, பொதுச் சேவையை மேம்படுத்த விரும்புகிறோம்." },
+  "onboarding.cta_bright_future": { "en": "Bright Future Starts Here !", "ta": "ஒளிமயமான எதிர்காலம் இங்கே தொடங்குகிறது !" }
+}

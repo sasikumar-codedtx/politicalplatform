@@ -1,0 +1,11 @@
+{
+  "short_player.live": { "en": "🔴 LIVE", "ta": "🔴 நேரலை" },
+  "short_player.now_playing": { "en": "Now Playing", "ta": "இப்போது இயங்குகிறது" },
+  "short_player.live_now": { "en": "Live Now", "ta": "இப்போது நேரலை" },
+  "short_player.subscribe": { "en": "Subscribe", "ta": "பதிவு செய்யுங்கள்" },
+  "short_player.like": { "en": "Like", "ta": "விருப்பம்" },
+  "short_player.comment": { "en": "Comment", "ta": "கருத்து" },
+  "short_player.share": { "en": "Share", "ta": "பகிர்" },
+  "short_player.save": { "en": "Save", "ta": "சேமி" },
+  "short_player.comments": { "en": "Comments", "ta": "கருத்துகள்" }
+}

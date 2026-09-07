@@ -1,0 +1,19 @@
+{
+  "main_shell.ask_ai": { "en": "Ask AI", "ta": "AI-யிடம் கேளுங்கள்" },
+  "main_shell.nav_home": { "en": "Home", "ta": "முகப்பு" },
+  "main_shell.nav_forum": { "en": "Forum", "ta": "மன்றம்" },
+  "main_shell.nav_news": { "en": "News", "ta": "செய்திகள்" },
+  "main_shell.nav_projects": { "en": "Plans", "ta": "திட்டங்கள்" },
+  "main_shell.nav_grievance": { "en": "Grievance", "ta": "புகார்" },
+  "main_shell.nav_ai": { "en": "AI", "ta": "AI" },
+  "main_shell.login_with_mobile": { "en": "Login with Mobile", "ta": "கைபேசி எண்ணுடன் உள்நுழையுங்கள்" },
+  "main_shell.login_required": { "en": "Login Required", "ta": "உள்நுழைவு தேவை" },
+  "main_shell.login_subtitle": { "en": "Sign in with your mobile number to chat\nor talk with Vijay. Your messages are private.", "ta": "விஜயுடன் அரட்டையடிக்க அல்லது பேச உங்கள்\nகைபேசி எண்ணுடன் உள்நுழையுங்கள். உங்கள் செய்திகள் தனிப்பட்டவை." },
+  "main_shell.cancel": { "en": "Cancel", "ta": "ரத்து செய்" },
+  "main_shell.active_member": { "en": "ACTIVE MEMBER", "ta": "செயல்பாட்டு உறுப்பினர்" },
+  "main_shell.become_member_title": { "en": "Become a TVK Member", "ta": "TVK உறுப்பினராகுங்கள்" },
+  "main_shell.become_member_subtitle": { "en": "Get your official TVK member ID card,\naccess exclusive events, and more.", "ta": "உங்கள் அதிகாரப்பூர்வ TVK உறுப்பினர் அடையாள அட்டையைப் பெறுங்கள்,\nசிறப்பு நிகழ்வுகள் மற்றும் பலவற்றை அணுகுங்கள்." },
+  "main_shell.join_now": { "en": "Join TVK Now", "ta": "இப்போதே TVK-வில் இணையுங்கள்" },
+  "main_shell.maybe_later": { "en": "Maybe Later", "ta": "பின்னர் பார்க்கலாம்" },
+  "main_shell.nav_my_tvk": { "en": "My TVK", "ta": "எனது TVK" }
+}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/fan_post_service.dart';
 import '../services/profile_service.dart';
 
@@ -22,7 +23,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
 
   String get _userName {
     final n = _nameController.text.trim();
-    return n.isEmpty ? 'TVK Member' : n;
+    return n.isEmpty ? t('create_fan_post.default_author') : n;
   }
 
   @override
@@ -72,7 +73,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Post published!', style: GoogleFonts.plusJakartaSans()),
+          content: Text(t('create_fan_post.post_published'), style: GoogleFonts.plusJakartaSans()),
           backgroundColor: const Color(0xFF388E3C),
         ),
       );
@@ -92,7 +93,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: Text(
-          'Create Post',
+          t('create_fan_post.title'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -103,7 +104,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
           TextButton(
             onPressed: hasText ? _submit : null,
             child: Text(
-              'Post',
+              t('create_fan_post.post_action'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -125,7 +126,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                 children: [
                   // Name — shown as the poster (not the phone number)
                   Text(
-                    'Your Name',
+                    t('create_fan_post.your_name'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -139,7 +140,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15, color: AppColors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Enter your name',
+                      hintText: t('create_fan_post.name_hint'),
                       hintStyle: GoogleFonts.plusJakartaSans(
                         fontSize: 15, color: AppColors.textMuted),
                       contentPadding: const EdgeInsets.symmetric(
@@ -165,7 +166,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                       height: 1.5,
                     ),
                     decoration: InputDecoration(
-                      hintText: "What's on your mind?",
+                      hintText: t('create_fan_post.content_hint'),
                       hintStyle: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         color: AppColors.textMuted,
@@ -176,7 +177,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                   ),
                   const Divider(height: 32),
                   Text(
-                    'Add Photo or Video (optional)',
+                    t('create_fan_post.add_media_label'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -204,7 +205,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                                 size: 30, color: Color(0xFFE40101)),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap to attach an image or video',
+                              t('create_fan_post.attach_prompt'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13, color: AppColors.textSecondary),
                             ),
@@ -251,7 +252,7 @@ class _CreateFanPostScreenState extends State<CreateFanPostScreen> {
                           ),
                         )
                       : Text(
-                          'Post',
+                          t('create_fan_post.post_action'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
 import '../config/app_config.dart';
+import '../config/app_strings.dart';
 import '../models/chat_session.dart';
 import '../services/agent_service.dart';
 import '../services/device_session.dart';
@@ -57,7 +58,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final sessionId = await DeviceSession.rotate();
     final session = ChatSession(
       id: sessionId,
-      title: 'New conversation',
+      title: t('chat_list.new_conversation'),
       createdAt: DateTime.now(),
       lastMessage: '',
     );
@@ -79,8 +80,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays == 0) return t('chat_list.today');
+    if (diff.inDays == 1) return t('chat_list.yesterday');
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
@@ -100,7 +101,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         elevation: 0,
         scrolledUnderElevation: 1,
         automaticallyImplyLeading: false,
-        title: Text('Ask Honorable CM Sir', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.textPrimary)),
+        title: Text(t('chat_list.appbar_title'), style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.textPrimary)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(color: border, height: 1),
@@ -153,21 +154,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _startNewChat,
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-        label: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
-          child: Text(
-            'Ask ${flavor.leaderName}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ),
+      // The empty state already has its own "Start Conversation" CTA — showing
+      // this FAB too gave citizens two identical "start chat" buttons at once.
+      floatingActionButton: (_loading || _sessions.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _startNewChat,
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(
+                  t('chat_list.ask_leader').replaceAll('{name}', flavor.leaderName),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
     );
   }
 }
@@ -193,14 +198,14 @@ class _EmptyState extends StatelessWidget {
               child: Icon(Icons.chat_bubble_outline_rounded, size: 44, color: primary),
             ),
             const SizedBox(height: 20),
-            Text('Chat with ${flavor.leaderName.split(' ')[0]}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+            Text(t('chat_list.empty_title').replaceAll('{name}', flavor.leaderName.split(' ')[0]), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
-            Text('Ask about policies, schemes, or anything you want your CM to know.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.6), textAlign: TextAlign.center),
+            Text(t('chat_list.empty_subtitle'), style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.6), textAlign: TextAlign.center),
             const SizedBox(height: 28),
             ElevatedButton.icon(
               onPressed: onStart,
               icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-              label: Text('Start a Conversation', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              label: Text(t('chat_list.start_conversation'), style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: Colors.white,

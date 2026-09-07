@@ -1,0 +1,10 @@
+{
+  "phone_login.tagline": { "en": "Your voice matters.", "ta": "உங்கள் குரல் முக்கியம்." },
+  "phone_login.enter_mobile_number": { "en": "Enter your mobile number", "ta": "உங்கள் கைபேசி எண்ணை உள்ளிடவும்" },
+  "phone_login.enter_otp_sent": { "en": "Enter the OTP sent to your number", "ta": "உங்கள் எண்ணுக்கு அனுப்பப்பட்ட OTP-ஐ உள்ளிடவும்" },
+  "phone_login.otp_hint": { "en": "6-digit OTP", "ta": "6 இலக்க OTP" },
+  "phone_login.enter_6_digit_otp": { "en": "Enter the 6-digit OTP", "ta": "6 இலக்க OTP-ஐ உள்ளிடவும்" },
+  "phone_login.verify_otp": { "en": "Verify OTP", "ta": "OTP சரிபார்க்கவும்" },
+  "phone_login.send_otp": { "en": "Send OTP", "ta": "OTP அனுப்பவும்" },
+  "phone_login.change_number": { "en": "Change number", "ta": "எண்ணை மாற்றவும்" }
+}

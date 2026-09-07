@@ -193,6 +193,18 @@ def init_db() -> None:
             cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS attachment BYTEA;")
             cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS attachment_name TEXT NOT NULL DEFAULT '';")
             cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS attachment_mime TEXT NOT NULL DEFAULT '';")
+            # File a Grievance — location + classification detail.
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS subcategory TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS department TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS district TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS taluk TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS local_body TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS village TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS ward TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS pincode TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS address TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS previous_ref TEXT NOT NULL DEFAULT '';")
+            cur.execute("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS is_urgent BOOLEAN NOT NULL DEFAULT false;")
             # TVK membership — the Join form. serial drives the printed member id.
             # One login can register several members (family / booth sign-ups),
             # so uid is NOT unique — serial is the key. device_id lets a
@@ -428,19 +440,31 @@ def _adopt_complaints(cur, uid: str, device_id: str) -> None:
 def add_complaint(uid: str, device_id: str, title: str, description: str,
                   category: str,
                   attachment: bytes | None = None, attachment_name: str = "",
-                  attachment_mime: str = "") -> dict:
+                  attachment_mime: str = "",
+                  subcategory: str = "", department: str = "",
+                  district: str = "", taluk: str = "", local_body: str = "",
+                  village: str = "", ward: str = "", pincode: str = "",
+                  address: str = "", previous_ref: str = "",
+                  is_urgent: bool = False) -> dict:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
                 INSERT INTO complaints (uid, device_id, title, description, category,
-                                        attachment, attachment_name, attachment_mime)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, title, description, category, status, created_at, attachment_name
+                                        attachment, attachment_name, attachment_mime,
+                                        subcategory, department, district, taluk,
+                                        local_body, village, ward, pincode, address,
+                                        previous_ref, is_urgent)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, title, description, category, status, created_at, attachment_name,
+                          subcategory, department, district, taluk, local_body, village, ward,
+                          pincode, address, previous_ref, is_urgent
                 """,
                 (uid, device_id, title, description, category,
                  psycopg2.Binary(attachment) if attachment else None,
-                 attachment_name, attachment_mime),
+                 attachment_name, attachment_mime,
+                 subcategory, department, district, taluk, local_body, village,
+                 ward, pincode, address, previous_ref, is_urgent),
             )
             row = cur.fetchone()
             return {
@@ -452,6 +476,17 @@ def add_complaint(uid: str, device_id: str, title: str, description: str,
                 "created_at": _iso(row["created_at"]),
                 "has_attachment": bool(row["attachment_name"]),
                 "attachment_name": row["attachment_name"],
+                "subcategory": row["subcategory"],
+                "department": row["department"],
+                "district": row["district"],
+                "taluk": row["taluk"],
+                "local_body": row["local_body"],
+                "village": row["village"],
+                "ward": row["ward"],
+                "pincode": row["pincode"],
+                "address": row["address"],
+                "previous_ref": row["previous_ref"],
+                "is_urgent": row["is_urgent"],
             }
 
 

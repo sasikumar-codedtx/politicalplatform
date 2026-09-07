@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import 'main_shell.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
@@ -84,7 +85,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     if (_loading) return; // guard against rapid double-taps
     final code = _otpController.text.trim();
     if (code.length < 6) {
-      setState(() => _error = 'Enter the 6-digit OTP');
+      setState(() => _error = t('phone_login.enter_6_digit_otp'));
       return;
     }
     setState(() { _loading = true; _error = null; });
@@ -120,7 +121,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       body: SafeArea(
+        top: false,
         // Scrollable so the form never overflows when the keyboard opens;
         // minHeight + IntrinsicHeight keep the Spacer-centred layout otherwise.
         child: LayoutBuilder(
@@ -144,12 +151,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Your voice matters.',
+                t('phone_login.tagline'),
                 style: GoogleFonts.inter(fontSize: 16, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 48),
               if (!_codeSent) ...[
-                Text('Enter your mobile number',
+                Text(t('phone_login.enter_mobile_number'),
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 TextField(
@@ -168,7 +175,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   ),
                 ),
               ] else ...[
-                Text('Enter the OTP sent to your number',
+                Text(t('phone_login.enter_otp_sent'),
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 TextField(
@@ -176,7 +183,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   keyboardType: TextInputType.number,
                   maxLength: 6,
                   decoration: InputDecoration(
-                    hintText: '6-digit OTP',
+                    hintText: t('phone_login.otp_hint'),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -206,7 +213,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                           width: 22, height: 22,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text(
-                          _codeSent ? 'Verify OTP' : 'Send OTP',
+                          _codeSent ? t('phone_login.verify_otp') : t('phone_login.send_otp'),
                           style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                 ),
@@ -216,7 +223,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 Center(
                   child: TextButton(
                     onPressed: () => setState(() { _codeSent = false; _otpController.clear(); }),
-                    child: Text('Change number', style: TextStyle(color: color)),
+                    child: Text(t('phone_login.change_number'), style: TextStyle(color: color)),
                   ),
                 ),
               ],

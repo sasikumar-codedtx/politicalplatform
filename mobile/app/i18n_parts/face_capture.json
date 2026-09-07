@@ -1,0 +1,14 @@
+{
+  "face_capture.no_photo_warning": { "en": "Please capture or select a photo first", "ta": "முதலில் ஒரு புகைப்படத்தை எடுக்கவும் அல்லது தேர்ந்தெடுக்கவும்" },
+  "face_capture.title": { "en": "Photo ID Card", "ta": "புகைப்பட அடையாள அட்டை" },
+  "face_capture.position_face": { "en": "Position your face inside the frame", "ta": "உங்கள் முகத்தை சட்டகத்திற்குள் வைக்கவும்" },
+  "face_capture.photo_ready": { "en": "Photo ready! Tap \"Use Photo\" or retake", "ta": "புகைப்படம் தயார்! \"புகைப்படத்தைப் பயன்படுத்து\" என்பதைத் தட்டவும் அல்லது மீண்டும் எடுக்கவும்" },
+  "face_capture.take_photo_heading": { "en": "Take your photo", "ta": "உங்கள் புகைப்படத்தை எடுக்கவும்" },
+  "face_capture.take_photo_hint": { "en": "Make sure your face is clearly visible and well-lit", "ta": "உங்கள் முகம் தெளிவாகத் தெரிவதையும் நல்ல வெளிச்சத்தில் இருப்பதையும் உறுதி செய்யவும்" },
+  "face_capture.gallery": { "en": "Gallery", "ta": "கேலரி" },
+  "face_capture.flash": { "en": "Flash", "ta": "ஃபிளாஷ்" },
+  "face_capture.use_this_photo": { "en": "Use this photo?", "ta": "இந்தப் புகைப்படத்தைப் பயன்படுத்தவா?" },
+  "face_capture.photo_id_note": { "en": "Your photo will appear on your TVK member ID card", "ta": "உங்கள் புகைப்படம் உங்கள் தமிழக வெற்றிக் கழக உறுப்பினர் அடையாள அட்டையில் தோன்றும்" },
+  "face_capture.retake": { "en": "Retake", "ta": "மீண்டும் எடு" },
+  "face_capture.use_photo": { "en": "Use Photo", "ta": "புகைப்படத்தைப் பயன்படுத்து" }
+}

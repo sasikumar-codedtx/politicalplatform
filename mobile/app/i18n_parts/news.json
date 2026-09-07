@@ -1,0 +1,14 @@
+{
+  "news.title": { "en": "TVK's NEWS", "ta": "தமிழக வெற்றிக் கழகம் செய்திகள்" },
+  "news.subtitle": { "en": "Stay informed with real-time news, announcements, and progress from TVK.", "ta": "தமிழக வெற்றிக் கழகத்தின் நேரலைச் செய்திகள், அறிவிப்புகள் மற்றும் முன்னேற்றங்களை அறிந்திருங்கள்." },
+  "news.search_hint": { "en": "Search", "ta": "தேடுங்கள்" },
+  "news.filter_title": { "en": "Filter News", "ta": "செய்திகளை வடிகட்டு" },
+  "news.clear_all": { "en": "Clear All", "ta": "அனைத்தையும் அழி" },
+  "news.section_district": { "en": "District", "ta": "மாவட்டம்" },
+  "news.section_sector": { "en": "Sector", "ta": "துறை" },
+  "news.section_ministry": { "en": "Ministry", "ta": "அமைச்சகம்" },
+  "news.apply_filters": { "en": "Apply Filters", "ta": "வடிகட்டிகளைப் பயன்படுத்து" },
+  "news.filters_active": { "en": "Filters active", "ta": "வடிகட்டிகள் செயலில் உள்ளன" },
+  "news.edit": { "en": "Edit", "ta": "திருத்து" },
+  "news.no_news": { "en": "No news found", "ta": "செய்திகள் எதுவும் இல்லை" }
+}

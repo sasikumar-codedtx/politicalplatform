@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../widgets/sticky_header.dart';
 import '../models/event.dart';
 import '../services/content_service.dart';
@@ -60,9 +61,11 @@ class _EventsScreenState extends State<EventsScreen> {
               shaderCallback: (bounds) => const LinearGradient(
                 colors: [Color(0xFFE40101), Color(0xFF7E0101)],
               ).createShader(bounds),
-              child: Text('Nearby Events',
+              child: Text(t('events.title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.bebasNeue(
-                    fontSize: 26, color: Colors.white, letterSpacing: 0.2)),
+                    fontSize: LocaleController.isTamil ? 20 : 26, color: Colors.white, letterSpacing: 0.2)),
             ),
           ),
           SliverPadding(

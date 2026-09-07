@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../config/app_strings.dart';
 import '../models/youtube_video.dart';
 import '../services/video_like_service.dart';
 
@@ -39,7 +40,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
     }
   }
 
@@ -247,7 +249,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        widget.video.isLive ? '🔴  LIVE' : 'Now Playing',
+                        widget.video.isLive
+                            ? '🔴  ${t('video_player.live')}'
+                            : t('video_player.now_playing'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -367,7 +371,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             icon: _liked
                                 ? Icons.favorite_rounded
                                 : Icons.favorite_border_rounded,
-                            label: _liked ? 'Liked' : 'Like',
+                            label: _liked
+                                ? t('video_player.liked')
+                                : t('video_player.like'),
                             color: _liked
                                 ? const Color(0xFFE40101)
                                 : Colors.white54,
@@ -376,7 +382,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           const SizedBox(width: 24),
                           _ActionBtn(
                             icon: Icons.ios_share_rounded,
-                            label: 'Share',
+                            label: t('video_player.share'),
                             color: Colors.white54,
                             onTap: () {},
                           ),
@@ -384,7 +390,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             const Spacer(),
                             _ActionBtn(
                               icon: Icons.open_in_new_rounded,
-                              label: 'YouTube',
+                              label: t('video_player.youtube'),
                               color: Colors.white70,
                               onTap: _openInYouTube,
                             ),
@@ -440,7 +446,7 @@ class _EmbedBlockedFallback extends StatelessWidget {
                   size: 48, color: Colors.white54),
               const SizedBox(height: 10),
               Text(
-                'Playback restricted on this app',
+                t('video_player.playback_restricted'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   color: Colors.white70,
@@ -464,7 +470,7 @@ class _EmbedBlockedFallback extends StatelessWidget {
                           color: Colors.white, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        'Watch on YouTube',
+                        t('video_player.watch_on_youtube'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

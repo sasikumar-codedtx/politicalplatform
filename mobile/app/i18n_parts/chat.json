@@ -1,0 +1,22 @@
+{
+  "chat.new_conversation": { "en": "New conversation", "ta": "புதிய உரையாடல்" },
+  "chat.today": { "en": "Today", "ta": "இன்று" },
+  "chat.yesterday": { "en": "Yesterday", "ta": "நேற்று" },
+  "chat.delete_chat_title": { "en": "Delete chat?", "ta": "உரையாடலை நீக்கவா?" },
+  "chat.delete_chat_body": { "en": "This conversation will be permanently deleted.", "ta": "இந்த உரையாடல் நிரந்தரமாக நீக்கப்படும்." },
+  "chat.cancel": { "en": "Cancel", "ta": "ரத்து செய்" },
+  "chat.delete": { "en": "Delete", "ta": "நீக்கு" },
+  "chat.welcome_audio_failed": { "en": "Could not play welcome audio", "ta": "வரவேற்பு ஒலியை இயக்க முடியவில்லை" },
+  "chat.could_not_connect": { "en": "Could not connect", "ta": "இணைக்க முடியவில்லை" },
+  "chat.chat_history": { "en": "Chat History", "ta": "உரையாடல் வரலாறு" },
+  "chat.leader_name": { "en": "Respected Thiru Vijay", "ta": "மதிப்பிற்குரிய திரு. விஜய்" },
+  "chat.replying_live": { "en": "Replying live...", "ta": "நேரலையில் பதிலளிக்கிறார்..." },
+  "chat.online": { "en": "Online", "ta": "இணைப்பில்" },
+  "chat.voice_on_tooltip": { "en": "Voice on — tap to mute", "ta": "குரல் இயக்கத்தில் — நிறுத்த தட்டவும்" },
+  "chat.voice_off_tooltip": { "en": "Voice off — tap to speak", "ta": "குரல் நிறுத்தப்பட்டது — இயக்க தட்டவும்" },
+  "chat.close": { "en": "Close", "ta": "மூடு" },
+  "chat.new_chat": { "en": "New Chat", "ta": "புதிய உரையாடல்" },
+  "chat.no_past_chats": { "en": "No past chats yet", "ta": "இதுவரை பழைய உரையாடல்கள் இல்லை" },
+  "chat.live": { "en": "live", "ta": "நேரலை" },
+  "chat.type_message_hint": { "en": "Type your message...", "ta": "உங்கள் செய்தியை உள்ளிடவும்..." }
+}

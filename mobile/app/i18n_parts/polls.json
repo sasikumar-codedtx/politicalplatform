@@ -1,0 +1,21 @@
+{
+  "polls.title": { "en": "Take Action", "ta": "நடவடிக்கை எடுங்கள்" },
+  "polls.tab_polls": { "en": "Polls", "ta": "கருத்துக்கணிப்புகள்" },
+  "polls.tab_complaints": { "en": "Complaints", "ta": "புகார்கள்" },
+  "polls.tab_donation": { "en": "Donation", "ta": "நன்கொடை" },
+  "polls.empty_polls": { "en": "No polls yet. Create the first one!", "ta": "இதுவரை கருத்துக்கணிப்புகள் இல்லை. முதலாவதை உருவாக்குங்கள்!" },
+  "polls.empty_complaints": { "en": "No complaints yet.", "ta": "இதுவரை புகார்கள் இல்லை." },
+  "polls.vote_failed": { "en": "Could not submit your vote. Please try again.", "ta": "உங்கள் வாக்கைப் பதிவு செய்ய முடியவில்லை. மீண்டும் முயற்சிக்கவும்." },
+  "polls.login_to_create": { "en": "Log in to create a poll.", "ta": "கருத்துக்கணிப்பை உருவாக்க உள்நுழையவும்." },
+  "polls.register_complaint": { "en": "Register Complaint", "ta": "புகார் பதிவு செய்யுங்கள்" },
+  "polls.create_new_poll": { "en": "Create New Poll", "ta": "புதிய கருத்துக்கணிப்பு உருவாக்குங்கள்" },
+  "polls.welfare_contribution": { "en": "Welfare Contribution", "ta": "நல உதவி பங்களிப்பு" },
+  "polls.welfare_description": { "en": "Contribute an amount towards TVK welfare initiatives. Secure payments are coming soon.", "ta": "தமிழக வெற்றிக் கழகத்தின் நலத் திட்டங்களுக்கு ஒரு தொகையை வழங்குங்கள். பாதுகாப்பான கட்டணச் செலுத்துதல் விரைவில் வரவுள்ளது." },
+  "polls.coming_soon": { "en": "Coming soon", "ta": "விரைவில் வருகிறது" },
+  "polls.voted": { "en": "Voted", "ta": "வாக்களித்தீர்கள்" },
+  "polls.submit": { "en": "Submit", "ta": "சமர்ப்பிக்கவும்" },
+  "polls.responses": { "en": "responses", "ta": "பதில்கள்" },
+  "polls.days_left": { "en": "Days left", "ta": "நாட்கள் உள்ளன" },
+  "polls.closed": { "en": "Closed", "ta": "முடிவடைந்தது" },
+  "polls.get_tvk_badge": { "en": "Get TVK Badge", "ta": "TVK பேட்ஜ் பெறுங்கள்" }
+}

@@ -1,4 +1,5 @@
 import '../config/app_config.dart';
+import '../config/app_strings.dart';
 import '../models/news_item.dart';
 import '../models/leader.dart';
 import '../models/manifesto_plan.dart';
@@ -78,16 +79,19 @@ class ContentService {
 
   // ── LEADER ───────────────────────────────────────────────────────
   static Future<Leader> getLeader() async {
-    return _isTvk ? _tvkLeader : _incLeader;
+    if (_isTvk) return LocaleController.isTamil ? _tvkLeaderTa : _tvkLeader;
+    return _incLeader;
   }
 
   // ── MANIFESTO ────────────────────────────────────────────────────
   static Future<List<ManifestoPlan>> getManifestoPlans() async {
-    return _isTvk ? _tvkPlans : _incPlans;
+    if (_isTvk) return LocaleController.isTamil ? _tvkPlansTa : _tvkPlans;
+    return _incPlans;
   }
 
   static Future<List<ManifestoVision>> getManifestoVisions() async {
-    return _isTvk ? _tvkVisions : _incVisions;
+    if (_isTvk) return LocaleController.isTamil ? _tvkVisionsTa : _tvkVisions;
+    return _incVisions;
   }
 
   // ── EVENTS ───────────────────────────────────────────────────────
@@ -107,7 +111,8 @@ class ContentService {
             : null,
       )).toList();
     }
-    return _isTvk ? _tvkEvents : _incEvents;
+    if (_isTvk) return LocaleController.isTamil ? _tvkEventsTa : _tvkEvents;
+    return _incEvents;
   }
 
   // ── CAMPAIGN TOOLKIT ─────────────────────────────────────────────
@@ -143,6 +148,22 @@ class ContentService {
       LeaderAchievement(year: '2024', title: 'Founded TVK', description: 'Launched Tamilaga Vettri Kazhagam with a charter focused on social justice and Tamil welfare.'),
       LeaderAchievement(year: '2024', title: '2nd State Conference', description: 'Organised the landmark Madurai Maanaadu attended by lakhs of supporters.'),
       LeaderAchievement(year: '2024', title: 'Member Enrolment Drive', description: 'Over 10 lakh members enrolled through booth-level committees across Tamil Nadu.'),
+    ],
+  );
+
+  // Tamil translation of _tvkLeader — machine-translated, same review caveat
+  // as the rest of the app's Tamil content.
+  static const Leader _tvkLeaderTa = Leader(
+    id: 'vijay',
+    name: 'விஜய்',
+    role: 'தலைவர், தமிழக வெற்றிக் கழகம்',
+    location: 'சென்னை, தமிழ்நாடு',
+    bio: 'ஜோசப் விஜய் சந்திரசேகர், விஜய் என்ற பெயரில் அறியப்படுபவர், தமிழக வெற்றிக் கழகத்தின் நிறுவனரும் தலைவருமாவார். இயக்குநர் எஸ்.ஏ. சந்திரசேகர் மற்றும் பாடகி சோபா சந்திரசேகர் ஆகியோரின் மகனான இவர், சென்னை லயோலா கல்லூரியில் காட்சி தொடர்பியல் துறையில் இளங்கலை பட்டம் பெற்றவர்.',
+    careerSummary: 'சிறுவர் நடிகராக அறிமுகமாகி தமிழ் சினிமாவில் புகழ் பெற்றார். தமிழக மக்களின் நலனுக்காகவும் உரிமைகளுக்காகவும் போராட, சமூக நீதி, இளைஞர் வேலைவாய்ப்பு மற்றும் சமச்சீர் வளர்ச்சியை மையமாகக் கொண்டு 2024ல் தி.வெ.க-வை நிறுவினார்.',
+    achievements: [
+      LeaderAchievement(year: '2024', title: 'தி.வெ.க நிறுவப்பட்டது', description: 'சமூக நீதி மற்றும் தமிழர் நலனை மையமாகக் கொண்ட சாசனத்துடன் தமிழக வெற்றிக் கழகத்தைத் தொடங்கினார்.'),
+      LeaderAchievement(year: '2024', title: '2வது மாநில மாநாடு', description: 'லட்சக்கணக்கான ஆதரவாளர்கள் கலந்துகொண்ட மைல்கல் மதுரை மாநாட்டை ஏற்பாடு செய்தார்.'),
+      LeaderAchievement(year: '2024', title: 'உறுப்பினர் சேர்க்கை இயக்கம்', description: 'தமிழ்நாடு முழுவதும் பூத் மட்டக் குழுக்கள் மூலம் 10 லட்சத்திற்கும் அதிகமான உறுப்பினர்கள் சேர்க்கப்பட்டனர்.'),
     ],
   );
 
@@ -253,11 +274,131 @@ class ContentService {
     ManifestoVision(title: 'Farmer Welfare', description: 'Tamil farmers are the backbone of our economy. We will ensure fair prices, modern tools, and dignity for every farming family.'),
   ];
 
+  // Tamil translations of _tvkPlans / _tvkVisions above — machine-translated,
+  // needs a native Tamil speaker review pass before release (same caveat as
+  // the rest of the app's Tamil strings — see CLAUDE.md changelog 2026-07-24).
+  static final List<ManifestoPlan> _tvkPlansTa = [
+    ManifestoPlan(
+      id: 'p1', year: '2026',
+      title: 'கிராமங்களுக்கு சுத்தமான குடிநீர்',
+      description: '"கிராமங்களுக்கு சுத்தமான குடிநீர்" திட்டம், தமிழ்நாடு முழுவதும் உள்ள கிராமப்புற வீடுகளுக்கு நிலையான, பாதுகாப்பான மற்றும் நம்பகமான குடிநீரை உறுதி செய்வதற்கான ஒரு விரிவான முயற்சியாகும். 500 கிராமங்களில் சூரிய சக்தியில் இயங்கும் வடிகட்டி அமைப்புகளை நிறுவி, ஆறுகள், நீர்த்தேக்கங்கள் அல்லது நிலத்தடி நீரிலிருந்து பெறப்பட்டு, உள்ளாட்சி பஞ்சாயத்துகள் மற்றும் நீர் வழங்கல் வாரியத்தால் பராமரிக்கப்படும் குழாய் விநியோகத்துடன் இணைக்கப்படும்.',
+      timeline: 'ஜன. 2026 – செப். 2026 (8 மாதங்கள்)',
+      budget: '₹500 கோடி',
+      category: 'உள்கட்டமைப்பு',
+      imageAsset: 'assets/images/plan_water.png',
+      ministry: 'கிராமப்புற வளர்ச்சி அமைச்சகம்',
+      bullets: [
+        '500 கிராமங்களில் சூரிய சக்தி வடிகட்டி அமைப்புகள்.',
+        'இலக்கு வைக்கப்பட்ட பகுதிகளில் ஒவ்வொரு வீட்டிற்கும் குழாய்கள் அமைக்கப்படும்.',
+        'உள்ளூர் பஞ்சாயத்து பராமரிப்புக் குழுக்களுக்கு பயிற்சி.',
+        'தொகுதி மட்டத்தில் நீரின் தரம் சோதனை ஆய்வகங்கள்.',
+        'பெண்களின் நேரம் மிச்சம்: தினமும் 2+ மணி நேரம்.',
+      ],
+      milestones: [
+        ManifestoMilestone(date: 'ஜூலை 2026', title: 'திட்ட தொடக்கம்', description: 'திட்ட தலைவரை நியமித்தல், வழிநடத்தும் குழுவை (உள்ளூர் தலைவர்கள் + அரசு + நிதியாளர்கள் + தன்னார்வ தொண்டு நிறுவனங்கள்) உருவாக்குதல், உயர்நிலை இலக்குகளை நிர்ணயித்தல்.'),
+        ManifestoMilestone(date: 'ஆகஸ்ட் 2026', title: 'அடிப்படை மதிப்பீடு & சமூக கணக்கெடுப்பு', description: 'வீட்டுக் கணக்கெடுப்பு, நீர் பயன்பாட்டு முறைகள், தற்போதைய சமாளிப்பு உத்திகள், தற்போதுள்ள உள்கட்டமைப்பு வரைபடமாக்கல், சமூக & பாலின தேவைகள்.'),
+        ManifestoMilestone(date: 'ஆகஸ்ட் 2026', title: 'நிலநீரியல் & நீர் தர ஆய்வு', description: 'இட-குறிப்பிட்ட ஆய்வுகள் (குழாய்க் கிணறு விளைச்சல், நிலத்தடி நீர் அடுக்கு சோதனைகள், ஊற்று மூல வரைபடமாக்கல்), பருவகால மாறுபாடு மதிப்பீடு, இயற்பியல்-வேதியியல் மற்றும் பாக்டீரியாவியல் சோதனை.'),
+        ManifestoMilestone(date: 'செப்டம்பர் 2026', title: 'முன்னோடி கட்டுமானம் & சோதனை (1 கிராமம்)', description: 'பணிகளை அணிதிரட்டல், மூலம்/சுத்திகரிப்பு/சேமிப்பு/விநியோகத்தை நிறுவுதல், 1–2 உள்ளூர் இயக்குநர்களுக்கு பயிற்சி, எளிய தொலைநிலை அல்லது கையேடு கண்காணிப்பு செயல்படுத்தல்.'),
+        ManifestoMilestone(date: 'நவம்பர் 2026', title: 'இயக்கத்தொடக்கம் & நீர் தர சரிபார்ப்பு', description: 'நீரியல் சோதனைகள், ஓட்டம் & அழுத்தம் சரிபார்ப்பு, முழு ஆய்வக சான்றிதழ், எஞ்சிய கிருமி நீக்கல் நெறிமுறைகளை இறுதி செய்தல், பயனர் ஏற்புச் சோதனைகள்.'),
+        ManifestoMilestone(date: 'ஜனவரி 2027', title: 'விரிவாக்க நடைமுறை (மீதமுள்ள கிராமங்கள்)', description: 'முன்னோடியிலிருந்து செயல்முறைகளை மேம்படுத்துதல், செலவு சேமிப்புக்கான தொகுதி கொள்முதல், அலைகளாக கட்டுமானத்தை விரிவுபடுத்துதல், படிப்படியாக இயக்கத்தொடக்கம்.'),
+        ManifestoMilestone(date: 'மார்ச் 2027', title: 'ஒப்படைப்பு & நீண்டகால நிலைத்தன்மை', description: 'உள்ளூர் அதிகாரம்/நீர் பயனர் குழுவிடம் முறையான ஒப்படைப்பு, நீண்டகால பராமரிப்பு ஒப்பந்தம், உதிரி பாகங்கள் விநியோகம், சொத்து மாற்று திட்டம்.'),
+      ],
+    ),
+    ManifestoPlan(
+      id: 'p2', year: '2026',
+      title: 'டிஜிட்டல் வகுப்பறைகள் விரிவாக்கம்',
+      description: 'தமிழ்நாடு முழுவதும் 1000 பள்ளிகளுக்கு அதிநவீன ஸ்மார்ட் வகுப்பறைகள் மற்றும் அதிவேக இணைய இணைப்பை வழங்குதல். கிராமப்புற மற்றும் நகர்ப்புற பள்ளிகளில் டிஜிட்டல் இடைவெளியை குறைக்கிறது.',
+      timeline: 'மார்ச் 2026 – டிச. 2026 (9 மாதங்கள்)',
+      budget: '₹800 கோடி',
+      category: 'கல்வி',
+      ministry: 'கல்வி அமைச்சகம்',
+      imageAsset: 'assets/images/plan_education.png',
+      bullets: [
+        'மாணவர்களுக்கு இலவச லேப்டாப்/டேப்லெட்.',
+        'அரசு பள்ளிகள் நவீனமயமாக்கல் & ஸ்மார்ட் வகுப்பறைகள்.',
+        'கிராமப்புற & முதல் தலைமுறை கல்வியாளர்களுக்கு சிறப்பு உதவித்தொகை.',
+        'மாவட்ட மட்ட பள்ளிகளில் AI & குறியீட்டு ஆய்வகங்கள்.',
+        'தொழில்துறை வேலைகளுடன் இணைக்கப்பட்ட திறன் பயிற்சி மையங்கள்.',
+      ],
+      milestones: [
+        ManifestoMilestone(date: 'மார்ச் 2026', title: 'பள்ளி மதிப்பீடு', description: '38 மாவட்டங்களில் 1000 இலக்கு பள்ளிகளின் தணிக்கை, உள்கட்டமைப்பு தயார்நிலை சோதனை, பட்டையகல வரைபடமாக்கல்.'),
+        ManifestoMilestone(date: 'ஜூன் 2026', title: 'வன்பொருள் கொள்முதல்', description: 'ஸ்மார்ட் போர்டுகள், டேப்லெட்கள், லேப்டாப்புகள் மற்றும் அதிவேக இணைய உபகரணங்களுக்கான டெண்டர் மற்றும் கொள்முதல்.'),
+        ManifestoMilestone(date: 'செப்டம்பர் 2026', title: 'நிறுவல் & பயிற்சி', description: 'ஆசிரியர் பயிற்சி திட்டங்கள் மற்றும் டிஜிட்டல் உள்ளடக்க ஒருங்கிணைப்புடன் பள்ளிகளில் பொருத்துதல்.'),
+        ManifestoMilestone(date: 'டிசம்பர் 2026', title: 'தொடக்கம் & மதிப்பீடு', description: 'மாணவர் கருத்துடன் அதிகாரப்பூர்வ தொடக்கம், செயல்திறன் அளவீடுகள் அடிப்படைக் கோடு, தொடர் மேம்பாட்டுத் திட்டம்.'),
+      ],
+    ),
+    ManifestoPlan(
+      id: 'p3', year: '2027',
+      title: 'இளைஞர் வேலைவாய்ப்புத் திட்டம்',
+      description: 'தொழில்துறை கூட்டாண்மைகள் மற்றும் ஒவ்வொரு மாவட்டத்திலும் அரசு நிதியுதவியுடன் கூடிய திறன் பயிற்சி மையங்கள் மூலம் தமிழ் இளைஞர்களுக்கு 5 லட்சம் திறன்மிக்க வேலைகளை உருவாக்குதல்.',
+      timeline: 'ஜன. 2027 – டிச. 2027',
+      budget: '₹1200 கோடி',
+      category: 'வேலைவாய்ப்பு',
+      imageAsset: 'assets/images/campaign1.png',
+      bullets: [
+        '5 லட்சம் வேலைகள் தொழில்துறை புரிந்துணர்வு ஒப்பந்தங்கள் மூலம்.',
+        '38 மாவட்டங்களிலும் திறன் பயிற்சி மையங்கள்.',
+        'காலாண்டுக்கு ஒருமுறை அரசு வேலைவாய்ப்பு முகாம்.',
+        'இளம் தொழில்முனைவோருக்கு ₹5 லட்சம் வரை தொடக்க மானியம்.',
+        'ஒவ்வொரு பட்டதாரிக்கும் பயிற்சிப் பணி உத்தரவாதம்.',
+      ],
+    ),
+    ManifestoPlan(
+      id: 'p4', year: '2027',
+      title: 'விவசாயி வருமான உத்தரவாதம்',
+      description: 'நேரடி நலப் பயன் பரிமாற்றம் மற்றும் பயிர் காப்பீடு சீர்திருத்தத்தின் மூலம் அனைத்து பதிவுசெய்யப்பட்ட விவசாயிகளுக்கும் மாதம் ₹15,000 குறைந்தபட்ச வருமானத்தை உத்தரவாதம் செய்தல்.',
+      timeline: 'ஏப். 2027 – மார்ச் 2028',
+      budget: '₹2000 கோடி',
+      category: 'வேளாண்மை',
+      imageAsset: 'assets/images/campaign2.png',
+      bullets: [
+        'DBT மூலம் மாதம் ₹15,000 உத்தரவாதம்.',
+        'பயிர் காப்பீடு சீர்திருத்தம் — சிறு விவசாயிகளுக்கு பூஜ்ஜிய பிரீமியம்.',
+        'பாசனத்திற்கான சூரிய சக்தி மோட்டார் மானியம்.',
+        'ஒவ்வொரு தாலுகாவிலும் குளிர்பதன கிடங்கு சங்கிலிகள்.',
+        'நியாய விலைக் கடைகள் 5000+ கடைகளுக்கு விரிவாக்கம்.',
+      ],
+    ),
+    ManifestoPlan(
+      id: 'p5', year: '2028',
+      title: 'பெண்கள் பாதுகாப்பு வலையமைப்பு',
+      description: 'பெண்களுக்கு எதிரான குற்றங்களுக்கான விரைவு நீதிமன்றங்களுடன் தமிழ்நாடு முழுவதும் 10,000 பெண் காவல் அதிகாரிகளை நியமித்தல்.',
+      timeline: 'ஜன. 2028 – டிச. 2028',
+      budget: '₹600 கோடி',
+      category: 'பாதுகாப்பு',
+      imageAsset: 'assets/images/plan_water.png',
+      bullets: [
+        '10,000 பெண் காவல் அதிகாரிகள் பணியமர்த்தப்பட்டு பயிற்சி அளிக்கப்படுவர்.',
+        'ஒவ்வொரு மாவட்டத்திலும் விரைவு நீதிமன்றங்கள்.',
+        'பாதுகாப்பான நகர CCTV வலையமைப்பு: 50,000 கேமராக்கள்.',
+        '30 நிமிட பதிலளிப்புடன் 24/7 பெண்கள் உதவி எண்.',
+        'பள்ளி சுய பாதுகாப்பு பயிற்சித் திட்டம்.',
+      ],
+    ),
+  ];
+
+  static const List<ManifestoVision> _tvkVisionsTa = [
+    ManifestoVision(title: 'சமூக நீதி', description: 'அனைத்து சமூகக் குழுக்களுக்கும் சமத்துவத்தை உறுதி செய்யவும், பாகுபாடின்றி சம வாய்ப்புகளை உருவாக்கவும் சமூக நீதிக் கொள்கைகளை நாங்கள் ஊக்குவிக்கிறோம்.'),
+    ManifestoVision(title: 'தொழில்நுட்ப வளர்ச்சி', description: 'பொது நல பணிகளில் நவீன தொழில்நுட்பங்களைப் பயன்படுத்தவும், அரசியல் செயல்முறைகளை எளிதாக்கவும், பொது சேவை வழங்கலை மேம்படுத்தவும் நாங்கள் விரும்புகிறோம்.'),
+    ManifestoVision(title: 'இளைஞர்களுக்கான வாய்ப்பு', description: 'ஒவ்வொரு இளம் தமிழரும் தங்கள் பின்னணியைப் பொருட்படுத்தாமல் கல்வி, வேலைவாய்ப்பு மற்றும் தொழில்முனைவோர் வாய்ப்புகளைப் பெற தகுதியுடையவர்.'),
+    ManifestoVision(title: 'விவசாயி நலன்', description: 'தமிழ் விவசாயிகள் நமது பொருளாதாரத்தின் முதுகெலும்பு. ஒவ்வொரு விவசாய குடும்பத்திற்கும் நியாயமான விலைகள், நவீன கருவிகள் மற்றும் கண்ணியத்தை நாங்கள் உறுதி செய்வோம்.'),
+  ];
+
   static const List<PartyEvent> _tvkEvents = [
     PartyEvent(id: 'e1', title: 'District Booth Committee Meeting', location: 'Chennai', date: 'May 20, 2026', time: '10:00 AM', type: 'Meeting', description: 'Booth committee formation for Chennai district assembly constituencies.'),
     PartyEvent(id: 'e2', title: 'Youth Wing Rally — Coimbatore', location: 'Coimbatore', date: 'May 24, 2026', time: '4:00 PM', type: 'Rally', description: 'Massive youth rally addressing employment and education rights.'),
     PartyEvent(id: 'e3', title: 'Farmer Convention — Trichy', location: 'Trichy', date: 'May 28, 2026', time: '9:00 AM', type: 'Convention', description: 'State-level farmer convention to discuss minimum income guarantee policy.'),
     PartyEvent(id: 'e4', title: 'TVK Cultural Evening — Madurai', location: 'Madurai', date: 'Jun 2, 2026', time: '6:00 PM', type: 'Cultural', description: 'Music and cultural programme celebrating Tamil heritage.'),
+  ];
+
+  // Tamil translation of _tvkEvents — date/time stay in the canonical English
+  // "MMM D, YYYY" format since the UI parses the month abbreviation for the
+  // date-box/weekday display; only display text is translated.
+  static const List<PartyEvent> _tvkEventsTa = [
+    PartyEvent(id: 'e1', title: 'மாவட்ட பூத் குழு கூட்டம்', location: 'சென்னை', date: 'May 20, 2026', time: '10:00 AM', type: 'கூட்டம்', description: 'சென்னை மாவட்ட சட்டமன்ற தொகுதிகளுக்கான பூத் குழு அமைப்பு.'),
+    PartyEvent(id: 'e2', title: 'இளைஞர் பிரிவு பேரணி — கோயம்புத்தூர்', location: 'கோயம்புத்தூர்', date: 'May 24, 2026', time: '4:00 PM', type: 'பேரணி', description: 'வேலைவாய்ப்பு மற்றும் கல்வி உரிமைகளைப் பேசும் மாபெரும் இளைஞர் பேரணி.'),
+    PartyEvent(id: 'e3', title: 'விவசாயிகள் மாநாடு — திருச்சி', location: 'திருச்சி', date: 'May 28, 2026', time: '9:00 AM', type: 'மாநாடு', description: 'குறைந்தபட்ச வருமான உத்தரவாதக் கொள்கையை விவாதிக்கும் மாநில அளவிலான விவசாயிகள் மாநாடு.'),
+    PartyEvent(id: 'e4', title: 'தி.வெ.க கலை நிகழ்ச்சி — மதுரை', location: 'மதுரை', date: 'Jun 2, 2026', time: '6:00 PM', type: 'கலை நிகழ்ச்சி', description: 'தமிழ் பாரம்பரியத்தைக் கொண்டாடும் இசை மற்றும் கலை நிகழ்ச்சி.'),
   ];
 
   // ════════════════════════════════════════════════════════════════

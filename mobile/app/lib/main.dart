@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'config/app_config.dart';
 import 'config/app_theme.dart';
 import 'config/app_colors.dart';
+import 'config/app_strings.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -14,6 +16,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await ThemeController.load(); // restore the saved light/dark choice
+  await LocaleController.load(); // restore the saved Tamil/English choice
+  await AppStrings.load(); // load the en/ta translation tables
   ProfileService.init(); // load profile on login, clear on logout
   Preloader.warm(); // warm home/news/forum/youtube caches during the splash
   runApp(const PoliticalPlatformApp());
@@ -31,11 +35,13 @@ class _PoliticalPlatformAppState extends State<PoliticalPlatformApp> {
   void initState() {
     super.initState();
     ThemeController.isDark.addListener(_onThemeChanged);
+    LocaleController.lang.addListener(_onThemeChanged);
   }
 
   @override
   void dispose() {
     ThemeController.isDark.removeListener(_onThemeChanged);
+    LocaleController.lang.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -62,6 +68,13 @@ class _PoliticalPlatformAppState extends State<PoliticalPlatformApp> {
       theme: AppTheme.build(AppConfig.current, dark: false),
       darkTheme: AppTheme.build(AppConfig.current, dark: true),
       themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+      locale: LocaleController.locale,
+      supportedLocales: const [Locale('en'), Locale('ta')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const _AppRoot(),
     );
   }

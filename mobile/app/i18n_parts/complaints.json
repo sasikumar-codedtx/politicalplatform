@@ -1,0 +1,21 @@
+{
+  "complaints.login_required": { "en": "Log in to register a complaint.", "ta": "புகார் பதிவு செய்ய உள்நுழையவும்." },
+  "complaints.title": { "en": "My Complaints", "ta": "எனது புகார்கள்" },
+  "complaints.register": { "en": "Register Complaint", "ta": "புகார் பதிவு செய்" },
+  "complaints.attachment_open_failed": { "en": "Could not open attachment.", "ta": "இணைப்பைத் திறக்க முடியவில்லை." },
+  "complaints.empty_title": { "en": "No complaints yet", "ta": "இதுவரை புகார்கள் இல்லை" },
+  "complaints.empty_subtitle": { "en": "Raise an issue and track its status here.", "ta": "ஒரு பிரச்சினையைத் தெரிவித்து அதன் நிலையை இங்கே கண்காணிக்கவும்." },
+  "complaints.attachment_default": { "en": "Attachment", "ta": "இணைப்பு" },
+  "complaints.sheet_title": { "en": "Register a Complaint", "ta": "புகார் பதிவு செய்யுங்கள்" },
+  "complaints.sheet_subtitle": { "en": "We'll track it and update the status.", "ta": "நாங்கள் அதைக் கண்காணித்து நிலையைப் புதுப்பிப்போம்." },
+  "complaints.field_title_label": { "en": "Title", "ta": "தலைப்பு" },
+  "complaints.field_title_hint": { "en": "e.g. Street light not working", "ta": "எ.கா. தெரு விளக்கு வேலை செய்யவில்லை" },
+  "complaints.field_desc_label": { "en": "Description", "ta": "விவரம்" },
+  "complaints.field_desc_hint": { "en": "Describe the issue and location", "ta": "பிரச்சினை மற்றும் இடத்தை விவரிக்கவும்" },
+  "complaints.category_label": { "en": "Category", "ta": "வகை" },
+  "complaints.attach_evidence": { "en": "Attach evidence", "ta": "ஆதாரத்தை இணைக்கவும்" },
+  "complaints.attach_types": { "en": "Image, PDF, or ZIP", "ta": "படம், PDF அல்லது ZIP" },
+  "complaints.selected_file": { "en": "Selected file", "ta": "தேர்ந்தெடுக்கப்பட்ட கோப்பு" },
+  "complaints.submit": { "en": "Submit Complaint", "ta": "புகாரைச் சமர்ப்பிக்கவும்" },
+  "complaints.submit_failed": { "en": "Could not submit — check connection and login.", "ta": "சமர்ப்பிக்க முடியவில்லை — இணைப்பு மற்றும் உள்நுழைவைச் சரிபார்க்கவும்." }
+}

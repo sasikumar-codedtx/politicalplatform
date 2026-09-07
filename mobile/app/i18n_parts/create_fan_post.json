@@ -1,0 +1,11 @@
+{
+  "create_fan_post.default_author": { "en": "TVK Member", "ta": "தமிழக வெற்றிக் கழக உறுப்பினர்" },
+  "create_fan_post.post_published": { "en": "Post published!", "ta": "இடுகை வெளியிடப்பட்டது!" },
+  "create_fan_post.title": { "en": "Create Post", "ta": "இடுகையை உருவாக்கு" },
+  "create_fan_post.post_action": { "en": "Post", "ta": "வெளியிடு" },
+  "create_fan_post.your_name": { "en": "Your Name", "ta": "உங்கள் பெயர்" },
+  "create_fan_post.name_hint": { "en": "Enter your name", "ta": "உங்கள் பெயரை உள்ளிடவும்" },
+  "create_fan_post.content_hint": { "en": "What's on your mind?", "ta": "உங்கள் மனதில் என்ன உள்ளது?" },
+  "create_fan_post.add_media_label": { "en": "Add Photo or Video (optional)", "ta": "புகைப்படம் அல்லது காணொளியைச் சேர்க்கவும் (விருப்பம்)" },
+  "create_fan_post.attach_prompt": { "en": "Tap to attach an image or video", "ta": "படம் அல்லது காணொளியை இணைக்கத் தட்டவும்" }
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../models/youtube_playlist.dart';
 import '../models/youtube_video.dart';
 import '../services/youtube_service.dart';
@@ -62,7 +63,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           : _videos.isEmpty
               ? Center(
                   child: Text(
-                    'No videos in this playlist.',
+                    t('playlist_detail.empty'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       color: AppColors.textSecondary,

@@ -2,12 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/agent_service.dart';
 import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../services/local_cache.dart';
+import '../widgets/login_gate.dart';
+import 'file_grievance_screen.dart';
 
 const _kRed = Color(0xFF9F1D1F);
 
@@ -45,14 +47,11 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
   }
 
   Future<void> _register() async {
-    final created = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => const _RegisterComplaintSheet(),
+    if (!await requireLogin(context, message: t('complaints.login_required'))) return;
+    if (!mounted) return;
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const FileGrievanceScreen()),
     );
     if (created == true) _load();
   }
@@ -65,16 +64,20 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
-        title: Text('My Complaints',
+        title: Text(t('complaints.title'),
             style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _register,
-        backgroundColor: _kRed,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: Text('Register Complaint', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-      ),
+      // The empty state already offers its own centered CTA — showing the
+      // FAB too gave citizens two "Register Complaint" buttons at once.
+      floatingActionButton: (_loading || _complaints.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _register,
+              backgroundColor: _kRed,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(t('complaints.register'), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _kRed))
           : _complaints.isEmpty
@@ -104,7 +107,7 @@ Future<void> _viewAttachment(BuildContext context, String id, String name) async
   if (res == null) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open attachment.')),
+        SnackBar(content: Text(t('complaints.attachment_open_failed'))),
       );
     }
     return;
@@ -141,7 +144,7 @@ Future<void> _viewAttachment(BuildContext context, String id, String name) async
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open attachment.')),
+          SnackBar(content: Text(t('complaints.attachment_open_failed'))),
         );
       }
     }
@@ -162,17 +165,17 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.assignment_outlined, size: 56, color: _kRed),
             const SizedBox(height: 16),
-            Text('No complaints yet',
+            Text(t('complaints.empty_title'),
                 style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
-            Text('Raise an issue and track its status here.',
+            Text(t('complaints.empty_subtitle'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary)),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: onRegister,
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: Text('Register Complaint', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+              label: Text(t('complaints.register'), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _kRed,
                 foregroundColor: Colors.white,
@@ -207,7 +210,7 @@ class _ComplaintCard extends StatelessWidget {
     final status = (data['status'] as String? ?? 'Pending');
     final c = _statusColors(status);
     final hasAttachment = data['has_attachment'] == true;
-    final attachmentName = data['attachment_name'] as String? ?? 'Attachment';
+    final attachmentName = data['attachment_name'] as String? ?? t('complaints.attachment_default');
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -281,206 +284,6 @@ class _ComplaintCard extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _RegisterComplaintSheet extends StatefulWidget {
-  const _RegisterComplaintSheet();
-
-  @override
-  State<_RegisterComplaintSheet> createState() => _RegisterComplaintSheetState();
-}
-
-class _RegisterComplaintSheetState extends State<_RegisterComplaintSheet> {
-  final _title = TextEditingController();
-  final _desc = TextEditingController();
-  final _categories = ['General', 'Water', 'Roads', 'Electricity', 'Sanitation', 'Health'];
-  String _category = 'General';
-  bool _submitting = false;
-  File? _file;
-  String? _fileName;
-
-  @override
-  void dispose() {
-    _title.dispose();
-    _desc.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickFile() async {
-    final res = await FilePicker.platform.pickFiles(withData: false);
-    final path = res?.files.single.path;
-    if (path != null) {
-      setState(() { _file = File(path); _fileName = res!.files.single.name; });
-    }
-  }
-
-  Future<void> _submit() async {
-    final title = _title.text.trim();
-    if (title.isEmpty || _submitting) return;
-    setState(() => _submitting = true);
-    final result = await AgentService.registerComplaint(
-      title: title, description: _desc.text.trim(), category: _category, file: _file,
-    );
-    if (!mounted) return;
-    if (result != null) {
-      Navigator.pop(context, true);
-    } else {
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not submit — check connection and login.')),
-      );
-    }
-  }
-
-  InputDecoration _dec(String label, String hint) => InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
-        hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textMuted, fontSize: 13),
-        filled: true,
-        fillColor: AppColors.surfaceAlt,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kRed, width: 1.4)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            Row(
-              children: [
-                Container(
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(color: _kRed.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.campaign_rounded, color: _kRed, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Register a Complaint',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                      Text('We\'ll track it and update the status.',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            TextField(controller: _title, decoration: _dec('Title', 'e.g. Street light not working')),
-            const SizedBox(height: 12),
-            TextField(controller: _desc, minLines: 3, maxLines: 5, decoration: _dec('Description', 'Describe the issue and location')),
-            const SizedBox(height: 16),
-            Text('Category',
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: _categories.map((cat) {
-                final active = cat == _category;
-                return GestureDetector(
-                  onTap: () => setState(() => _category = cat),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: active ? _kRed : AppColors.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? _kRed : AppColors.border),
-                    ),
-                    child: Text(cat,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13, fontWeight: FontWeight.w600,
-                          color: active ? Colors.white : AppColors.textSecondary,
-                        )),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            // Attachment
-            _file == null
-                ? GestureDetector(
-                    onTap: _pickFile,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.upload_file_rounded, color: _kRed, size: 26),
-                          const SizedBox(height: 6),
-                          Text('Attach evidence',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-                          Text('Image, PDF, or ZIP',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.textMuted)),
-                        ],
-                      ),
-                    ),
-                  )
-                : Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: _kRed.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _kRed.withValues(alpha: 0.25)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.insert_drive_file_rounded, color: _kRed, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(_fileName ?? 'Selected file',
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                        ),
-                        GestureDetector(
-                          onTap: () => setState(() { _file = null; _fileName = null; }),
-                          child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
-                        ),
-                      ],
-                    ),
-                  ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _kRed,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _submitting
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Submit Complaint', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,0 +1,9 @@
+{
+  "fan_page.login_to_post": { "en": "Log in to post to the community wall.", "ta": "சமூகச் சுவரில் பதிவிட உள்நுழையவும்." },
+  "fan_page.tab_all": { "en": "All", "ta": "அனைத்தும்" },
+  "fan_page.tab_popular": { "en": "Popular", "ta": "பிரபலமானவை" },
+  "fan_page.title": { "en": "COMMUNITY WALL", "ta": "சமூகச் சுவர்" },
+  "fan_page.subtitle": { "en": "Fan posts approved by TVK volunteers", "ta": "தவெக தொண்டர்களால் அங்கீகரிக்கப்பட்ட ரசிகர் பதிவுகள்" },
+  "fan_page.no_posts": { "en": "No posts yet", "ta": "இதுவரை பதிவுகள் இல்லை" },
+  "fan_page.login_to_like": { "en": "Log in to like posts.", "ta": "பதிவுகளை விரும்ப உள்நுழையவும்." }
+}

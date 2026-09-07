@@ -1,14 +1,10 @@
 import 'dart:ui';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/app_colors.dart';
-import '../models/chat_session.dart';
-import '../services/device_session.dart';
-import 'chat_screen.dart';
-import 'phone_login_screen.dart';
+import '../config/app_strings.dart';
 import '../models/news_item.dart';
 import '../models/event.dart';
 import '../models/poll.dart';
@@ -36,19 +32,21 @@ const _kCampaignSongThumb =
     'https://i.ytimg.com/vi/JHJmFbLeK-Y/hqdefault.jpg';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onOpenProfile;
+  const HomeScreen({super.key, this.onOpenProfile});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => HomeViewModel()..load(),
-      child: const _HomeView(),
+      child: _HomeView(onOpenProfile: onOpenProfile),
     );
   }
 }
 
 class _HomeView extends StatefulWidget {
-  const _HomeView();
+  final VoidCallback? onOpenProfile;
+  const _HomeView({this.onOpenProfile});
 
   @override
   State<_HomeView> createState() => _HomeViewState();
@@ -56,10 +54,18 @@ class _HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<_HomeView> {
   bool _liveBannerShown = false;
+  bool _showStickyBar = false;
+
+  void _onScroll(double offset, double threshold) {
+    final show = offset > threshold;
+    if (show != _showStickyBar) setState(() => _showStickyBar = show);
+  }
 
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<HomeViewModel>();
+    final topPad = MediaQuery.of(context).padding.top;
+    final stickyThreshold = topPad + 410 - 70;
 
     if (vm.liveBanner != null && !_liveBannerShown) {
       _liveBannerShown = true;
@@ -81,18 +87,24 @@ class _HomeViewState extends State<_HomeView> {
       value: SystemUiOverlayStyle.light, // white status-bar icons on dark hero
       child: Scaffold(
         backgroundColor: AppColors.bg,
-        floatingActionButton: const _AskAiButton(),
-        body: SingleChildScrollView(
+        body: Stack(
+          children: [
+            NotificationListener<ScrollUpdateNotification>(
+              onNotification: (n) {
+                _onScroll(n.metrics.pixels, stickyThreshold);
+                return false;
+              },
+              child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── 1. Hero banner ───────────────────────────────────
-              const _HeroSection(),
+              _HeroSection(onOpenProfile: widget.onOpenProfile),
 
               // ── 2. Leaders Deck + Community Row ──────────────────
               const SizedBox(height: 16),
               _SectionHeader(
-                label: 'Policy Leaders',
+                label: t('home.policy_leaders'),
                 onMore: () => Navigator.push(context,
                     MaterialPageRoute(
                         builder: (_) => const PolicyLeadersScreen())),
@@ -114,7 +126,7 @@ class _HomeViewState extends State<_HomeView> {
               // ── 4. Latest Updates ────────────────────────────────
               if (vm.latestNews.isNotEmpty) ...[
                 _SectionHeader(
-                  label: 'Latest Updates',
+                  label: t('home.latest_updates'),
                   onMore: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const NewsScreen())),
                 ),
@@ -137,7 +149,7 @@ class _HomeViewState extends State<_HomeView> {
 
               // ── 6. TVK Shorts ─────────────────────────────────────
               _SectionHeader(
-                label: 'Tvk Shorts',
+                label: t('home.tvk_shorts'),
                 onMore: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
               ),
@@ -148,7 +160,7 @@ class _HomeViewState extends State<_HomeView> {
               // ── 7. Daily Polls ────────────────────────────────────
               if (vm.dailyPoll != null) ...[
                 _SectionHeader(
-                  label: 'Daily Polls',
+                  label: t('home.daily_polls'),
                   onMore: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const PollsScreen())),
                 ),
@@ -158,9 +170,9 @@ class _HomeViewState extends State<_HomeView> {
                   child: _PollsInfoCard(),
                 ),
                 const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: _SectionHeader(label: "What's Today?"),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _SectionHeader(label: t('home.whats_today')),
                 ),
                 const SizedBox(height: 12),
                 Padding(
@@ -176,7 +188,7 @@ class _HomeViewState extends State<_HomeView> {
               // ── 9. Nearby Events & Rallies ────────────────────────
               if (vm.upcomingEvents.isNotEmpty) ...[
                 _SectionHeader(
-                  label: 'Nearby Events & Rallies',
+                  label: t('home.nearby_events'),
                   onMore: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const EventsScreen())),
                 ),
@@ -189,9 +201,9 @@ class _HomeViewState extends State<_HomeView> {
               ],
 
               // ── 10. Campaign Toolkit ──────────────────────────────
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: _SectionHeader(label: 'Campaign Toolkit'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _SectionHeader(label: t('home.campaign_toolkit')),
               ),
               const SizedBox(height: 12),
               const Padding(
@@ -202,7 +214,7 @@ class _HomeViewState extends State<_HomeView> {
 
               // ── 11. Live Streaming ────────────────────────────────
               _SectionHeader(
-                label: 'Live Streaming',
+                label: t('home.live_streaming'),
                 onMore: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const YoutubeHubScreen())),
               ),
@@ -214,73 +226,33 @@ class _HomeViewState extends State<_HomeView> {
               const SizedBox(height: 32),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Floating "Ask TVK AI" button ─────────────────────────────────────────────
-// Fixed bottom-right of Home (stays put while the page scrolls). Vijay's face
-// in a red ring; opens the AI chat (login required).
-
-class _AskAiButton extends StatelessWidget {
-  const _AskAiButton();
-
-  Future<void> _open(BuildContext context) async {
-    if (FirebaseAuth.instance.currentUser == null) {
-      await Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
-      if (FirebaseAuth.instance.currentUser == null) return;
-    }
-    final id = await DeviceSession.rotate();
-    if (!context.mounted) return;
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => ChatScreen(
-              session: ChatSession(
-                id: id, title: 'New conversation',
-                createdAt: DateTime.now(), lastMessage: '',
               ),
-            )));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const red = Color(0xFFE40101);
-    return GestureDetector(
-      onTap: () => _open(context),
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          shape: BoxShape.circle,
-          border: Border.all(color: red, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: red.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+            ),
+            // Sticky "TVK connect" bar — hidden over the hero, fades in once
+            // scrolled past it, tap opens the profile (My TVK) tab. Pinned via
+            // an explicit Positioned + bounded height so it can only ever be
+            // exactly topPad+52 tall — never an unbounded/full-page block.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: topPad + 52,
+              child: IgnorePointer(
+                ignoring: !_showStickyBar,
+                child: AnimatedOpacity(
+                  opacity: _showStickyBar ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: _StickyTvkBar(topPad: topPad, onTap: widget.onOpenProfile),
+                ),
+              ),
             ),
           ],
         ),
-        child: ClipOval(
-          child: Image.asset(
-            'assets/images/av1.png',
-            width: 56,
-            height: 56,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stack) => Container(
-              width: 56,
-              height: 56,
-              color: red.withValues(alpha: 0.1),
-              child: const Icon(Icons.mic_rounded, color: red, size: 26),
-            ),
-          ),
-        ),
       ),
     );
   }
 }
+
 
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 // Full-screen dark hero — transparent app bar overlay inside Stack.
@@ -288,7 +260,8 @@ class _AskAiButton extends StatelessWidget {
 // Offset: dy = topPad - 62  (Figma status-bar baseline ≈ 62 px)
 
 class _HeroSection extends StatelessWidget {
-  const _HeroSection();
+  final VoidCallback? onOpenProfile;
+  const _HeroSection({this.onOpenProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -456,16 +429,16 @@ class _HeroSection extends StatelessWidget {
                       height: 1.4,
                       letterSpacing: 0.2,
                     ),
-                    children: const [
-                      TextSpan(text: 'Join '),
-                      TextSpan(
+                    children: [
+                      TextSpan(text: t('home.join_prefix')),
+                      const TextSpan(
                         text: 'TVK',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: Color(0xFFFFCA00),
                         ),
                       ),
-                      TextSpan(text: ' today!'),
+                      TextSpan(text: t('home.join_suffix')),
                     ],
                   ),
                 ),
@@ -485,12 +458,16 @@ class _HeroSection extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'Join Now',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFE40101),
+                        Flexible(
+                          child: Text(
+                            t('home.join_now'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: LocaleController.isTamil ? 10.5 : 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFE40101),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -510,7 +487,7 @@ class _HeroSection extends StatelessWidget {
             left: 16,
             right: 16,
             height: 40,
-            child: _HeroAppBar(),
+            child: _HeroAppBar(onTap: onOpenProfile),
           ),
         ],
       ),
@@ -524,25 +501,17 @@ class _HeroSection extends StatelessWidget {
 
 
 class _HeroAppBar extends StatelessWidget {
+  final VoidCallback? onTap;
+  const _HeroAppBar({this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
       children: [
-        // Left avatar — av1
-        ClipOval(
-          child: Image.asset(
-            'assets/images/av1.png',
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-            errorBuilder: (_, e, s) => Container(
-              width: 40,
-              height: 40,
-              color: Colors.white24,
-              child: const Icon(Icons.person, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
+        const _TvkAvatar(size: 40),
         const SizedBox(width: 8),
         // "TVK connect" text (white on dark)
         Column(
@@ -571,6 +540,79 @@ class _HeroAppBar extends StatelessWidget {
         ),
         const Spacer(),
       ],
+      ),
+    );
+  }
+}
+
+// ─── Sticky "TVK connect" bar — shown once the hero scrolls out of view ───────
+
+class _StickyTvkBar extends StatelessWidget {
+  final double topPad;
+  final VoidCallback? onTap;
+  const _StickyTvkBar({required this.topPad, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(top: topPad),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: SizedBox(
+        height: 52,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const _TvkAvatar(size: 32),
+                const SizedBox(width: 8),
+                Text(
+                  'TVK',
+                  style: GoogleFonts.bebasNeue(fontSize: 17, color: AppColors.textPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'connect',
+                  style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                ),
+                const Spacer(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── TVK connect avatar — Vijay photo ──────────────────────────────────────────
+
+class _TvkAvatar extends StatelessWidget {
+  final double size;
+  const _TvkAvatar({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: Image.asset(
+        'assets/images/av1.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, e, s) => Container(
+          width: size,
+          height: size,
+          color: Colors.white24,
+          child: Icon(Icons.person, color: Colors.white, size: size * 0.5),
+        ),
+      ),
     );
   }
 }
@@ -652,7 +694,7 @@ class _LiveBannerDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Live Stream',
+                    t('home.live_stream_label'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -709,7 +751,7 @@ class _LiveBannerDialog extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Watch Live Now',
+                              t('home.watch_live_now'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -727,7 +769,7 @@ class _LiveBannerDialog extends StatelessWidget {
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: Text(
-                        'Skip for now',
+                        t('home.skip_for_now'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -793,7 +835,7 @@ class _PulsingLiveBadgeState extends State<_PulsingLiveBadge>
             ),
             const SizedBox(width: 5),
             Text(
-              'LIVE',
+              t('home.live_badge'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -915,7 +957,7 @@ class _CampaignSongCard extends StatelessWidget {
                           const Icon(Icons.local_fire_department_rounded,
                               color: Color(0xFFE40101), size: 14),
                           const SizedBox(width: 3),
-                          Text('New',
+                          Text(t('home.new_badge'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -924,7 +966,7 @@ class _CampaignSongCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     RichText(
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -932,7 +974,7 @@ class _CampaignSongCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          height: 1.3,
+                          height: 1.2,
                         ),
                         children: [
                           TextSpan(
@@ -947,7 +989,7 @@ class _CampaignSongCard extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: '\nCampaign Song',
+                            text: '\n${t('home.campaign_song')}',
                             style: TextStyle(color: AppColors.textPrimary),
                           ),
                         ],
@@ -958,6 +1000,7 @@ class _CampaignSongCard extends StatelessWidget {
                     ),
                     // Watch Now button
                     Container(
+                      constraints: const BoxConstraints(maxWidth: 168),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE40101),
@@ -969,12 +1012,16 @@ class _CampaignSongCard extends StatelessWidget {
                           const Icon(Icons.play_arrow_rounded,
                               color: Colors.white, size: 13),
                           const SizedBox(width: 4),
-                          Text('Watch Now',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              )),
+                          Flexible(
+                            child: Text(t('home.watch_now'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: LocaleController.isTamil ? 9.5 : 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                )),
+                          ),
                         ],
                       ),
                     ),
@@ -1020,7 +1067,7 @@ class _SectionHeader extends StatelessWidget {
             GestureDetector(
               onTap: onMore,
               child: Text(
-                'See More',
+                t('home.see_more'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -1202,20 +1249,20 @@ const _leaderCardColors = [
   Color(0xFF3D4A38),
 ];
 
-const _leaderNames = [
-  'Kamarajar',
-  'B. R. Ambedkar',
-  'Periyar',
-  'Anjalai Ammal',
-  'Velu Nachiyar',
+const _leaderNameKeys = [
+  'home.leader_kamarajar',
+  'home.leader_ambedkar',
+  'home.leader_periyar',
+  'home.leader_anjalai',
+  'home.leader_velunachiyar',
 ];
 
-const _leaderRoles = [
-  'Karmaveer',
-  'Babasaheb',
-  'Thanthai',
-  'Jhansi Rani of South India',
-  'Veeramangai',
+const _leaderRoleKeys = [
+  'home.role_karmaveer',
+  'home.role_babasaheb',
+  'home.role_thanthai',
+  'home.role_jhansi',
+  'home.role_veeramangai',
 ];
 
 class _SocialJusticeAndCommunityRow extends StatelessWidget {
@@ -1361,7 +1408,7 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: 56,
+                        height: 62,
                         child: Container(
                           decoration: const BoxDecoration(
                             gradient: LinearGradient(
@@ -1377,7 +1424,9 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                _leaderRoles[index],
+                                t(_leaderRoleKeys[index]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 8,
                                   fontWeight: FontWeight.w500,
@@ -1386,7 +1435,9 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                                 ),
                               ),
                               Text(
-                                _leaderNames[index],
+                                t(_leaderNameKeys[index]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.bebasNeue(
                                   fontSize: 15,
                                   color: Colors.white,
@@ -1421,7 +1472,7 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                               left: 0,
                               right: 0,
                               bottom: 0,
-                              height: 56,
+                              height: 62,
                               child: Container(
                                 decoration: const BoxDecoration(
                                   gradient: LinearGradient(
@@ -1442,7 +1493,9 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      _leaderRoles[index],
+                                      t(_leaderRoleKeys[index]),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 8,
                                         fontWeight: FontWeight.w500,
@@ -1450,7 +1503,9 @@ class _SocialJusticeDeckState extends State<_SocialJusticeDeck> {
                                       ),
                                     ),
                                     Text(
-                                      _leaderNames[index],
+                                      t(_leaderNameKeys[index]),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.bebasNeue(
                                         fontSize: 15,
                                         color: Colors.white,
@@ -1558,7 +1613,7 @@ class _CommunityText extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'COMMUNITY',
+          t('home.community'),
           style: GoogleFonts.bebasNeue(
             fontSize: 32,
             color: Colors.white,
@@ -1567,10 +1622,10 @@ class _CommunityText extends StatelessWidget {
           ),
         ),
         Text(
-          'WALL',
+          t('home.wall'),
           style: GoogleFonts.bebasNeue(
             fontSize: 32,
-            color: Color(0xFFE40101),
+            color: const Color(0xFFE40101),
             letterSpacing: 1,
             height: 1.0,
           ),
@@ -1600,7 +1655,7 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TVK Family',
+                t('home.tvk_family'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -1610,7 +1665,7 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
               GestureDetector(
                 onTap: onSeeMoreTap,
                 child: Text(
-                  'See More',
+                  t('home.see_more'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1639,8 +1694,8 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _LeaderMiniCard(
-                  name: 'N. Anand',
-                  role: 'General Secretary',
+                  name: t('home.leader_anand'),
+                  role: t('home.role_general_secretary'),
                   imagePath: 'assets/images/leader_anand.png',
                   leaderData: kTvkLeaders[1],
                 ),
@@ -1648,8 +1703,8 @@ class _ManifestoAndLeadersSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _LeaderMiniCard(
-                  name: 'K. G. Arunraj',
-                  role: 'Propaganda Secretary',
+                  name: t('home.leader_arunraj'),
+                  role: t('home.role_propaganda_secretary'),
                   imagePath: 'assets/images/leader_arunraj.png',
                   leaderData: kTvkLeaders[2],
                 ),
@@ -1757,7 +1812,7 @@ class _VijayFullCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'PRESIDENT',
+                        t('home.president'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
@@ -1768,7 +1823,7 @@ class _VijayFullCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Vijay',
+                      t('home.vijay'),
                       style: GoogleFonts.bebasNeue(
                         fontSize: 36,
                         color: Colors.white,
@@ -1777,7 +1832,7 @@ class _VijayFullCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Tamilaga Vettri Kazhagam',
+                      t('home.party_name_en'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
@@ -2000,7 +2055,7 @@ class _ManifestoCinematic extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Projects',
+                  t('home.projects'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
@@ -2013,7 +2068,7 @@ class _ManifestoCinematic extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'See Details',
+                      t('home.see_details'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -2114,7 +2169,7 @@ class _TvkShortsRow extends StatelessWidget {
                     Positioned(
                       bottom: 10, left: 10, right: 10,
                       child: Text(
-                        video != null ? video.title : 'TVK Shorts',
+                        video != null ? video.title : t('home.tvk_shorts_fallback'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
@@ -2177,14 +2232,14 @@ class _PollsInfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Polls',
+                Text(t('home.polls_title'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15, fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
                     )),
                 const SizedBox(height: 2),
                 Text(
-                  "TVK's Daily Polls Updates. Voice your opinion every day — our choices help shape tomorrow.",
+                  t('home.polls_desc'),
                   style: GoogleFonts.plusJakartaSans(
                       fontSize: 12, color: AppColors.textSecondary, height: 1.4),
                   maxLines: 2, overflow: TextOverflow.ellipsis,
@@ -2193,21 +2248,28 @@ class _PollsInfoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const PollsScreen())),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Create Poll',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12, fontWeight: FontWeight.w600,
-                      color: const Color(0xFFE40101),
-                    )),
-                const SizedBox(width: 2),
-                const Icon(Icons.arrow_outward_rounded,
-                    color: Color(0xFFE40101), size: 14),
-              ],
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 90),
+            child: GestureDetector(
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const PollsScreen())),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(t('home.create_poll'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: const Color(0xFFE40101),
+                        )),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.arrow_outward_rounded,
+                      color: Color(0xFFE40101), size: 14),
+                ],
+              ),
             ),
           ),
         ],
@@ -2317,7 +2379,7 @@ class _PollCard extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                'Submit',
+                t('home.submit'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -2334,7 +2396,7 @@ class _PollCard extends StatelessWidget {
                   text: TextSpan(
                     children: [
                       TextSpan(
-                        text: '${poll.totalVotes} responses',
+                        text: '${poll.totalVotes} ${t('home.responses')}',
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             color: AppColors.textPrimary,
@@ -2346,7 +2408,7 @@ class _PollCard extends StatelessWidget {
                             fontSize: 13, color: AppColors.textMuted),
                       ),
                       TextSpan(
-                        text: '02 Days left',
+                        text: t('home.days_left'),
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 13, color: const Color(0xFFDD2D2D)),
                       ),
@@ -2354,27 +2416,34 @@ class _PollCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF319C35),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.verified_rounded,
-                        size: 12, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Get TVK Badge',
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ],
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 130),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF319C35),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.verified_rounded,
+                          size: 12, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          t('home.get_tvk_badge'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -2462,7 +2531,7 @@ class _ToolkitCard extends StatelessWidget {
               left: 10,
               width: 70,
               child: Text(
-                label,
+                t('home.toolkit_${label.toLowerCase()}'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -2786,7 +2855,7 @@ class _LiveStreamBanner extends StatelessWidget {
                       decoration: const BoxDecoration(
                           color: Colors.white, shape: BoxShape.circle)),
                   const SizedBox(width: 4),
-                  Text('LIVE', style: GoogleFonts.plusJakartaSans(
+                  Text(t('home.live_badge'), style: GoogleFonts.plusJakartaSans(
                       fontSize: 10, fontWeight: FontWeight.w800,
                       color: Colors.white, letterSpacing: 0.5)),
                 ]),
@@ -2817,7 +2886,7 @@ class _LiveStreamBanner extends StatelessWidget {
                         color: const Color(0xFFE40101),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text('Join Live',
+                      child: Text(t('home.join_live'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12, fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -2869,13 +2938,13 @@ class _NoLiveBanner extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('No live currently',
+                  Text(t('home.no_live_currently'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15, fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       )),
                   const SizedBox(height: 4),
-                  Text('Browse past streams and videos',
+                  Text(t('home.browse_past_streams'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12, color: AppColors.textSecondary,
                       )),
