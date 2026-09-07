@@ -11,6 +11,7 @@ import '../services/agent_service.dart';
 import '../widgets/loading_overlay.dart';
 import '../config/app_colors.dart';
 import '../config/app_strings.dart';
+import '../config/tn_reference_data.dart';
 
 // Figma: 1328-9683 — TVK Member ID card result screen (lanyard + white card)
 
@@ -266,6 +267,12 @@ class _TvkIdCard extends StatelessWidget {
     return (val is String && val.trim().isNotEmpty) ? val : fallback;
   }
 
+  String _districtLabel() {
+    final en = member?['district'] as String?;
+    if (en == null || en.trim().isEmpty) return '—';
+    return Bilingual.labelFor(kTnDistricts, en);
+  }
+
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
@@ -333,7 +340,7 @@ class _TvkIdCard extends StatelessWidget {
             const SizedBox(height: 16),
             _InfoRow(label: t('member_id.name'), value: _v('name', '—')),
             _InfoRow(label: t('member_id.mobile_no'), value: _v('mobile', '—')),
-            _InfoRow(label: t('member_id.district'), value: _v('district', '—')),
+            _InfoRow(label: t('member_id.district'), value: _districtLabel()),
             _InfoRow(label: t('member_id.booth_no'), value: _v('booth', '—')),
           ],
         ),

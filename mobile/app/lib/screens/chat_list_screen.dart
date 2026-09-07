@@ -154,21 +154,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _startNewChat,
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-        label: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
-          child: Text(
-            t('chat_list.ask_leader').replaceAll('{name}', flavor.leaderName),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ),
+      // The empty state already has its own "Start Conversation" CTA — showing
+      // this FAB too gave citizens two identical "start chat" buttons at once.
+      floatingActionButton: (_loading || _sessions.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _startNewChat,
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(
+                  t('chat_list.ask_leader').replaceAll('{name}', flavor.leaderName),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
     );
   }
 }

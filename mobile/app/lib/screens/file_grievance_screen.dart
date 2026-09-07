@@ -5,57 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../config/app_colors.dart';
 import '../config/app_strings.dart';
+import '../config/tn_reference_data.dart';
 import '../services/agent_service.dart';
 import '../services/profile_service.dart';
 import '../widgets/loading_overlay.dart';
 
 // Single continuous, scrollable "File a Grievance" page — replaces the old
 // Register-Complaint bottom sheet. Same section-card pattern throughout.
-
-const _kCategorySubcategories = <String, List<String>>{
-  'Roads & Infrastructure': ['Damaged Road', 'Potholes', 'Road Construction', 'Road Widening', 'Drainage', 'Street Light', 'Other'],
-  'Water Supply': ['No Water Supply', 'Contaminated Water', 'Pipeline Leakage', 'Water Tanker Request', 'Other'],
-  'Electricity': ['Power Outage', 'Transformer Issue', 'Streetlight Not Working', 'New Connection', 'Other'],
-  'Sanitation': ['Garbage Not Collected', 'Public Toilet Issue', 'Drainage Blockage', 'Other'],
-  'Education': ['School Infrastructure', 'Teacher Shortage', 'Scholarship Issue', 'Other'],
-  'Health': ['Hospital Service', 'Medicine Shortage', 'Ambulance Delay', 'Other'],
-  'Land & Property': ['Patta Issue', 'Land Encroachment', 'Property Dispute', 'Other'],
-  'Police & Public Safety': ['Law and Order', 'Traffic Issue', 'Public Safety', 'Other'],
-  'Transport': ['Bus Service', 'Road Transport', 'Auto/Taxi Issue', 'Other'],
-  'Housing': ['Housing Scheme', 'Slum Clearance', 'Other'],
-  'Pension & Welfare': ['Pension Delay', 'Welfare Scheme', 'Ration Card', 'Other'],
-  'Other': ['Other'],
-};
-
-const _kCategoryDepartment = <String, String>{
-  'Roads & Infrastructure': 'Municipal Administration / Highways',
-  'Water Supply': 'Water Supply Department',
-  'Electricity': 'TANGEDCO / Electricity Board',
-  'Sanitation': 'Municipal Administration',
-  'Education': 'School Education Department',
-  'Health': 'Health Department',
-  'Land & Property': 'Revenue Department',
-  'Police & Public Safety': 'Police Department',
-  'Transport': 'Transport Department',
-  'Housing': 'Housing & Urban Development',
-  'Pension & Welfare': 'Social Welfare Department',
-  'Other': 'General Administration',
-};
-
-// Same 38-district list used in join_screen.dart.
-const _kDistricts = [
-  'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem',
-  'Tirunelveli', 'Vellore', 'Erode', 'Thoothukudi', 'Dindigul',
-  'Thanjavur', 'Tiruppur', 'Ranipet', 'Sivaganga', 'Virudhunagar',
-  'Nagapattinam', 'Cuddalore', 'Villupuram', 'Kancheepuram',
-  'Chengalpattu', 'Kallakurichi', 'Tiruvannamalai', 'Krishnagiri',
-  'Dharmapuri', 'Namakkal', 'Ariyalur', 'Perambalur', 'Karur',
-  'Nilgiris', 'Tiruvarur', 'Pudukkottai', 'Ramanathapuram',
-  'Tenkasi', 'Kanyakumari', 'Mayiladuthurai', 'Tirupathur',
-  'Chengam', 'Tirupattur',
-];
-
-const _kLocalBodies = ['Corporation', 'Municipality', 'Town Panchayat', 'Village Panchayat', 'Other'];
 
 class FileGrievanceScreen extends StatefulWidget {
   const FileGrievanceScreen({super.key});
@@ -77,10 +33,10 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
   final _desc = TextEditingController();
   final _previousRef = TextEditingController();
 
-  String? _district;
-  String? _localBody;
-  String? _category;
-  String? _subcategory;
+  Bilingual? _district;
+  Bilingual? _localBody;
+  Bilingual? _category;
+  Bilingual? _subcategory;
   bool _hasPrevious = false;
   bool _isUrgent = false;
   bool _declared = false;
@@ -113,11 +69,11 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
     super.dispose();
   }
 
-  void _onCategoryChanged(String cat) {
+  void _onCategoryChanged(Bilingual cat) {
     setState(() {
       _category = cat;
       _subcategory = null;
-      _department.text = _kCategoryDepartment[cat] ?? '';
+      _department.text = kCategoryDepartment[cat]?.label ?? '';
     });
   }
 
@@ -157,12 +113,12 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
     final result = await AgentService.registerComplaint(
       title: _title.text.trim(),
       description: _desc.text.trim(),
-      category: _category!,
-      subcategory: _subcategory!,
+      category: _category!.en,
+      subcategory: _subcategory!.en,
       department: _department.text.trim(),
-      district: _district!,
+      district: _district!.en,
       taluk: _taluk.text.trim(),
-      localBody: _localBody!,
+      localBody: _localBody!.en,
       village: _village.text.trim(),
       ward: _ward.text.trim(),
       pincode: pin,
@@ -233,8 +189,7 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 20),
 
           _SectionCard(
-            number: '01',
-            icon: Icons.person_outline_rounded,
+            number: '1',
             title: t('grievance.section1_title'),
             subtitle: t('grievance.section1_subtitle'),
             children: [
@@ -252,15 +207,14 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '02',
-            icon: Icons.location_on_outlined,
+            number: '2',
             title: t('grievance.section2_title'),
             subtitle: t('grievance.section2_subtitle'),
             children: [
               _FieldLabel('${t('grievance.district_label')} *'),
               const SizedBox(height: 8),
-              _Picker(value: _district, placeholder: t('grievance.select_district'), onTap: () async {
-                final v = await _showPicker(context, _kDistricts, t('grievance.select_district'));
+              _Picker(value: _district?.label, placeholder: t('grievance.select_district'), onTap: () async {
+                final v = await _showBilingualPicker(context, kTnDistricts, t('grievance.select_district'));
                 if (v != null) setState(() => _district = v);
               }),
               const SizedBox(height: 12),
@@ -268,8 +222,8 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
               const SizedBox(height: 12),
               _FieldLabel('${t('grievance.local_body_label')} *'),
               const SizedBox(height: 8),
-              _Picker(value: _localBody, placeholder: t('grievance.select_local_body'), onTap: () async {
-                final v = await _showPicker(context, _kLocalBodies, t('grievance.select_local_body'));
+              _Picker(value: _localBody?.label, placeholder: t('grievance.select_local_body'), onTap: () async {
+                final v = await _showBilingualPicker(context, kLocalBodyTypes, t('grievance.select_local_body'));
                 if (v != null) setState(() => _localBody = v);
               }),
               const SizedBox(height: 12),
@@ -285,37 +239,31 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '03',
-            icon: Icons.category_outlined,
+            number: '3',
             title: t('grievance.section3_title'),
             subtitle: t('grievance.section3_subtitle'),
             children: [
               _FieldLabel('${t('grievance.category_label')} *'),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8, runSpacing: 8,
-                children: _kCategorySubcategories.keys.map((cat) => _Chip(
-                  label: cat, active: cat == _category, onTap: () => _onCategoryChanged(cat),
-                )).toList(),
-              ),
+              _Picker(value: _category?.label, placeholder: t('grievance.select'), onTap: () async {
+                final v = await _showBilingualPicker(context, kGrievanceCategories.keys.toList(), t('grievance.category_label'));
+                if (v != null) _onCategoryChanged(v);
+              }),
               if (_category != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _FieldLabel('${t('grievance.subcategory_label')} *'),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8, runSpacing: 8,
-                  children: (_kCategorySubcategories[_category] ?? []).map((sub) => _Chip(
-                    label: sub, active: sub == _subcategory, onTap: () => setState(() => _subcategory = sub),
-                  )).toList(),
-                ),
+                _Picker(value: _subcategory?.label, placeholder: t('grievance.select'), onTap: () async {
+                  final v = await _showBilingualPicker(context, kGrievanceCategories[_category] ?? [], t('grievance.subcategory_label'));
+                  if (v != null) setState(() => _subcategory = v);
+                }),
               ],
             ],
           ),
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '04',
-            icon: Icons.apartment_outlined,
+            number: '4',
             title: t('grievance.section4_title'),
             subtitle: t('grievance.section4_subtitle'),
             children: [
@@ -325,8 +273,7 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '05',
-            icon: Icons.description_outlined,
+            number: '5',
             title: t('grievance.section5_title'),
             subtitle: '',
             children: [
@@ -352,8 +299,7 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '06',
-            icon: Icons.history_rounded,
+            number: '6',
             title: t('grievance.section6_title'),
             subtitle: '',
             children: [
@@ -373,8 +319,7 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '07',
-            icon: Icons.attach_file_rounded,
+            number: '7',
             title: t('grievance.section7_title'),
             subtitle: t('grievance.section7_subtitle'),
             children: [
@@ -426,8 +371,7 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            number: '08',
-            icon: Icons.warning_amber_rounded,
+            number: '8',
             title: t('grievance.section8_title'),
             subtitle: '',
             children: [
@@ -481,8 +425,8 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
 
   TextStyle get _valueStyle => GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.w500);
 
-  Future<String?> _showPicker(BuildContext context, List<String> options, String title) {
-    return showModalBottomSheet<String>(
+  Future<Bilingual?> _showBilingualPicker(BuildContext context, List<Bilingual> options, String title) {
+    return showModalBottomSheet<Bilingual>(
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -500,7 +444,7 @@ class _FileGrievanceScreenState extends State<FileGrievanceScreen> {
               itemCount: options.length,
               separatorBuilder: (context, index) => Divider(height: 1, color: AppColors.border),
               itemBuilder: (ctx, i) => ListTile(
-                title: Text(options[i], style: GoogleFonts.plusJakartaSans(fontSize: 14)),
+                title: Text(options[i].label, style: GoogleFonts.plusJakartaSans(fontSize: 14)),
                 onTap: () => Navigator.pop(ctx, options[i]),
               ),
             ),
@@ -585,11 +529,10 @@ class _SuccessView extends StatelessWidget {
 
 class _SectionCard extends StatelessWidget {
   final String number;
-  final IconData icon;
   final String title;
   final String subtitle;
   final List<Widget> children;
-  const _SectionCard({required this.number, required this.icon, required this.title, required this.subtitle, required this.children});
+  const _SectionCard({required this.number, required this.title, required this.subtitle, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -606,10 +549,13 @@ class _SectionCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(number, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
-              const SizedBox(width: 8),
-              Icon(icon, size: 18, color: AppColors.red),
-              const SizedBox(width: 8),
+              Container(
+                width: 26, height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
+                child: Text(number, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

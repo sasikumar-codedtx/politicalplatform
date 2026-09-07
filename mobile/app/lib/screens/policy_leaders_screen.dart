@@ -8,6 +8,9 @@ import 'policy_leader_detail_screen.dart';
 // ─── Shared data models ───────────────────────────────────────────────────────
 
 class PolicyLeaderData {
+  // Stable English key — used for lookups (portrait layout, etc.) that must
+  // not change when the display name switches language.
+  final String id;
   final String role;
   final String name;
   final String imagePath;
@@ -15,6 +18,7 @@ class PolicyLeaderData {
   final String? years;
 
   const PolicyLeaderData({
+    required this.id,
     required this.role,
     required this.name,
     required this.imagePath,
@@ -23,58 +27,48 @@ class PolicyLeaderData {
   });
 }
 
-const _kPlaceholderBio =
-    'A visionary leader who dedicated their life to the cause of social justice '
-    'and equality in Tamil Nadu. Their contributions continue to inspire millions '
-    'across India and the world.\n\n'
-    'Their legacy lives on through the countless lives they transformed and the '
-    'movements they inspired, shaping the social and political landscape of Tamil '
-    'Nadu for generations to come.';
-
-const List<PolicyLeaderData> kPolicyLeaders = [
+// Locale-aware — reuses the same translations already used for the Home
+// screen's Social Justice carousel (home.leader_*/home.role_* keys) so both
+// places show identical, already-verified Tamil text.
+List<PolicyLeaderData> get kPolicyLeaders => [
   PolicyLeaderData(
-    role: 'Karmaveer',
-    name: 'Kamarajar',
+    id: 'kamarajar',
+    role: t('home.role_karmaveer'),
+    name: t('home.leader_kamarajar'),
     imagePath: 'assets/images/leader_kamarajar.png',
-    biography: _kPlaceholderBio,
+    biography: t('policy_leaders.bio_generic'),
     years: '1903–1975',
   ),
   PolicyLeaderData(
-    role: 'Babasaheb',
-    name: 'B. R. Ambedkar',
+    id: 'ambedkar',
+    role: t('home.role_babasaheb'),
+    name: t('home.leader_ambedkar'),
     imagePath: 'assets/images/leader_ambedkar.png',
-    biography: _kPlaceholderBio,
+    biography: t('policy_leaders.bio_generic'),
     years: '1891–1956',
   ),
   PolicyLeaderData(
-    role: 'Thanthai',
-    name: 'Periyar',
+    id: 'periyar',
+    role: t('home.role_thanthai'),
+    name: t('home.leader_periyar'),
     imagePath: 'assets/images/leader_periyar.png',
-    biography: _kPlaceholderBio,
+    biography: t('policy_leaders.bio_generic'),
     years: '1879–1973',
   ),
   PolicyLeaderData(
-    role: 'The Jhansi Rani of South India',
-    name: 'Anjalai Ammal',
+    id: 'anjalai',
+    role: t('home.role_jhansi'),
+    name: t('home.leader_anjalai'),
     imagePath: 'assets/images/leader_anjalai.png',
     years: '1890–1961',
-    biography:
-        'She started her political activism in 1921 with the Non-cooperation '
-        'movement and later took part in the Neil Statue Satyagraha, Salt '
-        'Satyagraha and Quit India Movement. Her courage was so well known that '
-        'Mahatma Gandhi called her "Jhansi Rani of South India".\n\n'
-        'Granddaughter of Anjalai Ammal, Mangai A, explains, "My grandmother was '
-        'in jail for more than four and half years and she gave birth to her last '
-        'son in the jail itself."\n\n'
-        'In 1930, Anjalai Ammal was arrested for picketing shops on Godown Street '
-        'in Madras. In 1931, she presided over The All India Women Congress Meet. '
-        'She died on 20 February 1961.',
+    biography: t('policy_leaders.bio_anjalai'),
   ),
   PolicyLeaderData(
-    role: 'Veeramangai',
-    name: 'Velu Nachiyar',
+    id: 'velunachiyar',
+    role: t('home.role_veeramangai'),
+    name: t('home.leader_velunachiyar'),
     imagePath: 'assets/images/leader_velunachiyar.png',
-    biography: _kPlaceholderBio,
+    biography: t('policy_leaders.bio_generic'),
     years: '1730–1796',
   ),
 ];
@@ -82,6 +76,7 @@ const List<PolicyLeaderData> kPolicyLeaders = [
 // TVK party leaders — used on home screen cards
 const List<PolicyLeaderData> kTvkLeaders = [
   PolicyLeaderData(
+    id: 'vijay',
     role: 'President',
     name: 'Vijay',
     imagePath: 'assets/images/leader_vijay.png',
@@ -97,6 +92,7 @@ const List<PolicyLeaderData> kTvkLeaders = [
         'Ambedkar, adapting their principles for the 21st century.',
   ),
   PolicyLeaderData(
+    id: 'anand',
     role: 'General Secretary',
     name: 'N. Anand',
     imagePath: 'assets/images/leader_anand.png',
@@ -109,6 +105,7 @@ const List<PolicyLeaderData> kTvkLeaders = [
         'reaches every constituency.',
   ),
   PolicyLeaderData(
+    id: 'arunraj',
     role: 'Propaganda & Policy General Secretary',
     name: 'K. G. Arunraj',
     imagePath: 'assets/images/leader_arunraj.png',
@@ -121,6 +118,7 @@ const List<PolicyLeaderData> kTvkLeaders = [
         'focus on digital inclusion, agricultural reform, and education policy.',
   ),
   PolicyLeaderData(
+    id: 'aadhav',
     role: 'Youth Wing Secretary',
     name: 'A. Aadhav Arjuna',
     imagePath: 'assets/images/leader_aadhav.png',
@@ -778,6 +776,8 @@ class _HeroBanner extends StatelessWidget {
                       ),
                       Text(
                         t('policy_leaders.family'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.bebasNeue(
                           fontSize: 36,
                           color: Colors.white,
@@ -788,10 +788,13 @@ class _HeroBanner extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         t('policy_leaders.know_your_leaders_subtitle'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Colors.white70,
+                          height: 1.3,
                         ),
                       ),
                     ],
@@ -1162,28 +1165,37 @@ class _PolicyHeroBanner extends StatelessWidget {
           // Title
           Positioned(
             left: 16,
+            right: 16,
             bottom: 16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  t('policy_leaders.our_policy_leaders'),
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 34,
-                    color: const Color(0xFFE40101),
-                    letterSpacing: 0.5,
-                    height: 1.0,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    t('policy_leaders.our_policy_leaders'),
+                    maxLines: 1,
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 34,
+                      color: const Color(0xFFE40101),
+                      letterSpacing: 0.5,
+                      height: 1.0,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   t('policy_leaders.know_our_policy_leaders'),
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 16,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                    height: 1.0,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white70,
+                    letterSpacing: 0.2,
+                    height: 1.2,
                   ),
                 ),
               ],
@@ -1205,16 +1217,16 @@ class _PolicyLeaderCard extends StatelessWidget {
   // Portrait position per leader — right-anchored so the image stays inside
   // the card on any screen width (Figma coords assumed a ~372px card)
   _PortraitSpec get _portrait {
-    switch (leader.name) {
-      case 'Kamarajar':
+    switch (leader.id) {
+      case 'kamarajar':
         return const _PortraitSpec(right: 15, top: 12, width: 97, height: 101);
-      case 'B. R. Ambedkar':
+      case 'ambedkar':
         return const _PortraitSpec(right: 26, top: 0, width: 118, height: 113);
-      case 'Periyar':
+      case 'periyar':
         return const _PortraitSpec(right: 0, top: 8, width: 149, height: 112);
-      case 'Anjalai Ammal':
+      case 'anjalai':
         return const _PortraitSpec(right: 18, top: 6, width: 134, height: 107);
-      case 'Velu Nachiyar':
+      case 'velunachiyar':
         return const _PortraitSpec(right: 25, top: 16, width: 114, height: 97);
       default:
         return const _PortraitSpec(right: 22, top: 6, width: 110, height: 107);

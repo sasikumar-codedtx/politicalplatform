@@ -62,8 +62,10 @@ class _EventsScreenState extends State<EventsScreen> {
                 colors: [Color(0xFFE40101), Color(0xFF7E0101)],
               ).createShader(bounds),
               child: Text(t('events.title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.bebasNeue(
-                    fontSize: 26, color: Colors.white, letterSpacing: 0.2)),
+                    fontSize: LocaleController.isTamil ? 20 : 26, color: Colors.white, letterSpacing: 0.2)),
             ),
           ),
           SliverPadding(

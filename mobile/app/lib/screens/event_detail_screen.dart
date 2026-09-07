@@ -190,8 +190,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             children: [
                               Icon(Icons.people_outline_rounded, color: AppColors.textPrimary, size: 20),
                               const SizedBox(width: 10),
-                              Text(t('event_detail.people_attending'), style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary)),
-                              const Spacer(),
+                              Expanded(
+                                child: Text(t('event_detail.people_attending'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary)),
+                              ),
+                              const SizedBox(width: 8),
                               Icon(Icons.ios_share_rounded, color: AppColors.textSecondary, size: 18),
                             ],
                           ),
@@ -221,16 +226,26 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   border: _rsvped ? Border.all(color: const Color(0xFFE40101), width: 1) : null,
                 ),
                 alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(_rsvped ? Icons.check_circle_outline_rounded : Icons.how_to_vote_outlined, color: _rsvped ? const Color(0xFFE40101) : Colors.white, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      _rsvped ? t('event_detail.attending') : t('event_detail.rsvp_attend'),
-                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: _rsvped ? const Color(0xFFE40101) : Colors.white),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(_rsvped ? Icons.check_circle_outline_rounded : Icons.how_to_vote_outlined, color: _rsvped ? const Color(0xFFE40101) : Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _rsvped ? t('event_detail.attending') : t('event_detail.rsvp_attend'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: LocaleController.isTamil ? 13 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: _rsvped ? const Color(0xFFE40101) : Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

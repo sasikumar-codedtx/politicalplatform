@@ -388,15 +388,15 @@ class _ProfileCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: _StatBox(value: pollsValue, label: t('profile.polls_participated'), onTap: () => onTapStat(0)),
+                  child: _StatBox(value: pollsValue, label: t('profile.polls_participated'), icon: Icons.how_to_vote_outlined, onTap: () => onTapStat(0)),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _StatBox(value: complaintsValue, label: t('profile.complaints_submitted'), onTap: () => onTapStat(1)),
+                  child: _StatBox(value: complaintsValue, label: t('profile.complaints_submitted'), icon: Icons.assignment_outlined, onTap: () => onTapStat(1)),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _StatBox(value: donationValue, label: t('profile.total_amount_donated'), onTap: () => onTapStat(2)),
+                  child: _StatBox(value: donationValue, label: t('profile.total_amount_donated'), icon: Icons.volunteer_activism_outlined, onTap: () => onTapStat(2)),
                 ),
               ],
             ),
@@ -431,16 +431,17 @@ class _ProfileCard extends StatelessWidget {
 class _StatBox extends StatelessWidget {
   final String value;
   final String label;
+  final IconData icon;
   final VoidCallback onTap;
-  const _StatBox({required this.value, required this.label, required this.onTap});
+  const _StatBox({required this.value, required this.label, required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 93),
-        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(minHeight: 100),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.bg,
           borderRadius: BorderRadius.circular(10),
@@ -450,19 +451,25 @@ class _StatBox extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(icon, size: 16, color: _kRed),
+            const SizedBox(height: 6),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: _kRed,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               label,
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textPrimary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(fontSize: 11, height: 1.2, color: AppColors.textPrimary),
             ),
           ],
         ),

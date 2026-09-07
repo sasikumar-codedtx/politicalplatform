@@ -13,6 +13,8 @@ import 'chat_screen.dart';
 import '../models/chat_session.dart';
 import 'phone_login_screen.dart';
 import 'join_screen.dart';
+import 'manifesto_screen.dart';
+import 'complaints_screen.dart';
 import '../services/device_session.dart';
 import '../services/profile_service.dart';
 import 'dart:async';
@@ -26,7 +28,9 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
-  // 0=Home 1=Forum  [2=VoiceChat action]  3=News 4=MyTVK
+  // 0=Home  [1=Forum action]  [2=Projects action]  [3=AI action]  [4=Grievance action]  [5=News action]  6=MyTVK
+  // Only Home and My TVK are persisted tabs; everything else pushes a screen
+  // with its own back button, matching how Projects/Grievance already worked.
   int _selectedIndex = 0;
   StreamSubscription<User?>? _authSub;
 
@@ -51,7 +55,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     ProfileService.load(); // so the My TVK icon shows the saved photo on launch
     // On logout, leave the (gated) profile tab and return to Home.
     _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user == null && mounted && _selectedIndex == 4) {
+      if (user == null && mounted && _selectedIndex == 6) {
         setState(() => _selectedIndex = 0);
       }
     });
@@ -65,7 +69,17 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   }
 
   void _onNavTap(int index) {
+    if (index == 1) {
+      // Forum — just a push, not a persisted tab.
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const FanPageScreen()));
+      return;
+    }
     if (index == 2) {
+      // Projects — 5 Year Plan. Just a push, not a persisted tab.
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ManifestoScreen()));
+      return;
+    }
+    if (index == 3) {
       // Centre AI button — opens the assistant chat DIRECTLY (no history list
       // first; past chats live in the chat screen's drawer). STRICT login.
       _requireLoginMandatory(() async {
@@ -88,10 +102,20 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       return;
     }
     if (index == 4) {
+      // File a Grievance — just a push, not a persisted tab.
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ComplaintsScreen()));
+      return;
+    }
+    if (index == 5) {
+      // News — just a push, not a persisted tab.
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsScreen()));
+      return;
+    }
+    if (index == 6) {
       // My TVK — login is mandatory (no Skip). If declined, stay put.
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        _requireLoginMandatory(() async => setState(() => _selectedIndex = 4));
+        _requireLoginMandatory(() async => setState(() => _selectedIndex = 6));
         return;
       }
     }
@@ -147,11 +171,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     );
   }
 
-  // Tab indices 0,1,3,4 → stack indices 0,1,2,3
-  int get _stackIndex {
-    if (_selectedIndex <= 1) return _selectedIndex;
-    return _selectedIndex - 1; // 3→2, 4→3
-  }
+  // Only Home (0) and My TVK (6) are persisted tabs → stack indices 0,1.
+  // Every other index is an action tap that pushes a screen and never
+  // becomes the selected index, so it never reaches this getter.
+  int get _stackIndex => _selectedIndex == 0 ? 0 : 1;
 
   @override
   Widget build(BuildContext context) {
@@ -164,11 +187,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       backgroundColor: bg,
       body: IndexedStack(
         index: _stackIndex,
-        children: const [
-          HomeScreen(),
-          FanPageScreen(),
-          NewsScreen(),
-          ProfileScreen(),
+        children: [
+          HomeScreen(onOpenProfile: () => _onNavTap(6)),
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: Container(
@@ -200,19 +221,39 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   onTap: _onNavTap,
                   primary: primary,
                 ),
-                // Center AI assistant — prominent, login-gated (via _onNavTap(2)).
-                _AiCenterButton(primary: primary, onTap: () => _onNavTap(2)),
+                // Action item — pushes ManifestoScreen, never becomes "selected".
+                _NavItem(
+                  icon: Icons.event_note_outlined,
+                  activeIcon: Icons.event_note_rounded,
+                  label: t('main_shell.nav_projects'),
+                  index: 2,
+                  selected: _selectedIndex,
+                  onTap: _onNavTap,
+                  primary: primary,
+                ),
+                // Center AI assistant — prominent, login-gated (via _onNavTap(3)).
+                _AiCenterButton(primary: primary, onTap: () => _onNavTap(3)),
+                // Action item — pushes ComplaintsScreen, never becomes "selected".
                 _NavItem(
                   icon: Icons.campaign_outlined,
                   activeIcon: Icons.campaign_rounded,
+                  label: t('main_shell.nav_grievance'),
+                  index: 4,
+                  selected: _selectedIndex,
+                  onTap: _onNavTap,
+                  primary: primary,
+                ),
+                _NavItem(
+                  icon: Icons.newspaper_outlined,
+                  activeIcon: Icons.newspaper_rounded,
                   label: t('main_shell.nav_news'),
-                  index: 3,
+                  index: 5,
                   selected: _selectedIndex,
                   onTap: _onNavTap,
                   primary: primary,
                 ),
                 _MyTvkNavItem(
-                  index: 4,
+                  index: 6,
                   selected: _selectedIndex,
                   onTap: _onNavTap,
                   primary: primary,
@@ -244,8 +285,8 @@ class _AiCenterButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -262,11 +303,13 @@ class _AiCenterButton extends StatelessWidget {
                 ],
               ),
               child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 22),
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(height: 2),
             Text(
               t('main_shell.nav_ai'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
@@ -314,13 +357,16 @@ class _NavItem extends StatelessWidget {
             Icon(
               isActive ? activeIcon : icon,
               color: isActive ? primary : AppColors.textSecondary,
-              size: 22,
+              size: 20,
             ),
             const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: GoogleFonts.inter(
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight:
                     isActive ? FontWeight.w700 : FontWeight.w400,
                 color: isActive ? primary : AppColors.textSecondary,
@@ -562,13 +608,13 @@ class _MyTvkNavItem extends StatelessWidget {
                   return ClipOval(
                     child: Image.file(
                       File(path),
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stack) => Icon(
                         Icons.person_rounded,
                         color: isActive ? primary : AppColors.textSecondary,
-                        size: 22,
+                        size: 20,
                       ),
                     ),
                   );
@@ -578,15 +624,18 @@ class _MyTvkNavItem extends StatelessWidget {
                       ? Icons.person_rounded
                       : Icons.person_outline_rounded,
                   color: isActive ? primary : AppColors.textSecondary,
-                  size: 22,
+                  size: 20,
                 );
               },
             ),
             const SizedBox(height: 3),
             Text(
               t('main_shell.nav_my_tvk'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: GoogleFonts.inter(
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight:
                     isActive ? FontWeight.w700 : FontWeight.w400,
                 color:

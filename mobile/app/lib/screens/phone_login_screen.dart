@@ -121,7 +121,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       body: SafeArea(
+        top: false,
         // Scrollable so the form never overflows when the keyboard opens;
         // minHeight + IntrinsicHeight keep the Spacer-centred layout otherwise.
         child: LayoutBuilder(

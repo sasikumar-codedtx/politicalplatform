@@ -170,8 +170,10 @@ class _Header extends StatelessWidget {
                   ).createShader(bounds),
                   child: Text(
                     t('youtube_hub.title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
+                      fontSize: LocaleController.isTamil ? 22 : 34,
                       color: Colors.white,
                       letterSpacing: 0.2,
                     ),
@@ -180,8 +182,10 @@ class _Header extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   t('youtube_hub.subtitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
+                    fontSize: LocaleController.isTamil ? 11 : 13,
                     color: Colors.white,
                     height: 1.4,
                   ),

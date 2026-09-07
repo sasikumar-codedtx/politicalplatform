@@ -2,11 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../config/app_colors.dart';
 import '../config/app_strings.dart';
 import '../models/manifesto_plan.dart';
 import '../viewmodels/manifesto_viewmodel.dart';
 import 'manifesto_detail_screen.dart';
+import 'goal_detail_screen.dart';
 
 class ManifestoScreen extends StatelessWidget {
   const ManifestoScreen({super.key});
@@ -49,7 +51,9 @@ class _ManifestoViewState extends State<_ManifestoView> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -80,12 +84,18 @@ class _ManifestoViewState extends State<_ManifestoView> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            _tabs[i],
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-                              color: active ? Colors.white : AppColors.textPrimary,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              _tabs[i],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: LocaleController.isTamil ? 9.5 : 11,
+                                fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                                color: active ? Colors.white : AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ),
@@ -121,6 +131,25 @@ class _ManifestoViewState extends State<_ManifestoView> {
           ],
         ),
       ),
+          // Sticky back button — pinned above the scroll, never scrolls away.
+          Positioned(
+            top: topPad + 24,
+            left: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.maybePop(context),
+              child: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+                ),
+                child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -135,7 +164,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 216 + topPad,
+      height: (LocaleController.isTamil ? 250 : 216) + topPad,
       child: Stack(
         children: [
           Positioned.fill(
@@ -170,23 +199,6 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          // Back button
-          Positioned(
-            top: topPad + 24,
-            left: 16,
-            child: GestureDetector(
-              onTap: () => Navigator.maybePop(context),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
-                ),
-                child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
-              ),
-            ),
-          ),
           // Title
           Positioned(
             bottom: 16,
@@ -201,18 +213,23 @@ class _Header extends StatelessWidget {
                   ).createShader(bounds),
                   child: Text(
                     t('manifesto.header_title'),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
+                      fontSize: LocaleController.isTamil ? 24 : 34,
                       color: Colors.white,
                       letterSpacing: 0.2,
+                      height: 1.05,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   t('manifesto.header_subtitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
+                    fontSize: LocaleController.isTamil ? 12 : 16,
                     color: Colors.white,
                     height: 1.3,
                   ),
@@ -369,7 +386,10 @@ class _PlanCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.ios_share_rounded, color: Colors.white, size: 16),
+                        GestureDetector(
+                          onTap: () => Share.share('${plan.title}\n\n${plan.description}'),
+                          child: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 16),
+                        ),
                       ],
                     ),
                   ),
@@ -626,8 +646,8 @@ class _GoalsTab extends StatelessWidget {
   const _GoalsTab();
 
   List<_AchievementData> get _achievements => [
-        _AchievementData(t('manifesto.achievement_health_camps_title'), t('manifesto.achievement_health_category'), t('manifesto.achievement_health_camps_subtitle'), 'assets/images/event_1.png'),
-        _AchievementData(t('manifesto.achievement_solar_panels_title'), t('manifesto.achievement_education_category'), t('manifesto.achievement_solar_panels_subtitle'), 'assets/images/event_2.png'),
+        _AchievementData(t('manifesto.achievement_health_camps_title'), t('manifesto.achievement_health_category'), t('manifesto.achievement_health_camps_subtitle'), t('manifesto.achievement_health_camps_desc'), 'assets/images/event_1.png'),
+        _AchievementData(t('manifesto.achievement_solar_panels_title'), t('manifesto.achievement_education_category'), t('manifesto.achievement_solar_panels_subtitle'), t('manifesto.achievement_solar_panels_desc'), 'assets/images/event_2.png'),
       ];
 
   @override
@@ -714,16 +734,28 @@ class _GoalsTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE40101),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                alignment: Alignment.center,
-                child: Text(t('manifesto.see_details'),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white,
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => GoalDetailScreen(
+                    title: t('manifesto.goal_solar_title'),
+                    description: t('manifesto.goal_solar_desc'),
+                    imageAsset: 'assets/images/plan_education.png',
+                    progress: 0.75,
+                    timeline: t('manifesto.goal_timeline'),
+                    budget: t('manifesto.goal_budget'),
+                  ),
+                )),
+                child: Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE40101),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(t('manifesto.see_details'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -792,8 +824,9 @@ class _AchievementData {
   final String title;
   final String category;
   final String subtitle;
+  final String description;
   final String imageAsset;
-  const _AchievementData(this.title, this.category, this.subtitle, this.imageAsset);
+  const _AchievementData(this.title, this.category, this.subtitle, this.description, this.imageAsset);
 }
 
 class _AchievementCard extends StatelessWidget {
@@ -802,7 +835,16 @@ class _AchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => GoalDetailScreen(
+          title: data.title,
+          category: data.category,
+          description: data.description,
+          imageAsset: data.imageAsset,
+        ),
+      )),
+      child: ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: SizedBox(
         height: 187,
@@ -876,6 +918,7 @@ class _AchievementCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -270,27 +270,55 @@ class _NewsScreenState extends State<NewsScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.surface,
-        body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            SliverToBoxAdapter(
-              child: _NewsBanner(topPad: topPad),
+        body: Stack(
+          children: [
+            NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: _NewsBanner(topPad: topPad),
+                ),
+              ],
+              body: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Color(0xFFE40101)))
+                  : _NewsBody(
+                      news: _filtered,
+                      categories: _kCategories,
+                      activeCategory: _activeCategory,
+                      searchQuery: _searchQuery,
+                      hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
+                      onCategoryChanged: (c) =>
+                          setState(() => _activeCategory = c),
+                      onSearchChanged: (q) =>
+                          setState(() => _searchQuery = q),
+                      onOpenFilters: _openFilterSheet,
+                    ),
+            ),
+            // Sticky back button — only when pushed (not the News tab root);
+            // pinned above the scroll so it never scrolls away.
+            Builder(
+              builder: (ctx) {
+                if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
+                return Positioned(
+                  top: topPad + 14,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
-          body: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFE40101)))
-              : _NewsBody(
-                  news: _filtered,
-                  categories: _kCategories,
-                  activeCategory: _activeCategory,
-                  searchQuery: _searchQuery,
-                  hasActiveAdvancedFilter: _hasActiveAdvancedFilter,
-                  onCategoryChanged: (c) =>
-                      setState(() => _activeCategory = c),
-                  onSearchChanged: (q) =>
-                      setState(() => _searchQuery = q),
-                  onOpenFilters: _openFilterSheet,
-                ),
         ),
       ),
     );
@@ -307,7 +335,7 @@ class _NewsBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: topPad + 160,
+      height: topPad + 190,
       child: Stack(
         children: [
           // TVK flag background
@@ -343,30 +371,6 @@ class _NewsBanner extends StatelessWidget {
             ),
           ),
 
-          // Back button — only when pushed onto stack
-          Builder(
-            builder: (ctx) {
-              if (!Navigator.canPop(ctx)) return const SizedBox.shrink();
-              return Positioned(
-                top: topPad + 14,
-                left: 16,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-                    ),
-                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                  ),
-                ),
-              );
-            },
-          ),
-
           // Title block
           Positioned(
             left: 16,
@@ -382,22 +386,26 @@ class _NewsBanner extends StatelessWidget {
                   ).createShader(bounds),
                   child: Text(
                     t('news.title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
+                      fontSize: LocaleController.isTamil ? 24 : 34,
                       color: Colors.white,
                       letterSpacing: 0.2,
-                      height: 1.0,
+                      height: 1.05,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   t('news.subtitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     color: Colors.white,
-                    height: 1.5,
+                    height: 1.4,
                   ),
                 ),
               ],

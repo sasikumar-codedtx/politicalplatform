@@ -67,13 +67,17 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
         title: Text(t('complaints.title'),
             style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _register,
-        backgroundColor: _kRed,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(t('complaints.register'), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-      ),
+      // The empty state already offers its own centered CTA — showing the
+      // FAB too gave citizens two "Register Complaint" buttons at once.
+      floatingActionButton: (_loading || _complaints.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _register,
+              backgroundColor: _kRed,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(t('complaints.register'), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _kRed))
           : _complaints.isEmpty

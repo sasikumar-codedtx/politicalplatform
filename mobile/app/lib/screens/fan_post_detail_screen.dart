@@ -7,6 +7,7 @@ import '../config/app_strings.dart';
 import '../models/fan_post.dart';
 import '../models/fan_comment.dart';
 import '../services/fan_post_service.dart';
+import '../services/profile_service.dart';
 import '../widgets/login_gate.dart';
 
 class FanPostDetailScreen extends StatefulWidget {
@@ -31,9 +32,12 @@ class _FanPostDetailScreenState extends State<FanPostDetailScreen> {
   String get _userId =>
       FirebaseAuth.instance.currentUser?.phoneNumber ?? 'anonymous';
 
-  String get _userName =>
-      FirebaseAuth.instance.currentUser?.phoneNumber?.replaceAll('+91', '') ??
-      'User';
+  // Prefer the citizen's saved profile name over their raw phone number.
+  String get _userName {
+    final saved = ProfileService.displayName.value;
+    if (saved.trim().isNotEmpty && saved != 'Member') return saved;
+    return FirebaseAuth.instance.currentUser?.phoneNumber?.replaceAll('+91', '') ?? 'User';
+  }
 
   @override
   void initState() {

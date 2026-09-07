@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../config/app_colors.dart';
 import '../config/app_strings.dart';
+import '../config/tn_reference_data.dart';
 import '../services/agent_service.dart';
 import '../widgets/loading_overlay.dart';
 import 'face_capture_screen.dart';
@@ -22,8 +23,8 @@ class _JoinScreenState extends State<JoinScreen> {
   final _emailCtrl = TextEditingController();
   final _mobileCtrl = TextEditingController();
   DateTime? _dob;
-  String? _gender;
-  String? _district;
+  Bilingual? _gender;
+  Bilingual? _district;
   final _pinCtrl = TextEditingController();
   final _boothCtrl = TextEditingController();
   String? _kycFileName;
@@ -38,18 +39,8 @@ class _JoinScreenState extends State<JoinScreen> {
     if (name != null) setState(() => _kycFileName = name);
   }
 
-  final _genderOptions = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
-  final _districtOptions = [
-    'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem',
-    'Tirunelveli', 'Vellore', 'Erode', 'Thoothukudi', 'Dindigul',
-    'Thanjavur', 'Tiruppur', 'Ranipet', 'Sivaganga', 'Virudhunagar',
-    'Nagapattinam', 'Cuddalore', 'Villupuram', 'Kancheepuram',
-    'Chengalpattu', 'Kallakurichi', 'Tiruvannamalai', 'Krishnagiri',
-    'Dharmapuri', 'Namakkal', 'Ariyalur', 'Perambalur', 'Karur',
-    'Nilgiris', 'Tiruvarur', 'Pudukkottai', 'Ramanathapuram',
-    'Tenkasi', 'Kanyakumari', 'Mayiladuthurai', 'Tirupathur',
-    'Chengam', 'Tirupattur',
-  ];
+  final _genderOptions = kGenderOptions;
+  final _districtOptions = kTnDistricts;
 
   @override
   void dispose() {
@@ -97,8 +88,8 @@ class _JoinScreenState extends State<JoinScreen> {
       'dob': _dob == null
           ? ''
           : '${_dob!.day.toString().padLeft(2, '0')}/${_dob!.month.toString().padLeft(2, '0')}/${_dob!.year}',
-      'gender': _gender ?? '',
-      'district': _district ?? '',
+      'gender': _gender?.en ?? '',
+      'district': _district?.en ?? '',
       'pin': _pinCtrl.text.trim(),
       'booth': _boothCtrl.text.trim(),
     });
@@ -211,7 +202,7 @@ class _JoinScreenState extends State<JoinScreen> {
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
-                                  final val = await _showPicker(context,
+                                  final val = await _showBilingualPicker(context,
                                       _genderOptions, t('join.select_gender'));
                                   if (val != null) setState(() => _gender = val);
                                 },
@@ -220,7 +211,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          _gender ?? t('join.select'),
+                                          _gender?.label ?? t('join.select'),
                                           style: _gender == null
                                               ? _placeholderStyle
                                               : _valueStyle,
@@ -249,7 +240,7 @@ class _JoinScreenState extends State<JoinScreen> {
                     const SizedBox(height: 8),
                     GestureDetector(
                       onTap: () async {
-                        final val = await _showPicker(
+                        final val = await _showBilingualPicker(
                             context, _districtOptions, t('join.select_district'));
                         if (val != null) setState(() => _district = val);
                       },
@@ -258,7 +249,7 @@ class _JoinScreenState extends State<JoinScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                _district ?? t('join.select_district'),
+                                _district?.label ?? t('join.select_district'),
                                 style: _district == null
                                     ? _placeholderStyle
                                     : _valueStyle,
@@ -422,9 +413,9 @@ class _JoinScreenState extends State<JoinScreen> {
   TextStyle get _valueStyle => GoogleFonts.plusJakartaSans(
       fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.w500);
 
-  Future<String?> _showPicker(
-      BuildContext context, List<String> options, String title) {
-    return showModalBottomSheet<String>(
+  Future<Bilingual?> _showBilingualPicker(
+      BuildContext context, List<Bilingual> options, String title) {
+    return showModalBottomSheet<Bilingual>(
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
@@ -453,7 +444,7 @@ class _JoinScreenState extends State<JoinScreen> {
               separatorBuilder: (context, index) =>
                   Divider(height: 1, color: AppColors.border),
               itemBuilder: (ctx, i) => ListTile(
-                title: Text(options[i],
+                title: Text(options[i].label,
                     style: GoogleFonts.plusJakartaSans(fontSize: 14)),
                 onTap: () => Navigator.pop(ctx, options[i]),
               ),
@@ -539,8 +530,10 @@ class _JoinHeader extends StatelessWidget {
                   ).createShader(bounds),
                   child: Text(
                     t('join.header_title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.bebasNeue(
-                      fontSize: 38,
+                      fontSize: LocaleController.isTamil ? 30 : 38,
                       color: Colors.white,
                       height: 1.05,
                       letterSpacing: 0.5,
@@ -550,6 +543,8 @@ class _JoinHeader extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   t('join.header_subtitle'),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: Colors.white70,

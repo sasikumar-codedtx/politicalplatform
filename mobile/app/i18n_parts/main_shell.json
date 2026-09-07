@@ -3,6 +3,8 @@
   "main_shell.nav_home": { "en": "Home", "ta": "முகப்பு" },
   "main_shell.nav_forum": { "en": "Forum", "ta": "மன்றம்" },
   "main_shell.nav_news": { "en": "News", "ta": "செய்திகள்" },
+  "main_shell.nav_projects": { "en": "Plans", "ta": "திட்டங்கள்" },
+  "main_shell.nav_grievance": { "en": "Grievance", "ta": "புகார்" },
   "main_shell.nav_ai": { "en": "AI", "ta": "AI" },
   "main_shell.login_with_mobile": { "en": "Login with Mobile", "ta": "கைபேசி எண்ணுடன் உள்நுழையுங்கள்" },
   "main_shell.login_required": { "en": "Login Required", "ta": "உள்நுழைவு தேவை" },
